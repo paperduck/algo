@@ -1,4 +1,7 @@
 algo
 ====
+Brief description: Linux command-line algorithmic stock trading API.
 
-Algorithmic stock trading
+Created: 2014-12-6
+
+Status: IN-PROGRESS
