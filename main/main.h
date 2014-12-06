@@ -1,7 +1,7 @@
 /*
 PURPOSE:
-- Pull in custom algorithm libraries and run them. Load each into its own thread.
-- General maintenance such as connecting to broker, database connectivity, thread management.
+- Pull in algo strategy libraries and run them. Load each into its own thread.
+- General maintenance such thread management, handling command line, memory management, etc.
 
 DATE CREATED:
 2014-12-06
