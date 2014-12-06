@@ -1,0 +1,4 @@
+algo
+====
+
+Algorithmic stock trading
