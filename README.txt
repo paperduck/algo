@@ -1,4 +1,10 @@
 algo
 ====
+BRIEF DESCRIPTION:
+Linux command-line algorithmic stock trading platform.
 
-Algorithmic stock trading
+CREATED:
+2014-12-6
+
+STATUS:
+In-progress
