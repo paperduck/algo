@@ -1,0 +1,61 @@
+# Remarks:
+#	Formatted for data from http://pitrading.com/
+#
+# Input parameters:
+#	
+#	f	Text file to pull data from
+#
+#	s	lower-case stock symbol
+#
+
+DELIMITER !
+#### DECLARE         dummy_time     VARCHAR(30);
+CREATE PROCEDURE algo.algo_proc_load_pitrading_stocks
+(
+	IN	f	VARCHAR(100)	DEFAULT '',
+	IN	s	VARCHAR(10)	DEFAULT ''
+)
+DETERMINISTIC
+BEGIN
+	DECLARE		statement		VARCHAR(300);
+	DECLARE		table_name		VARCHAR(50);
+
+	SET @table_name = CONCAT('algo_table_pitrading_stock_', s);
+	SET @statement = CONCAT('LOAD DATA INFILE ', f);
+	SET @statement = CONCAT(@statement, '');
+###
+
+	LOAD DATA INFILE '/home/user1/raid/development/algo/database_scripts/minute_data.csv'
+	INTO TABLE algo.algo_table_quote_goog
+	FIELDS TERMINATED BY ',' ENCLOSED BY ''   
+	LINES  TERMINATED BY '\r\n'         
+	IGNORE 1 LINES            
+	( @dummy_date, @dummy_time, open, high, low, close, volume )
+	SET 
+	date = '2014/01/01', 
+	time = '01:01:01'
+	;    
+END;
+!
+
+
+
+        DECLARE         correlation_table_name  VARCHAR(100)    DEFAULT ' ';
+        DECLARE         statement               VARCHAR(1000)   DEFAULT ' ';
+
+        SET @correlation_table_name = CONCAT('algo_table_correlation_', symbol_lead, '_', symbol_follow);
+
+        SET @statement = ' TABLE IF NOT EXISTS', @table_name, ' ( ' );
+        SET @statement = CONCAT(@statement, ' date      DATE, '           );
+        SET @statement = CONCAT(@statement, ' time      TIME, '           );
+        SET @statement = CONCAT(@statement, ' open      DECIMAL(11,4), '  );
+        SET @statement = CONCAT(@statement, ' high      DECIMAL(11,4), '  );
+        SET @statement = CONCAT(@statement, ' low       DECIMAL(11,4), '  );
+        SET @statement = CONCAT(@statement, ' close     DECIMAL(11,4), '  );
+        SET @statement = CONCAT(@statement, ' volume    INT UNSIGNED '    );
+        SET @statement = CONCAT(@statement, ' ); '                        );
+
+        PREPARE stmt FROM @statement;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+        #SELECT @statement;

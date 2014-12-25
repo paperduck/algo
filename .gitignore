@@ -1,3 +1,6 @@
+#swap files from vim
+*.swp
+
 # private
 priv*
 

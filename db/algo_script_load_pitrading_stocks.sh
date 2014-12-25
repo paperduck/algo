@@ -11,8 +11,11 @@
 # Remarks
 #	Destination table will be named same as file, minus the filename's extension, if any.
 
+#!/bin/bash
 
-
-for each file in directory that matches filter:
-	mysql  algo_script_load_pitrading_stock.mysql <filename_minus_extension>
-
+dir="priv_historical_data/pitrading/stocks_dvd/sp500/"
+for f in $( ls $dir );
+do
+	mysql algo_proc_load_pitrading_stocks.mysql $dir
+	# mysql  algo_proc_load_pitrading_stocks.mysql <filename_minus_extension>
+done
