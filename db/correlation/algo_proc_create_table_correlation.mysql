@@ -1,0 +1,150 @@
+# This table assumes a timeframe of a few seconds when judging the acceleration of a stock.
+#
+# Column descriptions:
+# 
+#   <n>_<n>
+#      Number of seconds during which acceleration of leading stock price is measured
+#      (underscore)
+#      Number of seconds during which acceleration of following stock price is measured
+#
+#   LAST_N_SECONDS
+#      The column 'LAST_N_SECONDS' holds a number of seconds, N. The correlation values in
+#      the rest of the columns in that row are calculated using price values during the time
+#      between now and the last N seconds. In the case that the market is closed, the 
+#      defintion of "now" should be equivalent to market close, possibly the beginning of 
+#      after-hours trading.
+#
+# read in list of all symbols 
+# for each possible pair,
+# 	use existing SQL command templates, plug in symbols
+# 	generate .mysql batch script that creates empty correlation tables
+# next
+
+delimiter //
+
+CREATE PROCEDURE algo.algo_proc_create_table_correlation(
+                IN symbol_1 VARCHAR(10),
+		IN symbol_2 VARCHAR(10)
+        )
+        DETERMINISTIC
+BEGIN
+        DECLARE         table_name      VARCHAR(100)    DEFAULT ' ';
+        DECLARE         statement       VARCHAR(1000)   DEFAULT ' ';
+
+        SET @table_name = CONCAT('algo_table_correlation_', symbol_1, '_', symbol_2);
+
+        SET @statement = 'CREATE TABLE IF NOT EXISTS ';
+        SET @statement = CONCAT(@statement, @table_name                     );
+        SET @statement = CONCAT(@statement, ' ( '                           );
+        SET @statement = CONCAT(@statement, 'last_n_seconds INT UNSIGNED, ' );
+        SET @statement = CONCAT(@statement, '3_3   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '3_4   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '3_5   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '3_6   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '3_7   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '3_8   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '3_9   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '3_10  FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '3_11  FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '3_12  FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '4_3   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '4_4   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '4_5   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '4_6   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '4_7   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '4_8   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '4_9   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '4_10  FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '4_11  FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '4_12  FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '5_3   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '5_4   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '5_5   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '5_6   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '5_7   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '5_8   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '5_9   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '5_10  FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '5_11  FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '5_12  FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '6_3   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '6_4   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '6_5   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '6_6   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '6_7   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '6_8   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '6_9   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '6_10  FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '6_11  FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '6_12  FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '7_3   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '7_4   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '7_5   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '7_6   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '7_7   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '7_8   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '7_9   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '7_10  FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '7_11  FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '7_12  FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '8_3   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '8_4   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '8_5   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '8_6   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '8_7   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '8_8   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '8_9   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '8_10  FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '8_11  FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '8_12  FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '9_3   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '9_4   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '9_5   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '9_6   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '9_7   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '9_8   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '9_9   FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '9_10  FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '9_11  FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '9_12  FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '10_3  FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '10_4  FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '10_5  FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '10_6  FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '10_7  FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '10_8  FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '10_9  FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '10_10 FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '10_11 FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '10_12 FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '11_3  FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '11_4  FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '11_5  FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '11_6  FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '11_7  FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '11_8  FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '11_9  FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '11_10 FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '11_11 FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '11_12 FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '12_3  FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '12_4  FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '12_5  FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '12_6  FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '12_7  FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '12_8  FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '12_9  FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '12_10 FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '12_11 FLOAT, '                 );
+        SET @statement = CONCAT(@statement, '12_12 FLOAT '                  );
+
+        SET @statement = CONCAT(@statement, ');'                            );
+
+        PREPARE stmt FROM @statement;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+        #SELECT @statement;
+END;
+//
+
+

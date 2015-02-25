@@ -1,0 +1,10 @@
+input arguments:
+<start date>
+<username>
+<password>
+
+reads in symbols from text list and attempts to fill every pair's correlation table with 
+correlation values dating back to <start date>
+
+
+

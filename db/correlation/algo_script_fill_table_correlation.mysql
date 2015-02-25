@@ -1,0 +1,20 @@
+#
+# Calculate and insert correlation values, from now  back to <start date>.
+#
+# Parameter List:
+#
+#   start date
+#
+#   leader symbol
+#
+#   follower symbol
+
+delimiter //
+
+# Using sample symbols: AA, GOOG
+
+# Check if correlation table already exists
+
+
+
+
