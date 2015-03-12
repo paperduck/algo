@@ -1,8 +1,23 @@
 #!/bin/bash
 
-#  If you have permissions issues, copy this
-#+ script into the directory where it will be executed.
+# PURPOSE
+#
+# This script was mainly a learning exercise.
+# This single command can be used instead:
+#	# unzip '*.zip'
 
+# DATE CREATED: 2015-03-08
+
+# LAST MODIFIED
+#
+# 2015-03-11:
+# Added comments 
+
+# REMARKS
+#
+# If you have permissions issues, copy this
+# script into the directory where it will be executed.
+#
 # crunchbang uses dash instead of sh,
 # so call this script explicity using bash:
 #	# bash script.sh .
