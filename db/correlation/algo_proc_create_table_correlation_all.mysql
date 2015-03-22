@@ -1,5 +1,0 @@
-read in list of all symbols 
-for each possible pair,
-	use existing SQL command templates, plug in symbols
-	generate .mysql batch script that creates empty correlation tables
-next

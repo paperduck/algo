@@ -1,7 +1,7 @@
 #swap files from vim
 *.swp
 
-# private
+# private anything
 priv*
 
 # Compiled Object files
