@@ -1,12 +1,12 @@
 ### Introduction
 
-Project 'algo' will be a Linux command-line engine for running stock trading algorithms.
+Project "Algo" will be a Linux command-line daemon for running and monitoring stock trading algorithms.
 
 ### STATUS:
 
-In initial design and development phase.
+In initial design and development phase. Nothing to see right now.
 
-### Goals
+### Goals & Milestones
 
 - Command-line interface for managing modular trading algorithms.
 - Each trading strategy should be implemented as a shared library that implements
@@ -31,7 +31,7 @@ investment goals.
 ### Technical Specifications
 
 Intended for Linux operating system. C++ 11 is the language of choice, with a MySQL
-backend. Scripting languages will be used as deemed appropriate, with
+backend. Scripting languages will be used as appropriate, with
 preference given to Python, Bash, and Haskell.
 
 ### Created:
