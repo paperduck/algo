@@ -1,5 +1,5 @@
 # INPUT PARAMETERS
-# 	d
+# 	dir_path
 # 		Directory that contains the CSV files.
 #	tn_pre
 #		Table name prefix. 	
@@ -10,24 +10,31 @@
 #	#> load_csv dji_ mydir/
 
 #!/bin/bash
-tn_pre=$1
-dir=$2
-tn=""
+if [ -z "$1" ]; then
+    echo 'missing directory path'
+    exit 1
+fi
+dir_path=$1
+if [ -z "$2" ]; then
+    echo 'missing table name prefix'
+    exit 1
+fi
+tn_pre=$2
+tn=''
 echo table name prefix: $tn_pre
-echo directory: $dir
-for f in $( ls ${dir}/*.txt );
+echo directory: $dir_path
+for f in $( ls ${dir_path} );
 do
-	# derive table name
-	# Extract everything from file name up to extension
-	# convert to lowecase
-	#tn = ${f%.txt} | tr [:upper:] [:lower:]
-
-	#tn=$( echo "${tn}" | tr [:upper:] [:lower:] ) # this syntax works
-
-	tn=$( echo ${f%.txt} | tr [:upper:] [:lower:] )
-	tn = "$tn_pre"_"$tn"
-	echo loading file $f into table $tn
-	# put data into database
-	echo ${mysql < call_algo_proc_test.mysql}
-	#mysql < algo_proc_load_pitrading_stocks ($dir/$f, $tn)
+    if [[ $f =~ [tT][xX][tT] ]] ; then
+        echo file: $f
+        # derive table name
+        # Extract everything from file name up to extension
+        # transform uppercase to lowercase
+        tn=$( echo ${f%.txt} | tr [:upper:] [:lower:] ) # case sensitive
+        tn=${tn_pre}_${tn}
+        echo loading file $f into table $tn
+        # put data into database
+    #	echo ${mysql < call_algo_proc_test.mysql}
+        #mysql < algo_proc_load_pitrading_stocks ($dir/$f, $tn)
+    fi
 done
