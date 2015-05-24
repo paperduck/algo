@@ -1,22 +1,19 @@
-# Purpose:
-#	Read csv file containing historical data and make a table for
-#	it in a database.
+# Synopsis:
+#   Make a table in database with given name (if DNE).
+#	Read csv file containing historical data into this table.
 #
 # Input parameters:
-#	f
-#		Text file to pull data from
-#		Full path from root, including filename.
+#	f   CSV filename, full path from root.
+#   t   Table name.
 #
 # Remarks:
 #	Formatted for data from http://pitrading.com/
-#	
-#
 
 DELIMITER !
 CREATE PROCEDURE algo.algo_proc_load_pitrading_stocks
 (
-	IN	f	VARCHAR(100)	DEFAULT '',
-	IN	s	VARCHAR(10)	DEFAULT ''
+    IN  f   VARCHAR(1000)   DEFAULT '',
+    IN  t   VARCHAR(100)    DEFAULT ''
 )
 DETERMINISTIC
 BEGIN
@@ -62,3 +59,5 @@ END;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
         #SELECT @statement;
+
+
