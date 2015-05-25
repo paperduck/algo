@@ -1,0 +1,42 @@
+# Synopsis:
+#   Create a stored program creates a table with a given name.
+#   The table will be structured to store data from a Pi
+#   Trading stock CSV file.
+#
+# Remarks:
+#   It might be cleaner to pass the table name into a bash script
+#   and execute the statement from bash.
+
+DELIMITER //
+DROP PROCEDURE IF EXISTS algo.algo_proc_create_table_stock;
+CREATE PROCEDURE algo.algo_proc_create_table_stock
+(
+	IN table_name VARCHAR(100)
+)
+DETERMINISTIC
+BEGIN
+	DECLARE statement VARCHAR(1000);
+
+    # Prepare statement (can only prepare 1 at a time)
+    SET @statement = 'CREATE TABLE IF NOT EXISTS ';
+	SET @statement = CONCAT(@statement, table_name              );
+    SET @statement = CONCAT(@statement, ' ( '                    );
+	SET @statement = CONCAT(@statement, 'date DATE'              );
+	SET @statement = CONCAT(@statement, ', time TIME'            );
+	SET @statement = CONCAT(@statement, ', open DECIMAL(11,4)'   );
+	SET @statement = CONCAT(@statement, ', high DECIMAL(11,4)'   );
+	SET @statement = CONCAT(@statement, ', low DECIMAL(11,4)'    );
+	SET @statement = CONCAT(@statement, ', close DECIMAL(11,4)'  );
+	SET @statement = CONCAT(@statement, ', volume INT UNSIGNED'  );
+	SET @statement = CONCAT(@statement, '); '                    );
+
+    #SET @statement = 'SELECT test();';
+
+    # Execute statement
+    PREPARE stmt FROM @statement;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+	#SELECT @statement;
+END //
+DELIMITER ;
+

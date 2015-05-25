@@ -16,10 +16,6 @@ CREATE PROCEDURE algo.algo_proc_load_csv
 )
 DETERMINISTIC
 BEGIN
-	DECLARE		csv_file        VARCHAR(300);
-	DECLARE		table_name      VARCHAR(50);
-
-	SET @table_name = CONCAT('algo_table_pitrading_stock_', s);
 	SET @statement = CONCAT('LOAD DATA INFILE ', f);
 	SET @statement = CONCAT(@statement, '');
 ###
@@ -37,25 +33,23 @@ BEGIN
 END;
 !
 
+    DECLARE         correlation_table_name  VARCHAR(100)    DEFAULT ' ';
+    DECLARE         statement               VARCHAR(1000)   DEFAULT ' ';
 
+    SET @correlation_table_name = CONCAT('algo_table_correlation_', symbol_lead, '_', symbol_follow);
+    SET @statement = ' TABLE IF NOT EXISTS', @table_name, ' ( ' );
+    SET @statement = CONCAT(@statement, ' date      DATE, '           );
+    SET @statement = CONCAT(@statement, ' time      TIME, '           );
+    SET @statement = CONCAT(@statement, ' open      DECIMAL(11,4), '  );
+    SET @statement = CONCAT(@statement, ' high      DECIMAL(11,4), '  );
+    SET @statement = CONCAT(@statement, ' low       DECIMAL(11,4), '  );
+    SET @statement = CONCAT(@statement, ' close     DECIMAL(11,4), '  );
+    SET @statement = CONCAT(@statement, ' volume    INT UNSIGNED '    );
+    SET @statement = CONCAT(@statement, ' ); '                        );
 
-        DECLARE         correlation_table_name  VARCHAR(100)    DEFAULT ' ';
-        DECLARE         statement               VARCHAR(1000)   DEFAULT ' ';
-
-        SET @correlation_table_name = CONCAT('algo_table_correlation_', symbol_lead, '_', symbol_follow);
-	SET @statement = ' TABLE IF NOT EXISTS', @table_name, ' ( ' );
-        SET @statement = CONCAT(@statement, ' date      DATE, '           );
-        SET @statement = CONCAT(@statement, ' time      TIME, '           );
-        SET @statement = CONCAT(@statement, ' open      DECIMAL(11,4), '  );
-        SET @statement = CONCAT(@statement, ' high      DECIMAL(11,4), '  );
-        SET @statement = CONCAT(@statement, ' low       DECIMAL(11,4), '  );
-        SET @statement = CONCAT(@statement, ' close     DECIMAL(11,4), '  );
-        SET @statement = CONCAT(@statement, ' volume    INT UNSIGNED '    );
-        SET @statement = CONCAT(@statement, ' ); '                        );
-
-        PREPARE stmt FROM @statement;
-        EXECUTE stmt;
-        DEALLOCATE PREPARE stmt;
-        #SELECT @statement;
+    PREPARE stmt FROM @statement;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+    #SELECT @statement;
 
 

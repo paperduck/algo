@@ -1,0 +1,28 @@
+# Synopsis:
+#
+# Remarks:
+#   It might be cleaner to pass the table name into a bash script
+#   and execute the statement from bash.
+
+delimiter //
+CREATE PROCEDURE algo.algo_proc_drop_table_stock(
+		IN table_name VARCHAR(100) DEFAULT ''
+	)
+	DETERMINISTIC
+BEGIN
+	DECLARE		statement	VARCHAR(1000)	DEFAULT ' ';
+
+    # Prepare statement.
+    SET @statement = 'DROP TABLE IF EXISTS ';
+    SET @statement = CONCAT(@statement, @table_name   );
+    SET @statement = CONCAT(@statement, ';'           );
+
+    # Execute statement.	
+    PREPARE stmt FROM @statement;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+END;
+#CALL algo.algo_proc_create_table_tick("GOOG");
+//
+
+

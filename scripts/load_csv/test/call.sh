@@ -5,14 +5,16 @@
 
 #!/usr/bin/bash
 
-if [ -z $1 ]; then
-    echo missing arg
+if [[ "$#" -lt 3 ]]; then
+    #echo 'missing arg(s)'
+    printf "%s\n" "ERROR: Missing arg(s)." \
+        "Usage: bash <script> <username> <pw> <arg>"
     exit 1
 fi
-arg=$1
-cmd="mysql -uuser -ppoll algo --execute=\"SELECT algo.test();\""
-echo
-echo $cmd
-echo
-command $cmd
+user=$1
+pw=$2
+arg=$3
 
+cmd='mysql -u'${user}' -p'${pw}' algo --execute="SELECT algo.test('${arg}');"'
+eval $cmd
+echo
