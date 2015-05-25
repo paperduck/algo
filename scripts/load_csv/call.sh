@@ -1,3 +1,4 @@
+###########################################################
 # INPUT PARAMETERS
 # 	dir_name    Name of directory that contains the CSV files.
 #	tn_pre      Table name prefix.
@@ -8,6 +9,16 @@
 #	'.txt' extension.
 # EXAMPLES
 #	#> load_csv dji_ mydir/
+
+###########################################################
+# Various ways to pass arguments to proc from command line:
+#
+#   $ mysql --user=your_username --execute="call stored_procedure_name()" db_name
+#   
+#   $ mysql -u your_username --password=your_password db_name <<!!
+#   call stored_procedure_name();
+#   !!
+
 
 #!/bin/bash
 

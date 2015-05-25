@@ -1,24 +1,23 @@
 # Synopsis:
-#   Make a table in database with given name (if DNE).
-#	Read csv file containing historical data into this table.
-#
-# Input parameters:
-#	f   CSV filename, full path from root.
-#   t   Table name.
+#   Create stored program that:
+#       Makes a table in database with given name (if DNE).
+#	    Reads csv file containing historical data into this table.
+#   Call the stored program.
 #
 # Remarks:
 #	Formatted for data from http://pitrading.com/
 
 DELIMITER !
-CREATE PROCEDURE algo.algo_proc_load_pitrading_stocks
+DROP PROCEDURE IF EXISTS algo.algo_proc_load_csv;
+CREATE PROCEDURE algo.algo_proc_load_csv
 (
-    IN  f   VARCHAR(1000)   DEFAULT '',
-    IN  t   VARCHAR(100)    DEFAULT ''
+    IN  f   VARCHAR(1000)   DEFAULT '',     # CSV filename w/full path
+    IN  t   VARCHAR(100)    DEFAULT ''      # table name
 )
 DETERMINISTIC
 BEGIN
-	DECLARE		statement		VARCHAR(300);
-	DECLARE		table_name		VARCHAR(50);
+	DECLARE		csv_file        VARCHAR(300);
+	DECLARE		table_name      VARCHAR(50);
 
 	SET @table_name = CONCAT('algo_table_pitrading_stock_', s);
 	SET @statement = CONCAT('LOAD DATA INFILE ', f);
@@ -36,7 +35,6 @@ BEGIN
 	time = '01:01:01'
 	;    
 END;
- 
 !
 
 
