@@ -22,7 +22,6 @@ BEGIN
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 END;
-#CALL algo.algo_proc_create_table_tick("GOOG");
 //
 
 

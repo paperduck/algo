@@ -22,16 +22,41 @@
 
 #!/bin/bash
 
+proc_drop_table(){
+    echo proc_drop_table
+}
+run_drop_table(){
+    echo run_drop_table
+}
+proc_create_table(){
+    echo proc_create_table
+}
+run_create_table(){
+    echo run_create_table
+    #cmd='mysql -u '${db_user}' -p '${db_pass}' algo -e "CALL algo_proc_create_table_stock('\'${tn}\'')"'
+}
+proc_load_csv(){
+    echo proc_load_csv
+}
+run_load_csv(){
+    echo run_load_csv
+    #cmd='mysql -u '${db_user}' -p '${db_pass}' algo --execute="CALL algo_proc_load_csv('\'${full_file_path}\'', '\'${tn}\'');"'
+}
+run_mysql(){
+    echo mysql
+}
+
 # Verify arguments
 if [[ "$#" -lt 4 ]]; then
     printf "%s\n" "missing arg(s)" \
-    "Usage: bash <script> <dir> <tn prefix> <db user> <db pw>"
+    "Usage: bash call.sh <dir> <tn prefix> <db user> <db pw>"
     exit 1
 fi
 
 dir_name=$1
 tn_pre=$2
 db_user=$3
+
 db_pass=$4
 
 pwd=$(pwd)
@@ -41,6 +66,11 @@ cmd=''
 echo table name prefix: $tn_pre
 echo directory: $dir_name
 echo
+
+proc_drop_table
+proc_create_table
+proc_load_csv
+
 for f in $( ls ${dir_name} );
 do
     if [[ $f =~ \.txt$ ]] ; then
@@ -54,26 +84,11 @@ do
         full_file_path="${pwd}/${dir_name}/$f"
         echo loading file $full_file_path into table $tn
 
-        # Call MySQL batch file to create stored program
-        cmd=''
-        echo $cmd
-        #eval $cmd
+        run_drop_table $tn
+        run_create_table $tn
+        run_load_csv $f $tn
 
-        # Call MySQL stored program to create table
-        cmd='mysql -u '${db_user}' -p '${db_pass}' algo --execute="algo_proc_create_table_stock('\'${tn}\'')"'
-        echo $cmd
-        #eval $cmd
-
-        # Call MySQL batch file to create stored program
-        cmd=''
-        echo $cmd
-        #eval $cmd
-
-        # Call MySQL stored program to load CSV data into table
-        cmd='mysql -u '${db_user}' -p '${db_pass}' algo --execute="CALL algo_proc_load_csv('\'${full_file_path}\'', '\'${tn}\'');"'
-        echo $cmd
-        #eval $cmd
-        echo '-----'
+        echo
     fi
 done
 echo done
