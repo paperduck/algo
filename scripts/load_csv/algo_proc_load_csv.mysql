@@ -1,55 +1,49 @@
+# DO NOT USE: LOAD DATA INFILE NOT SUPPORTED IN PREPARED STATEMENTS YET
+#
 # Synopsis:
 #   Create stored program that:
 #       Makes a table in database with given name (if DNE).
 #	    Reads csv file containing historical data into this table.
-#   Call the stored program.
+#
+# Arguments:
+#   - filename w/full path
+#   - table name
 #
 # Remarks:
 #	Formatted for data from http://pitrading.com/
+#   
 
 DELIMITER !
 DROP PROCEDURE IF EXISTS algo.algo_proc_load_csv;
 CREATE PROCEDURE algo.algo_proc_load_csv
 (
-    IN  f   VARCHAR(1000)   DEFAULT '',     # CSV filename w/full path
-    IN  t   VARCHAR(100)    DEFAULT ''      # table name
+    IN  f   VARCHAR(1000),     # CSV filename w/full path
+    IN  t   VARCHAR(100)       # table name
 )
 DETERMINISTIC
 BEGIN
-	SET @statement = CONCAT('LOAD DATA INFILE ', f);
-	SET @statement = CONCAT(@statement, '');
-###
-
-	LOAD DATA INFILE '/home/user1/raid/development/algo/database_scripts/minute_data.csv'
-	INTO TABLE algo.algo_table_quote_goog
-	FIELDS TERMINATED BY ',' ENCLOSED BY ''   
-	LINES  TERMINATED BY '\r\n'         
-	IGNORE 1 LINES            
-	( @dummy_date, @dummy_time, open, high, low, close, volume )
-	SET 
-	date = '2014/01/01', 
-	time = '01:01:01'
-	;    
-END;
-!
-
-    DECLARE         correlation_table_name  VARCHAR(100)    DEFAULT ' ';
-    DECLARE         statement               VARCHAR(1000)   DEFAULT ' ';
-
-    SET @correlation_table_name = CONCAT('algo_table_correlation_', symbol_lead, '_', symbol_follow);
-    SET @statement = ' TABLE IF NOT EXISTS', @table_name, ' ( ' );
-    SET @statement = CONCAT(@statement, ' date      DATE, '           );
-    SET @statement = CONCAT(@statement, ' time      TIME, '           );
-    SET @statement = CONCAT(@statement, ' open      DECIMAL(11,4), '  );
-    SET @statement = CONCAT(@statement, ' high      DECIMAL(11,4), '  );
-    SET @statement = CONCAT(@statement, ' low       DECIMAL(11,4), '  );
-    SET @statement = CONCAT(@statement, ' close     DECIMAL(11,4), '  );
-    SET @statement = CONCAT(@statement, ' volume    INT UNSIGNED '    );
-    SET @statement = CONCAT(@statement, ' ); '                        );
+	SET @statement = CONCAT('LOAD DATA INFILE \'', f, '\'');
+	SET @statement = CONCAT(@statement, ' INTO TABLE ', t);
+	SET @statement = CONCAT(@statement, ' FIELDS TERMINATED BY \',\' ENCLOSED BY \'\' ');
+	SET @statement = CONCAT(@statement, ' LINES TERMINATED BY \'\\r\\n\' ');
+	SET @statement = CONCAT(@statement, ' IGNORE 1 LINES ');
+	SET @statement = CONCAT(@statement, '( date, time, open, high, low, close, volume )');
+	SET @statement = CONCAT(@statement, ';');
 
     PREPARE stmt FROM @statement;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
-    #SELECT @statement;
 
-
+##### Transform below into a prepared statement #####
+#	LOAD DATA INFILE '/path/file.xxx'
+#	INTO TABLE algo.algo_table_quote_goog
+#   FIELDS TERMINATED BY ',' ENCLOSED BY ''   
+#   LINES  TERMINATED BY '\r\n'         
+#   IGNORE 1 LINES            
+#   ( @dummy_date, @dummy_time, open, high, low, close, volume )
+#   SET 
+#   date = '2014/01/01', 
+#   time = '01:01:01'
+#   ;    
+END;
+!

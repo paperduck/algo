@@ -1,15 +1,14 @@
 ###########################################################
 # INPUT PARAMETERS
-# 	dir_name    Name of directory that contains the CSV files.
-#	tn_pre      Table name prefix.
-#   db_user     Database username
-#   db_pass     Database password 	
+#   - Database username
+#   - Database password 	
+# 	- Name of directory that contains the CSV files.
+#	- Table name prefix.
 # REMARKS
 #	Note that the CSV files from pi trading have the a 
 #	'.txt' extension.
 # EXAMPLES
-#	#> load_csv dji_ mydir/
-
+#
 ###########################################################
 # Various ways to pass arguments to proc from command line:
 #
@@ -24,40 +23,39 @@
 
 proc_drop_table(){
     echo proc_drop_table
+    mysql -u$1 -p$2 algo < algo_proc_drop_table_stock.mysql
 }
 run_drop_table(){
     echo run_drop_table
+    mysql -u$1 -p$2 -e "CALL algo_proc_drop_table_stock('${3}');" algo
 }
 proc_create_table(){
     echo proc_create_table
+    mysql -u$1 -p$2 algo < algo_proc_create_table_stock.mysql
 }
 run_create_table(){
     echo run_create_table
-    #cmd='mysql -u '${db_user}' -p '${db_pass}' algo -e "CALL algo_proc_create_table_stock('\'${tn}\'')"'
+    mysql -u$1 -p$2 -e "CALL algo_proc_create_table_stock('${3}');" algo
 }
 proc_load_csv(){
     echo proc_load_csv
+        
 }
 run_load_csv(){
     echo run_load_csv
-    #cmd='mysql -u '${db_user}' -p '${db_pass}' algo --execute="CALL algo_proc_load_csv('\'${full_file_path}\'', '\'${tn}\'');"'
-}
-run_mysql(){
-    echo mysql
 }
 
 # Verify arguments
 if [[ "$#" -lt 4 ]]; then
     printf "%s\n" "missing arg(s)" \
-    "Usage: bash call.sh <dir> <tn prefix> <db user> <db pw>"
+    "Usage: bash call.sh <db user> <db pw> <dir> <tn prefix>"
     exit 1
 fi
 
-dir_name=$1
-tn_pre=$2
-db_user=$3
-
-db_pass=$4
+db_user=$1
+db_pass=$2
+dir_name=$3
+tn_pre=$4
 
 pwd=$(pwd)
 tn=''
@@ -67,9 +65,9 @@ echo table name prefix: $tn_pre
 echo directory: $dir_name
 echo
 
-proc_drop_table
-proc_create_table
-proc_load_csv
+proc_drop_table $db_user $db_pass
+proc_create_table $db_user $db_pass
+proc_load_csv $db_user $db_pass
 
 for f in $( ls ${dir_name} );
 do
@@ -83,11 +81,9 @@ do
         tn=${tn_pre}_${tn}
         full_file_path="${pwd}/${dir_name}/$f"
         echo loading file $full_file_path into table $tn
-
-        run_drop_table $tn
-        run_create_table $tn
-        run_load_csv $f $tn
-
+        run_drop_table $db_user $db_pass $tn
+        run_create_table $db_user $db_pass $tn
+        run_load_csv $db_user $db_pass $f $tn
         echo
     fi
 done

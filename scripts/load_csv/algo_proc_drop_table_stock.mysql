@@ -5,23 +5,25 @@
 #   and execute the statement from bash.
 
 delimiter //
-CREATE PROCEDURE algo.algo_proc_drop_table_stock(
-		IN table_name VARCHAR(100) DEFAULT ''
-	)
-	DETERMINISTIC
+DROP PROCEDURE IF EXISTS algo.algo_proc_drop_table_stock;
+CREATE PROCEDURE algo.algo_proc_drop_table_stock
+(
+	IN table_name VARCHAR(100)
+)
+DETERMINISTIC
 BEGIN
-	DECLARE		statement	VARCHAR(1000)	DEFAULT ' ';
+	DECLARE statement VARCHAR(1000);
 
     # Prepare statement.
     SET @statement = 'DROP TABLE IF EXISTS ';
-    SET @statement = CONCAT(@statement, @table_name   );
-    SET @statement = CONCAT(@statement, ';'           );
+    SET @statement = CONCAT(@statement, table_name );
+    SET @statement = CONCAT(@statement, '' );
 
     # Execute statement.	
     PREPARE stmt FROM @statement;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
-END;
-//
+END //
+DELIMITER ;
 
 

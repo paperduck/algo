@@ -30,8 +30,6 @@ BEGIN
 	SET @statement = CONCAT(@statement, ', volume INT UNSIGNED'  );
 	SET @statement = CONCAT(@statement, '); '                    );
 
-    #SET @statement = 'SELECT test();';
-
     # Execute statement
     PREPARE stmt FROM @statement;
     EXECUTE stmt;
