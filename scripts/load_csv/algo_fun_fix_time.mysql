@@ -1,0 +1,26 @@
+# Synopsis:
+#   Convert date string from MM/DD/YYYY to YYYY-MM-DD
+#
+# Remarks:
+#   
+
+delimiter //
+DROP FUNCTION IF EXISTS algo.algo_fun_fix_time;
+CREATE FUNCTION algo.algo_fun_fix_time
+(
+    old_time CHAR(4)
+)
+RETURNS CHAR(8)
+DETERMINISTIC
+BEGIN
+    IF old_time IS NULL THEN
+        RETURN NULL;
+    END IF;
+    IF CHAR_LENGTH(old_time) < 4 THEN
+        RETURN NULL;
+    END IF;
+    RETURN CONCAT( SUBSTRING(old_time, 1, 2), ':', SUBSTRING(old_time, 3, 2), ':00' );
+END //
+DELIMITER ;
+
+

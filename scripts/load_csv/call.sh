@@ -1,3 +1,5 @@
+#!/usr/bin/bash
+
 ###########################################################
 # INPUT PARAMETERS
 #   - Database username
@@ -19,7 +21,6 @@
 #   !!
 
 
-#!/bin/bash
 
 proc_drop_table(){
     echo proc_drop_table

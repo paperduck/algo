@@ -1,5 +1,12 @@
 #!/usr/bin/bash
 
+# Convert date string from MM/DD/YYYY to YYYY-MM-DD
+fix_date(){
+    old_date=$1
+    new_date=$old_date
+    echo "$new_date"
+}
+
 # Verify arguments
 if [[ "$#" -lt 4 ]]; then
     printf "%s\n" "too few arg(s)" \
@@ -17,15 +24,15 @@ echo pw: $pw
 
 mysql -u$u -p$pw -e "SELECT test();" algo
 
-# Might need to convert date from MM/DD/YYYY to YYYY-MM-DD
 # Times stored as UTC by default - server timezone affects value
-# 
 mysql -u$u -p$pw -e "LOAD DATA INFILE '$f' \
     INTO TABLE $tn \
     FIELDS TERMINATED BY ',' \
     ENCLOSED BY '' \
     LINES TERMINATED BY '\r\n' \
-    IGNORE 1 LINES \
-    ( date, time, open, high, low, close, volume ) \
+    IGNORE 1100000 LINES \
+    ( @old_date, @old_time, open, high, low, close, volume ) \
+    SET date = (SELECT algo_fun_fix_date(@old_date)), \
+    time = (SELECT algo_fun_fix_time(@old_time))
     ;" algo
 
