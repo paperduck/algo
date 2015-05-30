@@ -34,16 +34,5 @@ BEGIN
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 
-##### Transform below into a prepared statement #####
-#	LOAD DATA INFILE '/path/file.xxx'
-#	INTO TABLE algo.algo_table_quote_goog
-#   FIELDS TERMINATED BY ',' ENCLOSED BY ''   
-#   LINES  TERMINATED BY '\r\n'         
-#   IGNORE 1 LINES            
-#   ( @dummy_date, @dummy_time, open, high, low, close, volume )
-#   SET 
-#   date = '2014/01/01', 
-#   time = '01:01:01'
-#   ;    
 END;
 !

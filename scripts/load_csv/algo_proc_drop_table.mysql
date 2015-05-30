@@ -5,8 +5,8 @@
 #   and execute the statement from bash.
 
 delimiter //
-DROP PROCEDURE IF EXISTS algo.algo_proc_drop_table_stock;
-CREATE PROCEDURE algo.algo_proc_drop_table_stock
+DROP PROCEDURE IF EXISTS algo.algo_proc_drop_table;
+CREATE PROCEDURE algo.algo_proc_drop_table
 (
 	IN table_name VARCHAR(100)
 )

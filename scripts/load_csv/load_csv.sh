@@ -19,10 +19,7 @@ pw=$2
 f=$3
 tn=$4
 
-echo user: $u
-echo pw: $pw
-
-mysql -u$u -p$pw -e "SELECT test();" algo
+#mysql -u$u -p$pw -e "SELECT test();" algo
 
 # Times stored as UTC by default - server timezone affects value
 mysql -u$u -p$pw -e "LOAD DATA INFILE '$f' \
@@ -30,7 +27,6 @@ mysql -u$u -p$pw -e "LOAD DATA INFILE '$f' \
     FIELDS TERMINATED BY ',' \
     ENCLOSED BY '' \
     LINES TERMINATED BY '\r\n' \
-    IGNORE 1100000 LINES \
     ( @old_date, @old_time, open, high, low, close, volume ) \
     SET date = (SELECT algo_fun_fix_date(@old_date)), \
     time = (SELECT algo_fun_fix_time(@old_time))

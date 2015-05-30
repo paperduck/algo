@@ -8,7 +8,7 @@
 if [[ "$#" -lt 3 ]]; then
     #echo 'missing arg(s)'
     printf "%s\n" "ERROR: Missing arg(s)." \
-        "Usage: bash <script> <username> <pw> <arg>"
+        "Usage: bash call.sh <username> <pw> <arg>"
     exit 1
 fi
 user=$1
