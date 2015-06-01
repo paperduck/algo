@@ -27,6 +27,7 @@ mysql -u$u -p$pw -e "LOAD DATA INFILE '$f' \
     FIELDS TERMINATED BY ',' \
     ENCLOSED BY '' \
     LINES TERMINATED BY '\r\n' \
+    IGNORE 1 LINES \
     ( @old_date, @old_time, open, high, low, close, volume ) \
     SET date = (SELECT algo_fun_fix_date(@old_date)), \
     time = (SELECT algo_fun_fix_time(@old_time))
