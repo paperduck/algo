@@ -19,7 +19,7 @@ BEGIN
 
     # Prepare statement (can only prepare 1 at a time)
     SET @statement = 'CREATE TABLE IF NOT EXISTS ';
-	SET @statement = CONCAT(@statement, table_name              );
+	SET @statement = CONCAT(@statement, table_name               );
     SET @statement = CONCAT(@statement, ' ( '                    );
 	SET @statement = CONCAT(@statement, 'date DATE'              );
 	SET @statement = CONCAT(@statement, ', time TIME'            );
