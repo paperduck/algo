@@ -12,7 +12,7 @@ pw=$2
 f=$3
 tn=$4
 
-# Times are stored as UTC by default - server timezone affects value
+# The TIMESTAMP type is stored as UTC by default - server timezone affects value
 mysql -u$u -p$pw -e "LOAD DATA INFILE '${f}' \
     INTO TABLE ${tn} \
     FIELDS TERMINATED BY ',' \
