@@ -18,13 +18,15 @@ DROP PROCEDURE IF EXISTS algo.backtest;
 CREATE PROCEDURE algo.backtest
 (
     IN in_start_date            DATE,
-    IN in_num_trades            INT,                            
+    -- IN in_num_trades            INT,                            
+    IN in_num_days              INT,                            -- number of days to trade for (includes market closed days, i.e. weekends)
     IN in_commission            DECIMAL(12,10),                 -- no @
     IN in_tax_factor            DECIMAL(3,2),                   -- e.g. 0.75
     IN in_principal             DECIMAL(10,2),
     IN in_stop_amt              DECIMAL(10,2),
     IN in_wave_threshold_open_to_low    DECIMAL(3,2),           -- e.g. 0.1 
-    IN in_wave_threshold_open_to_close  DECIMAL(3,2)            -- e.g. 0.05 
+    IN in_wave_threshold_open_to_close  DECIMAL(3,2),           -- e.g. 0.05 
+    IN in_wave_threshold_high_to_close  DECIMAL(3,2)            -- been using 0.01
 )
 main_proc: BEGIN
     -- field variables for fetching
@@ -40,11 +42,13 @@ main_proc: BEGIN
     DECLARE open_2              DECIMAL(11,4)   DEFAULT 0;
     DECLARE open_3              DECIMAL(11,4)   DEFAULT 0;
     DECLARE cur_n               INT             DEFAULT 1;
-    DECLARE yesterday           DATE            DEFAULT NULL;   --
+    DECLARE sell_date           DATE            DEFAULT NULL;   --
+    DECLARE first_fetch_date    DATE            DEFAULT NULL;   -- first date in data set 
+    DECLARE first_fetch_time    TIME            DEFAULT NULL;   -- first time in data set 
+    -- DECLARE last_fetch_date     DATE            DEFAULT NULL;   --
     DECLARE num_trades_done     INT             DEFAULT 0;      -- no @
+    -- DECLARE num_days_past       INT             DEFAULT 0;
     DECLARE buy_price           DECIMAL(11,4)   DEFAULT -1;
-    DECLARE first_buy_date      DATE            DEFAULT NULL;
-    DECLARE first_buy_time      TIME            DEFAULT NULL;
     DECLARE buy_date            DATE            DEFAULT NULL;
     DECLARE buy_time            TIME            DEFAULT NULL;
     DECLARE sell_price          DECIMAL(11,4)   DEFAULT -1;
@@ -71,8 +75,9 @@ main_proc: BEGIN
         SELECT 'WARNING: No first row';
         LEAVE main_proc;
     END IF;
-    SET first_buy_date = cur_date;
-    SET first_buy_time = cur_time;
+    SET first_fetch_date = cur_date;
+    SET first_fetch_time = cur_time;
+    SELECT CONCAT('First fetch at ', first_fetch_date, ' ', first_fetch_time);
 
     loop_a: LOOP
         -- find entry point
@@ -81,7 +86,7 @@ main_proc: BEGIN
             -- If they are rising, buy in
             IF cur_n = 1 THEN
                 IF (cur_open - cur_low) < in_wave_threshold_open_to_low
-                    AND (cur_high - cur_close) <= 0.01
+                    AND (cur_high - cur_close) <= in_wave_threshold_high_to_close
                     AND (cur_close - cur_open) >= 0
                 THEN
                     SET open_1 = cur_open;
@@ -89,7 +94,9 @@ main_proc: BEGIN
                 END IF;
             ELSEIF cur_n = 2 THEN
                 IF (cur_open - cur_low) < in_wave_threshold_open_to_low
-                    AND (cur_high - cur_close) <= 0.01 -- zero is borderline for decreasing entry points
+                    -- zero is borderline for decreasing entry points
+                    -- results1 used 0.1
+                    AND (cur_high - cur_close) <= in_wave_threshold_high_to_close
                     -- changing open-->close from 0 to 0.10 goes from daily enter to never entering
                     AND (cur_close - cur_open) >= in_wave_threshold_open_to_close
                     AND (cur_open - open_1) > 0
@@ -100,8 +107,9 @@ main_proc: BEGIN
                     SET cur_n = 1;
                 END IF;
             END IF;
+
             -- don't buy too late in the day
-            IF cur_time > '15:30:00' THEN
+            IF cur_time > '15:50:00' THEN
                 -- Wait until next day
                 loop_e: LOOP
                     FETCH curs INTO cur_date, cur_time, cur_open, cur_high, cur_low, cur_close;
@@ -109,18 +117,24 @@ main_proc: BEGIN
                         SELECT 'No more data (4)';
                         LEAVE loop_a;
                     END IF;
-                    IF DATEDIFF(cur_date, yesterday) >= 1 THEN
+                    IF DATEDIFF(cur_date, sell_date) >= 1 THEN
                         LEAVE loop_e;
                     END IF;
-                END LOOP;
+                END LOOP; -- loop_e
             END IF;
+
             -- fetch next row
             FETCH curs INTO cur_date, cur_time, cur_open, cur_high, cur_low, cur_close;
             IF fetch_done THEN
                 SELECT 'No more data (3)';
                 LEAVE loop_a;
             END IF;
-        END LOOP;
+            SELECT CONCAT('Comparing ', cur_date, ' and ', first_fetch_date, ' (x)');
+            IF DATEDIFF(cur_date, first_fetch_date) > in_num_days THEN
+                SELECT CONCAT('Num days elapsed (', DATEDIFF(cur_date, first_fetch_date), ') exceeded threshold (', in_num_days, '). (1)');
+                LEAVE loop_a;
+            END IF;
+        END LOOP; -- loop_d
 
         -- fetch next row, which will be entered
         FETCH curs INTO cur_date, cur_time, cur_open, cur_high, cur_low, cur_close;
@@ -154,7 +168,7 @@ main_proc: BEGIN
                 SET gross_profit = gross_profit + (sell_price * num_shares);
                 SET balance = balance + (num_shares * sell_price);
                 SET balance = balance - in_commission;
-                SET yesterday = cur_date;
+                SET sell_date = cur_date;
                 LEAVE loop_b;
             END IF;
             IF (max_price_so_far - cur_low) >= in_stop_amt THEN
@@ -165,7 +179,7 @@ main_proc: BEGIN
                 SET gross_profit = gross_profit + (sell_price * num_shares);
                 SET balance = balance + (num_shares * sell_price);
                 SET balance = balance - in_commission;
-                SET yesterday = cur_date;
+                SET sell_date = cur_date;
                 LEAVE loop_b;
             END IF;
             -- Don't know if the high happens before the low,
@@ -180,12 +194,13 @@ main_proc: BEGIN
                 SET gross_profit = gross_profit + (sell_price * num_shares);
                 SET balance = balance + (num_shares * sell_price);
                 SET balance = balance - in_commission;
-                SET yesterday = cur_date;
+                SET sell_date = cur_date;
                 -- IF ABS((sell_price - buy_price)*num_shares) = 0 THEN
                 --     SELECT cur_date, ' ', cur_time, ' ', cur_open, ' ', cur_high, ' ', cur_low, ' ', cur_close;
                 -- END IF;
                 LEAVE loop_b;
             END IF;
+
             -- Fetch next row
             FETCH curs INTO cur_date, cur_time, cur_open, cur_high, cur_low, cur_close;
             IF fetch_done THEN
@@ -193,7 +208,13 @@ main_proc: BEGIN
                 SELECT CONCAT('Ended (while seeking exit) at ', cur_date);
                 LEAVE loop_a;
             END IF;
-        END LOOP;
+            SELECT CONCAT('Comparing ', cur_date, ' and ', first_fetch_date, '  (w)');
+            IF DATEDIFF(cur_date, first_fetch_date) > in_num_days THEN
+                SELECT CONCAT('Num days elapsed (', DATEDIFF(cur_date, first_fetch_date), ') exceeded threshold (', in_num_days, '). (2)');
+                LEAVE loop_a;
+            END IF;
+
+        END LOOP; -- loop_b
 
         -- Any money left?
         IF balance <= in_commission THEN
@@ -203,9 +224,9 @@ main_proc: BEGIN
 
         -- tally trades
         SET num_trades_done = num_trades_done + 1;
-        IF num_trades_done >= in_num_trades THEN
-            LEAVE loop_a;
-        END IF;
+        -- IF num_trades_done >= in_num_trades THEN
+        --     LEAVE loop_a;
+        -- END IF;
 
         -- Wait until next day
         loop_c: LOOP
@@ -214,20 +235,21 @@ main_proc: BEGIN
                 SELECT 'No more data (2)';
                 LEAVE loop_a;
             END IF;
-            IF DATEDIFF(cur_date, yesterday) >= 1 THEN
+            IF DATEDIFF(cur_date, sell_date) >= 1 THEN
                 LEAVE loop_c;
             END IF;
-        END LOOP;
+        END LOOP; -- loop_c
 
-    END LOOP;
+    END LOOP; -- loop_a
 
     -- Report
-    SELECT '';
-    SELECT CONCAT('Traded from ', first_buy_date, ' ', first_buy_time, ' to ', cur_date, ' ', cur_time);
-    SELECT CONCAT('Trading period: ', DATEDIFF(cur_date, first_buy_date), ' days, ', TIMEDIFF(cur_time, first_buy_time) );
+    SELECT CONCAT('Time period: ', first_fetch_date, ' ', first_fetch_time, ' to ', cur_date, ' ', cur_time);
+    SELECT CONCAT('           = ', DATEDIFF(cur_date, first_fetch_date), ' days, ', TIMEDIFF(cur_time, first_fetch_time) );
     SELECT CONCAT('Completed ', num_trades_done, ' round trips.');
     SELECT CONCAT('Principal: $', ROUND(in_principal, 2) );
     SELECT CONCAT('Wave threshold - open to low: ', in_wave_threshold_open_to_low);
+    SELECT CONCAT('Wave threshold - open to close: ', in_wave_threshold_open_to_close);
+    SELECT CONCAT('Wave threshold - high to close: ', in_wave_threshold_high_to_close);
     SELECT CONCAT('Trailing stop amount: ', in_stop_amt);
     SELECT CONCAT('Each Commission: $', ROUND(in_commission, 2) );
     SET commission_total = (in_commission * num_trades_done * 2);
@@ -240,6 +262,7 @@ main_proc: BEGIN
     SET balance = balance - ( gross_profit * (1 -in_tax_factor) );
     -- final balance
     SELECT CONCAT('Final Balance (Principal & P/L & Commission & Tax): $', ROUND(balance, 2) );
+    SELECT '----------------------------';
 END
 "
 mysql -u$u -p$pw algo -e "${query}"

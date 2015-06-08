@@ -4,7 +4,9 @@ Project "Algo" will be a Linux command-line daemon for running and monitoring st
 
 ### STATUS:
 
-In initial design and development phase. Nothing to see right now.
+Created scripts to load historical data CSV files into MySQL database. Loaded minute data of the S&P 500.
+
+Developing and testing backtesting scripts that run simulations using the historical data.
 
 ### Goals & Milestones
 
