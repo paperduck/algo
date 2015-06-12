@@ -1,7 +1,5 @@
 #!/usr/bin/bash
 
-# This prints out instances of a certain pattern
-
 # validate input arguments
 if [[ $# -ne 3 ]]; then
     printf "%s\n" "bash $0 <mysql username> <mysql pw> <table name>"
