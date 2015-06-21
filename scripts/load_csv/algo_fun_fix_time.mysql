@@ -1,8 +1,8 @@
 # Synopsis:
-#   Convert date string from MM/DD/YYYY to YYYY-MM-DD
-#
-# Remarks:
-#   
+#   Pi Trading times look like
+#   hhmm
+#   but MySQL needs them to look like
+#   hh:mm:ss
 
 delimiter //
 DROP FUNCTION IF EXISTS algo.algo_fun_fix_time;
