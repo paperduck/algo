@@ -20,7 +20,10 @@ CREATE PROCEDURE algo.backtest
     IN in_commission            DECIMAL(12,10),                 -- no @
     IN in_tax_factor            DECIMAL(3,2),                   -- e.g. 0.75
     IN in_principal             DECIMAL(10,2),
-    IN in_stop_amt              DECIMAL(10,2),
+    IN in_stop_pct              DECIMAL(10,2),                  -- trailing stop percent
+    -- strategy specific:
+    IN in_num_pre_swing_bars_needed INT,
+    IN in_percent_decline_trigger   FLOAT
 )
 main_proc: BEGIN
     -- field variables for fetching
@@ -39,10 +42,8 @@ main_proc: BEGIN
     DECLARE sell_date           DATE            DEFAULT NULL;   --
     DECLARE first_fetch_date    DATE            DEFAULT NULL;   -- first date in data set 
     DECLARE first_fetch_time    TIME            DEFAULT NULL;   -- first time in data set 
-    -- DECLARE last_fetch_date     DATE            DEFAULT NULL;   --
     DECLARE finding_entry_date  DATE            DEFAULT NULL;   -- 
     DECLARE num_trades_done     INT             DEFAULT 0;      -- no @
-    -- DECLARE num_days_past       INT             DEFAULT 0;
     DECLARE buy_price           DECIMAL(11,4)   DEFAULT -1;
     DECLARE buy_date            DATE            DEFAULT NULL;
     DECLARE buy_time            TIME            DEFAULT NULL;
@@ -52,6 +53,9 @@ main_proc: BEGIN
     DECLARE fetch_done          BOOL            DEFAULT FALSE;
     DECLARE gross_profit        DECIMAL(10,2)   DEFAULT 0;
     DECLARE commission_total    DECIMAL(20,10)  DEFAULT 0;
+    DECLARE stop_amt            DECIMAL(11,4)   DEFAULT 0;
+    -- strategy specific
+    DECLARE num_pre_swing_bars_so_far   INT     DEFAULT 0;
     -- cursor
     DECLARE curs CURSOR FOR SELECT date, time, open, high, low, close
         FROM $table_name
@@ -79,42 +83,28 @@ main_proc: BEGIN
         loop_find_entry: LOOP
 
             -- -------------------------------------------------------------------\
-            -- Reversal entry (going long)
-            -- Upon locating a downward trend:
-            --      + for a certain amount of time
-            --      + of a certain velocity
-            -- Wait for an upswing
-            -- Buy
+            -- Reversal - Going Long
+            -- Inputs:
+            --      + bar resolution (one minute assumed for now)
+            --      + in_num_pre_swing_bars_needed
+            --      + in_percent_decline_trigger DECIMAL
+            -- Conditions for Entry:
+            --      + (close > open) for 'in_num_pre_swing_bars_needed' bars
+            --      + followed by bar with (high - close > 'in_percent_decline_trigger')
 
-            -- assuming minute bars
-            in_num_bars_pre_swing 
-            -- not sure how to measure the downward slope.
-            --      Maybe average high and low, average high+low+open+close, something like that.
-            --      e.g. a steep down slope would be -1, a slow downward slope would be -0.5 .
-            in_maximum_slope_pre_swing
-            in_upswing_parameter???
-
-            DECLARE bars_left       INT         DEFAULT in_num_bars_pre_swing;
-
-            IF (bars_left > 0) THEN
-                IF (current bar meets downslope criteria) THEN
-                    SET bars_left = bars_left - 1;
-                ELSE
-                    -- reset
-                    SET bars_left = in_num_bars_pre_swing;
-                END IF;
-            ELSE
-                -- look for upswing
-                IF (upswing) THEN
-                    -- position can be entered
+            -- See if we can enter on the current bar
+            IF (num_pre_swing_bars_so_far >= in_num_pre_swing_bars_needed) THEN
+                IF ((cur_high - cur_close) / cur_open) > in_percent_decline_trigger THEN
+                    -- buy
                     LEAVE loop_find_entry;
                 ELSE
-                    -- no upswing, so make sure we're still maintaining the downswing
-                    IF (current bar meets downslope criteria) THEN
-                        -- pass
+                    -- can't enter; see if the uptrend is still going on
+                    IF cur_close > cur_open THEN
+                        -- uptrend still ongoing
+                        SET num_pre_swing_bars_so_far += 1;
                     ELSE
-                        -- reset
-                        SET bars_left = in_num_bars_pre_swing;
+                        -- no more uptrend; reset
+                        SET num_pre_swing_bars_so_far = 0;
                     END IF;
                 END IF;
             END IF;
