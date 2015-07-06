@@ -1,3 +1,6 @@
+#
+backtesting/public/reversal/out/
+
 #swap files from vim
 *.swp
 

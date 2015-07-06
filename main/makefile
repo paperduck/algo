@@ -8,7 +8,7 @@ all : algo
 algo : main.o
 	g++ -o algo -std=c++11  main.o
 	mv algo /tmp
-main.o : main.cpp
+main.o : main.cpp main.h
 	g++ -c -std=c++11  main.cpp
 clean :
 	rm main.o 
