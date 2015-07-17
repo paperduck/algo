@@ -2,13 +2,13 @@
 
 Project "Algo" will be a Linux command-line daemon for running and monitoring security trading algorithms.
 
-### STATUS:
+### Status
 
-- Created scripts to load historical data CSV files into MySQL database. Loaded minute data of the S&P 500.
+- June 2015: Created scripts to load historical data CSV files into MySQL database. Loaded minute data of the S&P 500.
 
-- Developing and testing backtesting scripts that run simulations using the historical data.
+- June 2015: Developed a few backtesting scripts that run simulations using historical data. 
 
-- Successfully ran "reversal" strategy simulation with various input parameters. Results are stored in text files. Thinking about storing results in MySQL for easier post-simulation analysis.
+- July 2015: Successfully ran "reversal" strategy simulation with various input parameters. Results are stored in text files, with a summary at the end of each file. Thinking about storing results in MySQL for easier post-simulation analysis.
 
 ### Goals & Milestones
 
