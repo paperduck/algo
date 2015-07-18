@@ -27,7 +27,9 @@ Use templates as a starting point when developing new backtest scripts.
 
 The bash script (e.g. `run_proc.sh`) is run on the command line, passing in simulation
 arguments like this:
-`bash run_proc.sh <un> <pw> <days> <commish> <tax 0.75> <principal>`
+
+`$ bash run_proc.sh <un> <pw> <days> <commish> <tax 0.75> <principal>`
+
 More arguments are specified in the bash script itself. To run the simulation
 with different arguments, the script may need to be edited.
 
