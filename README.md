@@ -7,7 +7,7 @@ Project "Algo" will be a Linux command-line application for running and monitori
 - July 2015
   - Successfully ran "reversal" strategy simulation with various input parameters. Results are stored in text files, with a summary at the end of each file. Thinking about storing results in MySQL for easier post-simulation analysis.
   - [algo/backtesting/public/reversal](https://github.com/paperduck/algo/tree/master/backtesting/public/reversal)
-  - Backtesting instructions can be found in the backtesting README. [(link)](https://github.com/paperduck/algo/blob/master/backtesting/public/reversal/README.md)
+  - Backtesting instructions can be found in the backtesting README. [(link)](https://github.com/paperduck/algo/blob/master/backtesting/README.md)
 - June 2015
   - Developed a few backtesting scripts that run simulations using historical data. 
 - June 2015
