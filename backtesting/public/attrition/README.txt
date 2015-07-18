@@ -1,11 +1,18 @@
-STRATEGY
+### Status
+
+Functional. 
+
+This was the first backtest script implemented, so it's very primitive.
+Mostly just a prototype.
+
+### STRATEGY
 
     - pick a stock
     - buy it
     - smallest stop loss possible
     - closest trailing stop possible
 
-VARIABLES
+### VARIABLES
 
     - start date
     - length of time period (end date)
