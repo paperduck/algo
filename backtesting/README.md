@@ -19,6 +19,7 @@
 - When trailing stop is triggered, sell at (max - stop) rather than the new (low) price.
     Maybe throw in a few over-reaches at random for realism's sake.
 - Store results in MySQL for easier post-simulation analysis.
+- Add greeks to backtest result summary
 
 
 ### Instructions (last updated 2015-07)
