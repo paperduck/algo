@@ -1,5 +1,5 @@
 ### Introduction
-
+ 
 Project "Algo" will be a Linux command-line application for running and monitoring security trading algorithms.
 
 ### Status (most recent first)
