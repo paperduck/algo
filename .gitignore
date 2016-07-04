@@ -1,5 +1,6 @@
 #
 backtesting/public/reversal/out/
+main/emailer.py
 
 #swap files from vim
 *.swp
