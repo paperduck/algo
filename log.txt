@@ -1,0 +1,17 @@
+Project: Algo
+Daily Log
+(Most recent entries go on top)
+
+
+
+
+
+2016-07-11
+-   Modified startup script (/etc/init.d/daemon_init.sh)
+    +   Added case statement to explicitly only run on system bootup
+    +   Manually removed copies of the script from /etc/rc0.d/ , /rc1.d/ , and /rc6.d/
+        This should not have been necessary if I specify the Startup-Default etc. values in the script and run
+        #update-rc.d daemon.sh defaults
+        But it works now so I will not dwell on it.
+
+
