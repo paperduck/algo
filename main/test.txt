@@ -1,0 +1,19 @@
+{
+  "accounts": [
+    {
+      "accountId": 624971,
+      "accountName": "Primary",
+      "accountCurrency": "USD",
+      "marginRate": 0.02
+    },
+    {
+      "accountId": 310232,
+      "accountName": "MT4",
+      "accountCurrency": "USD",
+      "marginRate": 0.1,
+      "accountPropertyName": [
+        "MT4"
+      ]
+    }
+  ]
+}

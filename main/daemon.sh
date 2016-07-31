@@ -22,6 +22,7 @@ Sincerely,
 
 case "$1" in
   start)
+        # send email
         python /home/user/raid/software_projects/algo/main/emailer.py "$SUBJECT" "$BODY"
         ;;
 esac
