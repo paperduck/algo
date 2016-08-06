@@ -13,17 +13,11 @@ https://api-fxtrade.oanda.com/v1/accounts | jq \
 # get spread (USD JPY)
 PRICE_USDJPY=$(\
 curl -s -H "Authorization: Bearer $AUTH" \
-"https://api-fxtrade.oanda.com/v1/prices?instruments=USD_JPY"
+"https://api-fxtrade.oanda.com/v1/prices?instruments=USD_JPY%2CGBP_USD"
 )
-BID_USDJPY=$("printf $PRICE_USDJPY | jq '.prices[0].bid'")
 
-ASK_USDJPY=$("printf $PRICE_USDJPY | jq '.prices[0].ask'")
-
-SPREAD_USDJPY=${$ASK_USDJPY - $BID_USDJPY}
-printf "\nspread:  $SPREAD_USDJPY\n"
-
-#curl -s -H "Authorization: Bearer ce4a8ac607a3dc03b5d79a8c4718d3c4-f76d1db8e2efba5ff6cfff2af172a45a" \
-#-X GET https://api-fxtrade.oanda.com/v1/accounts/$ACCOUNT_ID_PRIMARY/trades
-#printf '\n\n'
+BID_USDJPY=$(printf "$PRICE_USDJPY" | jq '.prices[0].bid')
+ASK_USDJPY=$(printf "$PRICE_USDJPY" | jq '.prices[0].ask')
+printf "BID_USDJPY:\n\n$BID_USDJPY\n\n"
 
 exit 0
