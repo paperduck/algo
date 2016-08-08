@@ -1,16 +1,20 @@
 ### Introduction
  
-Project "Algo" will be a Linux command-line application for running and monitoring security trading algorithms.
+Project "Algo" will be a Linux command-line application for running and monitoring stock/forex/option/etc. trading algorithms.
 
 ### Status (most recent first)
 
-- July 2015
+- 2016-08
+  - Implenting prototype for "50/50" algorithm that uses Oanda's API.
+  - Tech: Bash, JSON, REST.
+- 2015-07
   - Successfully ran "reversal" strategy simulation with various input parameters. Results are stored in text files, with a summary at the end of each file. Thinking about storing results in MySQL for easier post-simulation analysis.
   - [algo/backtesting/public/reversal](https://github.com/paperduck/algo/tree/master/backtesting/public/reversal)
   - Backtesting instructions can be found in the backtesting README. [(link)](https://github.com/paperduck/algo/blob/master/backtesting/README.md)
-- June 2015
-  - Developed a few backtesting scripts that run simulations using historical data. 
-- June 2015
+- 2015-06
+  - Developed a few backtesting scripts that run simulations using historical data.
+  - Tech: Bash, MySQL.
+- 2015-06
   - Created scripts to load historical data CSV files into MySQL database. Loaded minute data of the S&P 500.
 - 2014-12-6
   - Repo created
@@ -18,16 +22,11 @@ Project "Algo" will be a Linux command-line application for running and monitori
 ### End Goals
 
 - Command-line interface for managing modular trading algorithms.
-- Each trading strategy should be implemented as a shared/static library that implements
+- Each trading strategy could be implemented as a shared/static library that implements
 functionality from the core engine.
-- Each strategy should be implemented in its own library, even it uses the same broker API as another strategy.
-- Main engine will be independent of any broker API. Broker-specific code will go into each library.
-- Example abstract functions used by core engine. These would be implemented in each library.
-  - Start()
-  - Stop()
-  - GetBrokerInfo()
-  - GetAccountBalance()
-- Central engine manages things like:
+- Each strategy could be implemented in its own library, even it uses the same broker API as another strategy.
+- Main engine could be independent of any broker API. Broker-specific code will go into each library.
+- Main daemon manages things like:
   - brokerage account(s), e.g. account balance, margin 
   - risk, exposure
   - trade goals
@@ -41,7 +40,7 @@ functionality from the core engine.
 ### Technical Specifications
 
 - Intended for Linux operating system.
-- C++ latest version will be used for main application.
+- C++ latest version could be used for main application.
 - MySQL database.
 - Scripting languages will be used as appropriate, with preference given to Python, Bash, and Haskell.
 
