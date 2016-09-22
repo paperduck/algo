@@ -1,18 +1,2 @@
-Sat Aug  6 01:22:14 JST 2016
+Thu Sep 22 20:18:10 2016
 
-ACCOUNTS response OK
-ACCOUNT_ID_PRIMARY response OK
-PRIMARY_ACCOUNT response OK
-POSITIONS response OK
-
-Sat Aug  6 01:22:17 JST 2016    primary account number: 5034509
-Sat Aug  6 01:22:17 JST 2016    balance: 100000
-Sat Aug  6 01:22:17 JST 2016    num of pos's = 0
-Sat Aug  6 01:22:17 JST 2016    USD/JPY ask: 101.807
-Sat Aug  6 01:22:17 JST 2016    USD/JPY buy: 101.794
-Sat Aug  6 01:22:17 JST 2016    USD/JPY spread: 1.300
-Sat Aug  6 01:22:17 JST 2016    spread OK
-Sat Aug  6 01:22:17 JST 2016    bid ask average: 101.80050
-Sat Aug  6 01:22:17 JST 2016    SL price = 101.90
-Sat Aug  6 01:22:17 JST 2016    TP price = 101.65
-Sat Aug  6 01:22:17 JST 2016    URL = https://api-fxpractice.oanda.com/v1/accounts/5034509/orders?instrument=USD_JPY&units=33&side=sell&type=market&trailingStop=101.90&takeProfit=101.65
