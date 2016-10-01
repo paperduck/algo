@@ -9,7 +9,7 @@ URL='https://api-fxpractice.oanda.com'
 
 
 # Get account info
-ACCOUNTS=$(curl -s -H "Authorization: Bearer $AUTH" "$URL/v1/accounts")
+ACCOUNTS=$(curl -H "Authorization: Bearer $AUTH" "$URL/v1/accounts")
 # verify OK
 if [ "$(printf "$ACCOUNTS" | jq '.code')" = "null" ]
 then
@@ -18,6 +18,12 @@ else
     printf "Error (failed to get account info):\n$ACCOUNTS\n(end)\n" >> dout.txt
     exit 0
 fi
+
+### debugging ###
+printf "$ACCOUNTS"
+cat dout.txt
+exit 0
+#################
 
 # get primary account number
 ACCOUNT_ID_PRIMARY=$(\

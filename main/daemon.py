@@ -1,4 +1,4 @@
-#/usr/bin/python
+#!/usr/bin/python3
 # Python 3.4
 
 #--------------------------
@@ -6,10 +6,12 @@ import datetime
 import sys
 import urllib.request
 import urllib.error
-
+import time
+#from jq import jq
+import json
 #--------------------------
 LOG_PATH = 'dout.txt'
-PRACTICE = False
+PRACTICE = True
 
 #--------------------------
 # clear log
@@ -24,16 +26,21 @@ def write_to_log(str):
         f.write(str)
         f.close()
 
-#get authorization key
+# Get authorization key.
+# Oanda was returning a '400 Bad Request' error 4 out of 5 times
+#   until I removed the trailing '\n' from the string
+#   returned by f.readline().
 def get_auth_key():
     if PRACTICE:
         with open('/home/user/raid/documents/oanda_practice_token.txt', 'r') as f:
             auth = f.readline()
+            auth = auth.rstrip()
             f.close()
         return auth
     else:
         with open('/home/user/raid/documents/oanda_token.txt', 'r') as f:
             auth = f.readline()
+            auth = auth.rstrip()
             f.close()
         return auth
 
@@ -50,31 +57,65 @@ print (get_auth_key())
 print (get_rest_url())
 
 # get account info
-req = urllib.request.Request(get_rest_url() + '/v1/accounts', None, headers={'Authorization': 'Bearer ' + get_auth_key()})
+headers = {'Authorization': 'Bearer ' + get_auth_key(), 'Content-Type': 'application/x-www-form-urlencoded'}
+req = urllib.request.Request(get_rest_url() + '/v1/accounts', None, headers)
+"""
+print ("full url:      ", req.full_url)
+print ("URI scheme:    ", req.type)
+print ("URI authority: ", req.host)
+print ("data:          ", req.data)
+print ("headers:       ", req.header_items())
+"""
 try:
-    json_accounts = urllib.request.urlopen(req)
-    print (json_accounts.geturl())
-    print (json_accounts.info())
-    print (json_accounts.getcode())
-    print (json_accounts.read())
+    response = urllib.request.urlopen(req)
+    #print ("RESPONSE URL: ", response.geturl())
+    #print ("RESPONSE INFO:", response.info())
+    #print ("RESPONSE CODE: ", response.getcode())
+    json_accounts = response.read()
+    print ("JSON:\n", json_accounts)
 except (urllib.error.URLError):
     print ("URLError:", sys.exc_info()[0])
-    print (sys.exc_info()[1])
+    print ("EXC INFO: ", sys.exc_info()[1])
 except:
     print ("other error:", sys.exc_info()[0])
 
 
 """
-# Get account info
-ACCOUNTS=$(curl -s -H "Authorization: Bearer $AUTH" "$URL/v1/accounts")
-# verify OK
-if [ "$(printf "$ACCOUNTS" | jq '.code')" = "null" ]
-then
-    printf "ACCOUNTS response OK\n" >> dout.txt
-else
-    printf "Error (failed to get account info):\n$ACCOUNTS\n(end)\n" >> dout.txt
-    exit 0
-fi
+# 2016-09: Getting '400: Bad Request' responses 4 out of 5 times, so adding a retry loop here
+num_tries = 0
+try_limit = 100
+delay = 1   # seconds
+start = time.time()
+for i in range(0, try_limit):
+    print ("Attempt #", num_tries)
+    req = urllib.request.Request(get_rest_url() + '/v1/accounts', None, headers={'Authorization': 'Bearer ' + get_auth_key()})
+    try:
+        response = urllib.request.urlopen(req)
+        print ("RESPONSE URL: ", response.geturl())
+        print ("RESPONSE INFO:", response.info())
+        print ("RESPONSE CODE: ", response.getcode())
+        json_accounts = response.read()
+        print ("JSON:\n", json_accounts)
+        break
+    except (urllib.error.URLError):
+        print ("URLError:", sys.exc_info()[0])
+        print ("EXC INFO: ", sys.exc_info()[1])
+    except:
+        print ("other error:", sys.exc_info()[0])
+    num_tries = num_tries + 1
+    checkpoint = time.time()
+    while (checkpoint - start < delay):
+        checkpoint = time.time()
+        time.sleep(1)
+    print ("Slept for ", (checkpoint - start), " seconds.")
+    start = time.time()
+    delay = delay + 1
+"""
+
+#json_account_id_primary = json.loads(json_accounts)
+#print ("JSON ACCOUNT ID PRIMARY:\n", json_account_id_primary, "\n")
+
+"""
 
 # get primary account number
 ACCOUNT_ID_PRIMARY=$(\
