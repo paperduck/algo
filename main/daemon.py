@@ -6,7 +6,7 @@ import datetime
 import sys
 import urllib.request
 import urllib.error
-import time
+#import time
 #from jq import jq
 import json
 #--------------------------
@@ -44,104 +44,68 @@ def get_auth_key():
             f.close()
         return auth
 
+# Which REST API to use?
 def get_rest_url():
     if PRACTICE:
         return 'https://api-fxpractice.oanda.com'
     else:
         return 'https://api-fxtrade.oanda.com'
  
-#--------------------------
-clear_log()
-write_to_log( datetime.datetime.now().strftime("%c") + "\n\n" )
-print (get_auth_key())
-print (get_rest_url())
+# Decode bytes to string using UTF8.
+# Parameter `b' is assumed to have type of `bytes'.
+def btos(b):
+    return b.decode('utf_8')
 
-# get account info
-headers = {'Authorization': 'Bearer ' + get_auth_key(), 'Content-Type': 'application/x-www-form-urlencoded'}
-req = urllib.request.Request(get_rest_url() + '/v1/accounts', None, headers)
-"""
-print ("full url:      ", req.full_url)
-print ("URI scheme:    ", req.type)
-print ("URI authority: ", req.host)
-print ("data:          ", req.data)
-print ("headers:       ", req.header_items())
-"""
-try:
-    response = urllib.request.urlopen(req)
-    #print ("RESPONSE URL: ", response.geturl())
-    #print ("RESPONSE INFO:", response.info())
-    #print ("RESPONSE CODE: ", response.getcode())
-    json_accounts = response.read()
-    print ("JSON:\n", json_accounts)
-except (urllib.error.URLError):
-    print ("URLError:", sys.exc_info()[0])
-    print ("EXC INFO: ", sys.exc_info()[1])
-except:
-    print ("other error:", sys.exc_info()[0])
-
-
-"""
-# 2016-09: Getting '400: Bad Request' responses 4 out of 5 times, so adding a retry loop here
-num_tries = 0
-try_limit = 100
-delay = 1   # seconds
-start = time.time()
-for i in range(0, try_limit):
-    print ("Attempt #", num_tries)
-    req = urllib.request.Request(get_rest_url() + '/v1/accounts', None, headers={'Authorization': 'Bearer ' + get_auth_key()})
+# Helpful function for accessing Oanda's REST API
+# Returns JSON as a string, or None.
+# Prints error info to stdout.
+def fetch(in_url, in_headers=None):
+    print ("Fetching...")
+    if in_headers == None:
+        headers = {'Authorization': 'Bearer ' + get_auth_key(), 'Content-Type': 'application/x-www-form-urlencoded'}
+    else:
+        headers = in_headers
+    req = urllib.request.Request(in_url, None, headers)
     try:
         response = urllib.request.urlopen(req)
-        print ("RESPONSE URL: ", response.geturl())
-        print ("RESPONSE INFO:", response.info())
+        #print ("RESPONSE URL: ", response.geturl())
+        #print ("RESPONSE INFO:", response.info())
         print ("RESPONSE CODE: ", response.getcode())
-        json_accounts = response.read()
-        print ("JSON:\n", json_accounts)
-        break
+        response_data = btos(response.read())
+        #print ('RESPONSE:\n', response_data, '\n')
+        return response_data
     except (urllib.error.URLError):
         print ("URLError:", sys.exc_info()[0])
         print ("EXC INFO: ", sys.exc_info()[1])
+        print ("Fetch failed.")
+        return None
     except:
         print ("other error:", sys.exc_info()[0])
-    num_tries = num_tries + 1
-    checkpoint = time.time()
-    while (checkpoint - start < delay):
-        checkpoint = time.time()
-        time.sleep(1)
-    print ("Slept for ", (checkpoint - start), " seconds.")
-    start = time.time()
-    delay = delay + 1
+        print ("Fetch failed.")
+        return None
+
+# get account info
+# Returns: JSON from Oanda
+def get_accounts():
+    return fetch(get_rest_url() + '/v1/accounts', None)
+
+# Get ID of account to trade with. Return it as a string.
+def get_account_id_primary():
+    json_accounts = get_accounts()
+    if json_accounts == None:
+        return None
+    accounts = json.loads(json_accounts)
+    account_id_primary = None
+    for a in accounts['accounts']:
+        if a['accountName'] == 'Primary':
+            account_id_primary = str(a['accountId'])
+    return account_id_primary
+
+# 
+def get_account(account_id):
+    return fetch(get_rest_url() + '/v1/accounts/' + account_id, None)
+
 """
-
-#json_account_id_primary = json.loads(json_accounts)
-#print ("JSON ACCOUNT ID PRIMARY:\n", json_account_id_primary, "\n")
-
-"""
-
-# get primary account number
-ACCOUNT_ID_PRIMARY=$(\
-printf "$ACCOUNTS" | jq \
-'.accounts[] | if .accountName == "Primary" then .accountId else empty end')
-# verify OK
-if [ "$ACCOUNT_ID_PRIMARY" != "" ]
-then
-    printf "ACCOUNT_ID_PRIMARY response OK\n" >> dout.txt
-else
-    printf "Error (failed to get ID of primary account):\n($ACCOUNT_ID_PRIMARY)\n(end)\n" >> dout.txt
-    exit 0
-fi
-
-# get primary account info
-PRIMARY_ACCOUNT=$(\
-curl -s -H "Authorization: Bearer $AUTH" \
-"$URL/v1/accounts/$ACCOUNT_ID_PRIMARY")
-# verify OK
-if [ "$(printf "$PRIMARY_ACCOUNT" | jq '.code')" = "null" ]
-then
-    printf "PRIMARY_ACCOUNT response OK\n" >> dout.txt
-else
-    printf "Error (failed to get info of primary account):\n$PRIMARY_ACCOUNT\n(end)\n" >> dout.txt
-    exit 0
-fi
 
 # Get position info
 POSITIONS=$(\
@@ -222,4 +186,13 @@ fi
 exit 0
 """
 
-
+def main():
+    clear_log()
+    write_to_log( datetime.datetime.now().strftime("%c") + "\n\n" )
+    if PRACTICE:
+        print ('Using practice mode.')
+    else:
+        print ('Using live account.')
+    print ( 'Primary account:',  get_account(get_account_id_primary()) )
+ 
+main()
