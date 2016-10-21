@@ -1,12 +1,10 @@
-#
+output*
 backtesting/public/reversal/out/*
-main/emailer.py
-
-#swap files from vim
+# no need to save temporary output files
 *.swp
-
-# private anything
+#swap files from vim
 priv*
+# private anything
 
 # Compiled Object files
 *.slo

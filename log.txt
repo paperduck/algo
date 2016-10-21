@@ -1,8 +1,12 @@
 Project: Algo
-Daily Log
 (Most recent entries go on top)
 
+2016-10-21
+- Python daemon protype is working.  
+- Did some rebasing.
 
+2016-10-20
+-   Porting bash daemon to Python
 
 2016-09-22
 -   Porting bash daemon to Python
