@@ -1,4 +1,5 @@
-#!/usr/bin/python3
+# oanda.py
+# Python module for Oanda fxTrade REST API
 # Python 3.4
 
 #--------------------------
@@ -6,15 +7,15 @@ import datetime
 import sys
 import urllib.request
 import urllib.error
-import time         # for sleep()
+#import time         # for sleep()
 #from jq import jq
 import json
-#--------------------------
-# Global constants
+
+# constants
 LOG_PATH = 'output.txt'
 PRACTICE = True
 PIP_FACTORS = {'AUD_CAD':10000, 'AUD_CHF':10000, 'AUD_HKD':10000, 'AUD_JPY':100, 'USD_JPY': 100}
-#--------------------------
+
 # clear log
 def clear_log():
     with open(LOG_PATH, 'w') as f:
@@ -24,7 +25,8 @@ def clear_log():
 # append to log
 def write_to_log(*args):
     arg_list = list(args)
-    msg = ""
+    dt = datetime.datetime.now().strftime("%c")
+    msg = '\n' + dt + '    '
     for a in arg_list:
         msg = msg + str(a)  
     with open(LOG_PATH, 'a') as f:
@@ -70,7 +72,8 @@ def stob(s):
 def fetch(in_url, in_headers=None, data=None):
     write_to_log ("\nFetching...\n")
     if in_headers == None:
-        headers = {'Authorization': 'Bearer ' + get_auth_key(), 'Content-Type': 'application/x-www-form-urlencoded'}
+        headers = {'Authorization': 'Bearer ' + get_auth_key(),\
+        'Content-Type': 'application/x-www-form-urlencoded'}
     else:
         headers = in_headers
     write_to_log ('url: ', in_url)
@@ -218,26 +221,4 @@ trailingStop=None):
     data = stob(data) # convert string to bytes
     return fetch( get_rest_url() + '/v1/accounts/' + get_account_id_primary() + '/orders', None, data)
 
-
-if __name__ == "__main__":
-    clear_log()
-    write_to_log( datetime.datetime.now().strftime("%c") + "\n\n" )
-    if PRACTICE:
-        write_to_log('Using practice mode.')
-    else:
-        write_to_log('Using live account.')
-
-    while True:
-        num_of_positions = get_num_of_positions(get_account_id_primary())
-        if num_of_positions == 0:
-            # Enter a position
-            spread = round(get_spread('USD_JPY'),2)
-            if spread < 3:
-                # buy
-                cur_ask = round(get_ask('USD_JPY'),2)
-                sl = cur_ask - 0.05
-                tp = cur_ask + 0.10
-                place_order('USD_JPY', 100, 'buy', 'market', None, None, None, None, sl, tp)
-       # A little delay
-        time.sleep(1)
 

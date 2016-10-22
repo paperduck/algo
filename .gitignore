@@ -1,10 +1,13 @@
+# non-log output
 output*
-backtesting/public/reversal/out/*
 # no need to save temporary output files
-*.swp
+backtesting/public/reversal/out/*
 #swap files from vim
-priv*
+*.swp
 # private anything
+priv*
+# python
+__pycache__
 
 # Compiled Object files
 *.slo
