@@ -8,6 +8,9 @@ backtesting/public/reversal/out/*
 priv*
 # python
 __pycache__
+# backupfiles
+*.bak
+
 
 # Compiled Object files
 *.slo

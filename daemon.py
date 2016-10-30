@@ -1,4 +1,7 @@
 #!/usr/bin/python3
+
+# daemon.py
+# main function for algo daemon 
 # Python 3.4
 
 #--------------------------
@@ -11,48 +14,64 @@ import time         # for sleep()
 import json
 #--------------------------
 import oanda
-import entrance
+#import entrance #TODO use this
+import log
+import fifty
 #--------------------------
 
+# Limitations should be specified here, such as 
+#   which instruments to use
+#   number of units
+#   amount of capital to use
+# The daemon:
+#   - Manages account balance, margin, risk.  Can block trades to protect these.
+#   - Forcefully close trades as needed
 class daemon():
-    _orders = [] # list of open orders
-    _stop = False   # flag to stop running    
+    
+    def __init__(self):
+        self.orders = []        # list of open orders
+        self.stopped = False    # flag to stop running    
+        log.clear_log()
+        log.write_to_log( datetime.datetime.now().strftime("%c") + "\n\n" )
+        self.oanda_instance = oanda.oanda()
+
+        # strategies to run
+        self.strategies = []
+        self.strategies.append( fifty.fifty() )
+
 
     def start(self):
-        oanda.clear_log()
-        oanda.write_to_log( datetime.datetime.now().strftime("%c") + "\n\n" )
-        if oanda.PRACTICE: #TODO: make getter/setter
-            oanda.write_to_log('Using practice mode.')
+        self.stopped = False
+        if self.oanda_instance.practice:
+            log.write_to_log('Using practice mode.')
         else:
-            oanda.write_to_log('Using live account.')
+            log.write_to_log('Using live account.')
 
-        # Start the Entrance Scanner
-        # TODO
-
-        while True:
+        # Loop:
+        #   
+        while not self.stopped:
             if True: #TODO: check if market is open
-                num_of_positions = oanda.get_num_of_positions(oanda.get_account_id_primary())
-                if num_of_positions == 0:
-                    # Enter a position
-                    spread = round(oanda.get_spread('USD_JPY'),2)
-                    oanda.write_to_log('Spread: ', spread)
-                    if spread < 3:
-                        # buy
-                        cur_ask = round(oanda.get_ask('USD_JPY'),2)
-                        sl = cur_ask - 0.05
-                        tp = cur_ask + 0.10
-                        oanda.write_to_log('Placing order...')
-                        order_json = oanda.place_order('USD_JPY', 100, 'buy', 'market',\
-                        None, None, None, None, sl, tp)
-                        oanda.write_to_log ('Order response: ', order_json)
-            # A little delay
+
+                # Let the strategies update themselves
+                for s in self.strategies:
+                    new_opp_info = s.refresh()
+                    if not new_opp_info == None:
+                        # Place the order 
+                        log.write_to_log('in daemon.start(): entering trade')
+                        order_result = oanda.place_order( new_opp_info['opp'] )
+                        # TODO what if I forget to call callback here? Need to ensure it is called, and some failsafe.
+                        order_result_str = json.loads(order_result)
+                        order_id = order_result_str['tradeOpened']
+                        s.callback_open(order_id)
+                        
+            # check for closed orders   
+            # TODO
+
+            # limit API request frequency
             time.sleep(1)
-            self.stop()
-            if self._stop:
-                break        
 
     def stop(self):
-        self._stop = True
+        self.stopped = True
 
 
 if __name__ == "__main__":
