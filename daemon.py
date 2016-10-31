@@ -15,8 +15,9 @@ import json
 #--------------------------
 import oanda
 #import entrance #TODO use this
-import log
+import log as loggy
 import fifty
+import order
 #--------------------------
 
 # Limitations should be specified here, such as 
@@ -31,43 +32,59 @@ class daemon():
     def __init__(self):
         self.orders = []        # list of open orders
         self.stopped = False    # flag to stop running    
-        log.clear_log()
-        log.write_to_log( datetime.datetime.now().strftime("%c") + "\n\n" )
+        self.log = loggy.log(True)
+        self.log.clear()
+        self.log.write( datetime.datetime.now().strftime("%c") + "\n\n" )
         self.oanda_instance = oanda.oanda()
 
         # strategies to run
         self.strategies = []
+        self.log.write('In daemon: Appending 50/50 strategy.')
         self.strategies.append( fifty.fifty() )
 
 
     def start(self):
+        self.log.write('Daemon starting.')
         self.stopped = False
         if self.oanda_instance.practice:
-            log.write_to_log('Using practice mode.')
+            self.log.write('Using practice mode.')
         else:
-            log.write_to_log('Using live account.')
+            self.log.write('Using live account.')
 
         # Loop:
         #   
+        self.log.write('Entering main daemon loop.')
         while not self.stopped:
-            if True: #TODO: check if market is open
+            # Let the strategies update themselves
+            for s in self.strategies:
+                # See if the strategy has anything to offer
+                new_order = s.refresh()
+                if not new_order == None:
+                    
+                    # The strategy has suggested an order, so attempt to place the order.
+                    self.log.write('in daemon.start(): entering trade')
+                    order_result = self.oanda_instance.place_order( new_order )
+                    order_result_str = json.loads(order_result) #TODO put json.loads inside place_order()
 
-                # Let the strategies update themselves
-                for s in self.strategies:
-                    new_opp_info = s.refresh()
-                    if not new_opp_info == None:
-                        # Place the order 
-                        log.write_to_log('in daemon.start(): entering trade')
-                        order_result = oanda.place_order( new_opp_info['opp'] )
-                        # TODO what if I forget to call callback here? Need to ensure it is called, and some failsafe.
-                        order_result_str = json.loads(order_result)
-                        order_id = order_result_str['tradeOpened']
-                        s.callback_open(order_id)
-                        
-            # check for closed orders   
-            # TODO
+                    # TODO Check if the order failed, call the strategy's callback function 
+                    # TODO Check if market closed here
+                    order_rejected = False
+                    if order_rejected:
+                        self.log.write('daemon.py: daemon.start(): Order rejected.')
+                        continue
 
+                    # TODO what if I forget to call callback here? Need to ensure it is called, and some failsafe.
+                    # So I add the order id to the order object that was passed in. Fine as long as objects are 
+                    # passed by reference....
+                    new_order.transaction_id = order_result_str['tradeOpened']['id']
+                    s.callback( new_order )
+
+                else:
+                    # Strategy has nothing to offer at the moment.
+                    self.log.write('daemon.py: daemon.start(): Strategy "', str(s), '" placed no new orders.')
+            
             # limit API request frequency
+            self.log.write('daemon.py: start(): Sleeping.')
             time.sleep(1)
 
     def stop(self):

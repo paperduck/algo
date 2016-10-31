@@ -6,22 +6,27 @@
 
 import datetime
 
-log_path = 'output.txt'
+class log():
 
-# clear log
-def clear_log():
-    with open(log_path, 'w') as f:
-        f.write('')
-        f.close()
+    def __init__(self, in_enabled = True):
+        self.log_path = 'output.txt'
+        self.enabled = in_enabled
 
-# append to log
-def write_to_log(*args):
-    arg_list = list(args)
-    dt = datetime.datetime.now().strftime("%c")
-    msg = '\n' + dt + '    '
-    for a in arg_list:
-        msg = msg + str(a)
-    with open(log_path, 'a') as f:
-        f.write(msg)
-        f.close()
+    # clear log
+    def clear(self):
+        with open(self.log_path, 'w') as f:
+            f.write('')
+            f.close()
+
+    # append to log
+    def write(self, *args):
+        if self.enabled:
+            arg_list = list(args)
+            dt = datetime.datetime.now().strftime("%c")
+            msg = '\n' + dt + '    '
+            for a in arg_list:
+                msg = msg + str(a)
+            with open(self.log_path, 'a') as f:
+                f.write(msg)
+                f.close()
 

@@ -5,21 +5,23 @@
 
 class order():
 
-    def __init__(self, in_fav, in_ins, in_units, in_side, in_type, in_expiry, in_price,\
-    in_lower_bound, in_upper_bound, in_stop_loss, in_take_profit, in_trailing_stop):
-        self.fav = in_fav
-        self.instrument = in_ins
-        self.units = in_units
-        self.side = in_side
-        self.order_type = in_type
-        self.expiry = in_expiry
-        self.price = in_price
-        self.lowerBound = in_lower_bound
-        self.upperBound = in_upper_bound
-        self.stopLoss = str(in_stop_loss)
-        self.takeProfit = str(in_take_profit)
-        self.trailingStop = in_trailing_stop
+    def __init__(self, in_instrument, in_units, in_side, in_type, in_expiry, in_price,\
+    in_lower_bound = None, in_upper_bound = None, in_stop_loss = None,\
+    in_take_profit = None, in_trailing_stop = None, in_transaction_id = None):
+        self.instrument     = in_instrument
+        self.units          = in_units
+        self.side           = in_side
+        self.order_type     = in_type
+        self.expiry         = in_expiry
+        self.price          = in_price
+        self.lower_bound    = in_lower_bound
+        self.upper_bound    = in_upper_bound
+        self.stop_loss      = str(in_stop_loss)
+        self.take_profit    = str(in_take_profit)
+        self.trailing_stop  = in_trailing_stop
+        self.transaction_id = in_transaction_id
 
+        
 
 
 
