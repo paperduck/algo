@@ -39,7 +39,7 @@ class daemon():
 
         # strategies to run
         self.strategies = []
-        self.log.write('In daemon: Appending 50/50 strategy.')
+        self.log.write('"daemon.py" __init__(): Appending 50/50 strategy.')
         self.strategies.append( fifty.fifty() )
 
 

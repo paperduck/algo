@@ -11,8 +11,8 @@ class fifty():
     def __init__(self):
         self.oanda_instance = oanda.oanda()
         self.next_direction = 'buy'
-        self.current_order = []     # list of `order' objects
-        self.past_orders = []       # list of `order' objects
+        self.current_trades = []     # list of `order' objects?
+        self.past_trades = []       # list of `order' objects?
         self.log = loggy.log(True)
         # Fill up the list of open orders
         # TODO
@@ -25,44 +25,53 @@ class fifty():
     #   If the daemon should enter a trade, an instance of `order', otherwise
     #   None.
     def refresh(self):
-        
+        self.log.write('"fifty.py" refresh(): Entering function.')
         # If there is an open trade, then babysit it. Also check if it has closed.
         # Otherwise, look for a new opportunity to enter a position.
-        if len(self.current_order) >= 1:
+        if len(self.current_trades) >= 1:
             # First, check if trade is closed
-            for t in self.current_order:
+            for t in self.current_trades:
                 if self.oanda_instance.is_trade_closed( t.transaction_id ):
-                    # TODO If I decide to hold multiple current orders, I need to specify which 
+                    # TODO If I decide to hold multiple current trades, I need to specify which 
                     # order to pop. For now, just assume there is only one.
-                    self.past_orders.append( self.current_order.pop() )
+                    self.log.write('"fity.py" refresh(): Trade with ID ', t.transaction_id, ' closed.')
+                    self.past_trades.append( self.current_trade.pop() )
                 else:                    
                     # Trade is still active; babysit open position: adjust SL, TP, expiry, units, etc.
-                    order_info = self.oanda_instance.get_order_info( t.transaction_id )
-                    if order_info == None:
+                    self.log.write('"fifty.py" refresh(): Checking if trade with ID ', t.transaction_id,\
+                        ' should be modified.')
+                    trade_info = self.oanda_instance.get_trade_info( t.transaction_id )
+                    if trade_info == None:
                         self.log.write(\
-                            '"fifty.py" in refresh(): Failed to get order info for order ' + str(t.transaction_id)
+                            '"fifty.py" in refresh(): Failed to get trade info for trade ' + str(t.transaction_id)
                         )
-                        continue
-                    instrument = order_info['instrument']
-                    tp = order_info['take_profit']
-                    sl = order_info['stop_loss']
-                    side = order_info['side']
+                        self.log.write('"fifty.py" refresh(): Exiting program.')
+                        sys.exit()
+                    instrument = trade_info['instrument']
+                    tp = round( trade_info['takeProfit'], 2 )
+                    sl = round( trade_info['stopLoss'], 2 )
+                    side = trade_info['side']
+                    self.log.write('"fifty.py" refresh(): current trade has side = ', side)
                     if side == 'buy': # try to move sl and tp up
                         cur_bid = self.oanda_instance.get_bid( instrument )
                         if cur_bid - sl > 0.05:
+                            self.log.write('"fifty.py" refresh(): Modifying BUY trade with ID ', str(t.transaction_id) )
                             new_sl = cur_bid - 0.05
                             new_tp = cur_bid + 0.1
-                            # send modify order request
-                            resp = self.oanda_instance.modify_order(
-                                t.transaction_id, None, None, None, None, None, new_sl, new_tp, None)
+                            # send modify trade request
+                            resp = self.oanda_instance.modify_trade( t.transaction_id, new_sl, new_tp, 0)
+                            self.log.write('"fifty.py" refresh(): Trade (', t.transaction_id, ') modified.')
+                            return None
                     else: # try to move sl and tp down
                         cur_ask = self.oanda_instance.get_ask( instrument )
                         if sl - cur_ask > 0.05:
+                            self.log.write('"fifty.py" refresh(): Modifying SELL trade with ID ', str(t.transaction_id) )
                             new_sl = cur_ask + 0.05
                             new_tp = cur_bid - 0.1
                             # send
-                            resp = self.oanda_instance.modify_order(
-                                t.transaction_id, None, None, None, None, None, new_sl, new_tp, None)
+                            resp = self.oanda_instance.modify_trade( t.transaction_id, new_sl, new_tp, 0)
+                            self.log.write('"fifty.py" refresh(): Trade (', t.transaction_id, ') modified.')
+                        return None
         else:
             # No open trades, so look for opportunities to enter a trade
             spread = round(self.oanda_instance.get_spread('USD_JPY'),2)
@@ -96,7 +105,7 @@ class fifty():
     # STore the data for future analysis.
     def callback(self, placed_order):
         # The order ID is set in the daemon, before it sends back the order to here.
-        self.current_order.append( placed_order )
+        self.current_trades.append( placed_order )
 
     # Callback. Daemon calls this when a position is closed, so this strategy can log data
     # about the trade. Write profit to database, that sort of thing.
