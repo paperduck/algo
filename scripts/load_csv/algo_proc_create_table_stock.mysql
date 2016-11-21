@@ -1,5 +1,5 @@
 # Synopsis:
-#   Create a stored program creates a table with a given name.
+#   Create a stored program that creates a table with a given name.
 #   The table will be structured to store data from a Pi
 #   Trading stock CSV file.
 #

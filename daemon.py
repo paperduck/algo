@@ -6,17 +6,16 @@
 
 #--------------------------
 import datetime
-#import sys
+import json
+import sys
+import time         # for sleep()
 #import urllib.request
 #import urllib.error
-import time         # for sleep()
-#from jq import jq
-import json
 #--------------------------
-import oanda
 #import entrance #TODO use this
-import log as loggy
 import fifty
+import log as loggy
+import oanda
 import order
 #--------------------------
 
@@ -29,6 +28,7 @@ import order
 #   - Forcefully close trades as needed
 class daemon():
     
+    #
     def __init__(self):
         self.orders = []        # list of open orders
         self.stopped = False    # flag to stop running    
@@ -42,7 +42,11 @@ class daemon():
         self.log.write('"daemon.py" __init__(): Appending 50/50 strategy.')
         self.strategies.append( fifty.fifty() )
 
-
+    # 
+    def __del__(self):
+        self.stop()
+  
+    #
     def start(self):
         self.log.write('Daemon starting.')
         self.stopped = False
@@ -59,34 +63,29 @@ class daemon():
             for s in self.strategies:
                 # See if the strategy has anything to offer
                 new_order = s.refresh()
-                if not new_order == None:
-                    
+                if new_order != None:
                     # The strategy has suggested an order, so attempt to place the order.
-                    self.log.write('in daemon.start(): entering trade')
+                    #self.log.write('"daemon.py" in start(): Attempting to place order.')
                     order_result = self.oanda_instance.place_order( new_order )
-                    order_result_str = json.loads(order_result) #TODO put json.loads inside place_order()
-
                     # TODO Check if the order failed, call the strategy's callback function 
-                    # TODO Check if market closed here
-                    order_rejected = False
-                    if order_rejected:
-                        self.log.write('daemon.py: daemon.start(): Order rejected.')
-                        continue
-
-                    # TODO what if I forget to call callback here? Need to ensure it is called, and some failsafe.
-                    # So I add the order id to the order object that was passed in. Fine as long as objects are 
-                    # passed by reference....
-                    new_order.transaction_id = order_result_str['tradeOpened']['id']
-                    s.callback( new_order )
-
+                    if order_result == None:
+                        s.callback( False, new_order )
+                    else:
+                        # So I add the order id to the order object that was passed in. Fine as long as objects are 
+                        # passed by reference....
+                        #new_order.transaction_id = order_result['tradeOpened']['id']
+                        trade = order_result['tradeOpened']
+                        #self.log.write('"daemon.py" in (): Checking result of placing order:\n', trade, '\n')
+                        new_order.transaction_id = trade['id']
+                        s.callback( True, new_order )
                 else:
                     # Strategy has nothing to offer at the moment.
-                    self.log.write('daemon.py: daemon.start(): Strategy "', str(s), '" placed no new orders.')
-            
+                    #self.log.write('daemon.py: daemon.start(): Strategy "', str(s), '" placed no new orders.')
+                    pass
             # limit API request frequency
-            self.log.write('daemon.py: start(): Sleeping.')
+            #self.log.write('daemon.py: start(): Sleeping.')
             time.sleep(1)
-
+    # stop daemon; tidy up open trades
     def stop(self):
         self.stopped = True
 

@@ -30,3 +30,9 @@ class log():
                 f.write(msg)
                 f.close()
 
+    # Log info about a transaction
+    def transaction(self, trans_id):
+        # TODO: retrieve transaction info and write it to database
+        self.write('"log.py" in transaction(): Saving transaction info to database. ID: ', trans_id)
+
+

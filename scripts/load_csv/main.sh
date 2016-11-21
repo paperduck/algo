@@ -15,10 +15,10 @@
 ###########################################################
 # Various ways to pass arguments to proc from command line:
 #
-#   $ mysql --user=your_username --execute="call stored_procedure_name()" db_name
+#   $ mysql --user=<username> --execute="call <proc_name>()" <db_name>
 #   
-#   $ mysql -u your_username --password=your_password db_name <<!!
-#   call stored_procedure_name();
+#   $ mysql -u <username> --password=<password> <db_name> <<!!
+#   call <proc_name>();
 #   !!
 
 load_all(){
