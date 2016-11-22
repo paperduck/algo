@@ -5,7 +5,7 @@
 #--------------------------
 import json
 import sys
-#import time         # for sleep()
+import time                 # for sleep()
 import urllib.request
 import urllib.error
 #--------------------------
@@ -99,13 +99,9 @@ class oanda():
         except (urllib.error.URLError):
             self.log.write('"oanda.py" fetch(): URLError: ', sys.exc_info()[0])
             self.log.write('"oanda.py" fetch(): EXC INFO: ', sys.exc_info()[1])
-            #self.log.write('"oanda.py" fetch(): Exiting program.')
-            #sys.exit()
             return None
         except:
             self.log.write('"oanda.py" fetch(): other error:', sys.exc_info()[0])
-            #self.log.write('"oanda.py" fetch(): Exiting program.')
-            #sys.exit()
             return None
 
     # Get list of accounts
@@ -118,7 +114,6 @@ class oanda():
         else:
             log.write('"oanda.py" in get_accounts(): Failed to get accounts.')
             sys.exit()
-            return None
     
     # Get ID of account to trade with.
     # Returns: String
@@ -133,7 +128,6 @@ class oanda():
                         return self.account_id_primary 
             self.log.write('"oanda.py" in get_account_id_primary(): Failed to get accounts.')
             sys.exit()
-            #return None
         else: # reduce overhead
             return self.account_id_primary
 
@@ -147,7 +141,6 @@ class oanda():
         else:
             self.log.write('"oanda.py" in get_account(): Failed to get account.')
             sys.exit()
-            return None
 
     # Get list of open positions
     # Returns: dict or None 
@@ -159,7 +152,6 @@ class oanda():
         else:
             self.log.write('"oanda.py" in get_positions(): Failed to get positions.')
             sys.exit()
-            return None
 
     # Get number of positions for a give account ID
     # Returns: Number
@@ -171,7 +163,6 @@ class oanda():
         else:
             self.log.write('"oanda.py" in get_num_of_positions(): Failed to get positions.')
             sys.exit()
-            return None
 
     # Get account balance for a given account ID
     # Returns: Decimal number
@@ -183,7 +174,6 @@ class oanda():
         else:
             self.log.write('"oanda.py" in get_balance(): Failed to get account.')
             sys.exit()
-            return None
 
     # Fetch live prices for specified instruments that are available on the OANDA platform.
     # Returns: dict or None
@@ -199,7 +189,6 @@ class oanda():
         else:
             self.log.write('"oanda.py" in get_prices(): Failed to get prices.')
             sys.exit()
-            return None
 
     # Get one ask price
     # Returns: Decimal or None
@@ -213,7 +202,6 @@ class oanda():
         else:
             self.log.write('"oanda.py" in get_ask(): Failed to get prices.')
             sys.exit()
-            return None
 
     # Get one bid price
     # Returns: Decimal or None
@@ -227,7 +215,6 @@ class oanda():
         else:
             self.log.write('"oanda.py" in get_bid(): Failed to get prices.')
             sys.exit()
-            return None
 
     # Given an instrument (e.g. 'USD_JPY') and price, convert price to pips
     # Returns: decimal or None
@@ -236,7 +223,7 @@ class oanda():
         if instrument in self.pip_factors:
             return self.pip_factors[instrument] * value
         else:
-            return None
+            sys.exit()
 
     # Get spread, in pips, for given currency pairs (e.g. 'USD_JPY%2CEUR_USD')
     # Returns: dict of (<instrument>, <spread>) tuples.
@@ -251,7 +238,6 @@ class oanda():
         else:
             self.log.write('"oanda.py" in get_spreads(): Failed to get prices.')
             sys.exit()
-            return None
 
     # Get one spread value
     def get_spread(self, instrument, since=None):
@@ -262,7 +248,6 @@ class oanda():
         else:
             self.log.write('"oanda.py" in get_spread(): Failed to get spreads.')
             sys.exit()
-            return None
 
     # Buy an instrument
     # Returns: dict or None
@@ -289,11 +274,11 @@ class oanda():
         data = urllib.parse.urlencode(request_args)
         data = self.stob(data) # convert string to bytes
         result = self.fetch( self.get_rest_url() + '/v1/accounts/' + self.get_account_id_primary() + '/orders', None, data)
-        if result != None:
-            return result
-        else:
+        if result == None:
+            self.log.write('"oanda.py" place_order(): Failed to place order.')
             sys.exit()
-            return None
+        else:
+            return result
 
     # Is the market open?
     # Returns: Boolean
@@ -334,27 +319,54 @@ class oanda():
             args = args + 'ids=' & str(ids)
         trans = self.fetch(\
             self.get_rest_url() + '/v1/accounts/' + self.get_account_id_primary() + '/transactions?' + args)
-        if trans != None:
-            return trans
+        if trans == None:
+            sys.exit()
         else:
-            return None
+            return trans
 
     # Go through all transactions that have occurred since a given order, and see if any of those
     # transactions have closed or canceled the order.
     # Returns: Boolean or None
     def is_trade_closed(self, transaction_id):
         #self.log.write('"oanda.py" is_trade_closed(): Entering.')
-        trans = self.get_transaction_history(None, transaction_id)
-        if trans == None:
-            self.log.write('"oanda.py" is_trade_closed(): Failed to get transaction history.')
-            sys.exit()
-        else:
-            for t in trans['transactions']:
-                if t['type'] in ['TRADE_CLOSE', 'MIGRATE_TRADE_CLOSE', 'STOP_LOSS_FILLED', 'TAKE_PROFIT_FILLED', \
-                'TRAILING_STOP_FILLED', 'MARGIN_CLOSEOUT']:
-                    if t['tradeId'] == transaction_id:
-                        return True
-            return False
+        # add a delay to allow time for the transaction history to be updated. 
+        num_attempts = 2
+        while num_attempts > 0:
+            self.log.write('"oanda.py" is_trade_closed(): Remaining attempts: ', str(num_attempts))
+            trans = self.get_transaction_history(None, transaction_id)
+            if trans == None:
+                self.log.write('"oanda.py" is_trade_closed(): Failed to get transaction history.')
+                sys.exit()
+            else:
+                for t in trans['transactions']:
+                    if t['type'] == 'TRADE_CLOSE':
+                        if t['tradeId'] == transaction_id:
+                            self.log.write('"oanda.py" is_trade_closed(): TRADE_CLOSE')
+                            return True
+                    if t['type'] == 'MIGRATE_TRADE_CLOSE':
+                        if t['tradeId'] == transaction_id:
+                            self.log.write('"oanda.py" is_trade_closed(): MIGRATE_TRADE_CLOSED')
+                            return True
+                    if t['type'] == 'STOP_LOSS_FILLED':
+                        if t['tradeId'] == transaction_id:
+                            self.log.write('"oanda.py" is_trade_closed(): STOP_LOSS_FILLED')
+                            return True
+                    if t['type'] == 'TAKE_PROFIT_FILLED':
+                        if t['tradeId'] == transaction_id:
+                            self.log.write('"oanda.py" is_trade_closed(): TAKE_PROFIT_FILLED')
+                            return True
+                    if t['type'] == 'TRAILING_STOP_FILLED':
+                        if t['tradeId'] == transaction_id:
+                            self.log.write('"oanda.py" is_trade_closed(): TRAILING_STOP_FILLED')
+                            return True
+                    if t['type'] == 'MARGIN_CLOSEOUT':
+                        if t['tradeId'] == transaction_id:
+                            self.log.write('"oanda.py" is_trade_closed(): MARGIN_CLOSEOUT')
+                            return True
+            num_attempts = num_attempts - 1
+            time.sleep(1)
+        self.log.write('"oanda.py" is_trade_closed(): Unable to locate trade. Assuming trade is still open.')
+        return False
 
     # Get trade info
     # Returns: dict or None
@@ -380,7 +392,6 @@ class oanda():
         else:
             self.log.write('"oanda.py" in get_order_info(): Failed to get order info.')
             sys.exit()
-            return None
         
     # Modify an existing order
     # Returns: dict or None
@@ -416,7 +427,6 @@ class oanda():
         else:
             log.write('"oanda.py" in modify_order(): Failed to modify order.')
             sys.exit()
-            return None
 
     # Modify an existing trade
     # Returns: dict or None
@@ -438,7 +448,6 @@ class oanda():
             return response
         else:
             self.log.write('"oanda.py" in modify_trade(): Failed to modify trade.')
-            sys.exit()
             return None
 
 

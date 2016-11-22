@@ -70,12 +70,10 @@ class daemon():
                     # TODO Check if the order failed, call the strategy's callback function 
                     if order_result == None:
                         s.callback( False, new_order )
+                        self.log.write('"daemon.py" start(): Failed to place order.')
                     else:
-                        # So I add the order id to the order object that was passed in. Fine as long as objects are 
-                        # passed by reference....
                         #new_order.transaction_id = order_result['tradeOpened']['id']
                         trade = order_result['tradeOpened']
-                        #self.log.write('"daemon.py" in (): Checking result of placing order:\n', trade, '\n')
                         new_order.transaction_id = trade['id']
                         s.callback( True, new_order )
                 else:

@@ -24,6 +24,7 @@ class fifty():
         return '50/50'
 
     # Returns: Bool or (None on failure)
+    # TODO: A similar function is going to be called in any strategy, so put this in oanda.py.
     def check_trade_closed(self, transaction_id):
         # TODO If I decide to hold multiple current trades, I need to specify which 
         # order to pop. For now, just assume there is only one.
@@ -71,7 +72,7 @@ class fifty():
                                 #self.log.write('"fifty.py" refresh(): Modifying BUY trade with ID: '\
                                     #,str(t.transaction_id), '...')
                                 new_sl = cur_bid - 0.05
-                                new_tp = cur_bid + 0.1
+                                new_tp = cur_bid + 0.2
                                 # send modify trade request
                                 resp = self.oanda_instance.modify_trade(t.transaction_id, new_sl, new_tp, 0)
                                 if resp == None:
@@ -94,7 +95,7 @@ class fifty():
                             if sl - cur_ask > 0.05:
                                 #self.log.write('"fifty.py" refresh(): Modifying SELL trade with ID ', str(t.transaction_id) )
                                 new_sl = cur_ask + 0.05
-                                new_tp = cur_ask - 0.1
+                                new_tp = cur_ask - 0.2
                                 # send modify trade request
                                 resp = self.oanda_instance.modify_trade( t.transaction_id, new_sl, new_tp, 0)
                                 if resp == None:
@@ -126,7 +127,7 @@ class fifty():
                         if cur_bid_raw != None:
                             cur_bid = round(cur_bid_raw, 2)
                             sl = cur_bid - 0.05
-                            tp = cur_bid + 0.1
+                            tp = cur_bid + 0.2
                         else:
                             self.log.write('"fifty.py" in refresh(): Failed to get bid.')
                             sys.exit()
@@ -137,11 +138,10 @@ class fifty():
                         if cur_ask_raw != None:
                             cur_ask = round(cur_ask_raw, 2)
                             sl = cur_ask + 0.05
-                            tp = cur_ask - 0.1
+                            tp = cur_ask - 0.2
                         else:
                             self.log.write('"fifty.py" in refresh(): Failed to get ask.') 
                             sys.exit()
-                            return None
                     # Prepare the order.
                     opp = order.order('USD_JPY', '100', self.next_direction, 'market', None, None, None, None, sl, tp, None)
                     # switch direction for next time
