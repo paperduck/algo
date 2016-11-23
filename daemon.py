@@ -14,9 +14,10 @@ import time         # for sleep()
 #--------------------------
 #import entrance #TODO use this
 import fifty
-import log as loggy
-import oanda
+from log import log
+from oanda import oanda
 import order
+import trade
 #--------------------------
 
 # Limitations should be specified here, such as 
@@ -32,15 +33,23 @@ class daemon():
     def __init__(self):
         self.orders = []        # list of open orders
         self.stopped = False    # flag to stop running    
-        self.log = loggy.log(True)
-        self.log.clear()
-        self.log.write( datetime.datetime.now().strftime("%c") + "\n\n" )
-        self.oanda_instance = oanda.oanda()
+        log.clear()
+        log.write( datetime.datetime.now().strftime("%c") + "\n\n" )
+
+        # Read in existing trades
+        self.preexisting_trades = []
+        trades = oanda.get_trades()
+        if trades == None:
+            log.write('"daemon.py" __init__(): Failed to get list of trades. ABORTING')
+            sys.exit()
+        else:
+            for t in trades['trades']:
+                self.preexisting_trades.append( trade.trade( t['id'], t['instrument'] ) )
 
         # strategies to run
         self.strategies = []
-        self.log.write('"daemon.py" __init__(): Appending 50/50 strategy.')
-        self.strategies.append( fifty.fifty() )
+        log.write('"daemon.py" __init__(): Appending 50/50 strategy.')
+        self.strategies.append( fifty.fifty( self.preexisting_trades ) )
 
     # 
     def __del__(self):
@@ -48,16 +57,15 @@ class daemon():
   
     #
     def start(self):
-        self.log.write('Daemon starting.')
+        log.write('Daemon starting.')
         self.stopped = False
-        if self.oanda_instance.practice:
-            self.log.write('Using practice mode.')
+        if oanda.is_practice():
+            log.write('Using practice mode.')
         else:
-            self.log.write('Using live account.')
+            log.write('Using live account.')
 
         # Loop:
-        #   
-        self.log.write('Entering main daemon loop.')
+        log.write('Entering main daemon loop.')
         while not self.stopped:
             # Let the strategies update themselves
             for s in self.strategies:
@@ -65,23 +73,25 @@ class daemon():
                 new_order = s.refresh()
                 if new_order != None:
                     # The strategy has suggested an order, so attempt to place the order.
-                    #self.log.write('"daemon.py" in start(): Attempting to place order.')
-                    order_result = self.oanda_instance.place_order( new_order )
+                    #log.write('"daemon.py" in start(): Attempting to place order.')
+                    order_result = oanda.place_order( new_order )
                     # TODO Check if the order failed, call the strategy's callback function 
                     if order_result == None:
                         s.callback( False, new_order )
-                        self.log.write('"daemon.py" start(): Failed to place order.')
+                        log.write('"daemon.py" start(): Failed to place order.')
                     else:
                         #new_order.transaction_id = order_result['tradeOpened']['id']
                         trade = order_result['tradeOpened']
+                        # TODO: If I place a trade that reduces another trade to closing, then I get a 
+                        # 200 Code and information about the trade that closed (no trade opened!)
                         new_order.transaction_id = trade['id']
                         s.callback( True, new_order )
                 else:
                     # Strategy has nothing to offer at the moment.
-                    #self.log.write('daemon.py: daemon.start(): Strategy "', str(s), '" placed no new orders.')
+                    #log.write('daemon.py: daemon.start(): Strategy "', str(s), '" placed no new orders.')
                     pass
             # limit API request frequency
-            #self.log.write('daemon.py: start(): Sleeping.')
+            #log.write('daemon.py: start(): Sleeping.')
             time.sleep(1)
     # stop daemon; tidy up open trades
     def stop(self):
