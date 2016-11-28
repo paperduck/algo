@@ -3,6 +3,9 @@
 # fifty.py
 # Fifty-fifty strategy
 # Python 3.4
+# Description: "50/50 Chance" strategy.
+#   The idea is that if you blindly pick an instrument, there is a 50/50 chance it will go up or down.
+#   This strategy starts with that probability then minimizes loss and lets winners ride. 
 
 #*************************************
 import sys # sys.exit()                        
@@ -44,7 +47,8 @@ class fifty( strategy ):
             if closed:
                 log.write('"fifty.py" refresh(): Trade with ID ', transaction_id, ' closed.')
                 self.closed_trades.append( self.open_trades.pop() )
-                log.transaction( transaction_id )
+                log.transaction( transaction_id ) # this in particular needs to go in oanda.py so 
+                # I don't forget to add it to each strategy.
             return closed
         
     # Look at current price and past prices and determine whether there is an opportunity or not.
@@ -76,11 +80,11 @@ class fifty( strategy ):
                     if side == 'buy': # BUY
                         cur_bid = oanda.get_bid( instrument )
                         if cur_bid != None:
-                            if cur_bid - sl > 0.05:
+                            if tp - cur_bid < 0.02:
                                 #log.write('"fifty.py" refresh(): Modifying BUY trade with ID: '\
                                     #,str(t.transaction_id), '...')
-                                new_sl = cur_bid - 0.05
-                                new_tp = 0 #cur_bid + 0.2
+                                new_sl = cur_bid - 0.02
+                                new_tp = tp + 0.05
                                 # send modify trade request
                                 resp = oanda.modify_trade(t.transaction_id, new_sl, new_tp, 0)
                                 if resp == None:
@@ -100,10 +104,10 @@ class fifty( strategy ):
                     else: # SELL
                         cur_ask = oanda.get_ask( instrument )
                         if cur_ask != None:
-                            if sl - cur_ask > 0.05:
+                            if cur_ask - tp < 0.02:
                                 #log.write('"fifty.py" refresh(): Modifying SELL trade with ID ', str(t.transaction_id) )
-                                new_sl = cur_ask + 0.05
-                                new_tp = 0 # cur_ask - 0.2
+                                new_sl = cur_ask + 0.02
+                                new_tp = tp - 0.05
                                 # send modify trade request
                                 resp = oanda.modify_trade( t.transaction_id, new_sl, new_tp, 0)
                                 if resp == None:
@@ -131,22 +135,22 @@ class fifty( strategy ):
                 log.write('"fifty.py" in refresh(): Spread =  ', spread)
                 if spread < 3: # return this opportunity
                     if self.next_direction == 'buy':
-                        cur_bid_raw = oanda.get_bid('USD_JPY')
-                        if cur_bid_raw != None:
-                            cur_bid = round(cur_bid_raw, 2)
-                            sl = cur_bid - 0.05
-                            tp = cur_bid + 0.09
+                        cur_ask_raw = oanda.get_ask('USD_JPY')
+                        if cur_ask_raw != None:
+                            cur_ask = round(cur_ask_raw, 2)
+                            sl = cur_ask - 0.1
+                            tp = cur_ask + 0.1
                         else:
                             log.write('"fifty.py" in refresh(): Failed to get bid.')
                             sys.exit()
                             return None 
                     else: # sell
                         self.next_direction = 'sell'
-                        cur_ask_raw = oanda.get_ask('USD_JPY')
-                        if cur_ask_raw != None:
-                            cur_ask = round(cur_ask_raw, 2)
-                            sl = cur_ask + 0.05
-                            tp = cur_ask - 0.09
+                        cur_bid_raw = oanda.get_bid('USD_JPY')
+                        if cur_bid_raw != None:
+                            cur_bid = round(cur_bid_raw, 2)
+                            sl = cur_bid + 0.1
+                            tp = cur_bid - 0.1
                         else:
                             log.write('"fifty.py" in refresh(): Failed to get ask.') 
                             sys.exit()
@@ -168,5 +172,7 @@ class fifty( strategy ):
             log.write('"fifty.py" in callback(): Trade opened. ID: ', new_order.transaction_id)
             self.open_trades.append( new_order )
         else:
-            log.write('"fifty.py" in callback(): Trade failed to open. ID: ', new_order.transaction_id)
+            log.write('"fifty.py" in callback(): Failed to open trade with Order ID: ', new_order.transaction_id,\
+                '. ABORTING.')
+            sys.exit()
         

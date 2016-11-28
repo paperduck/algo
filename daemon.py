@@ -92,7 +92,7 @@ class daemon():
                     pass
             # limit API request frequency
             #log.write('daemon.py: start(): Sleeping.')
-            time.sleep(1)
+            #time.sleep(1)
     # stop daemon; tidy up open trades
     def stop(self):
         self.stopped = True
