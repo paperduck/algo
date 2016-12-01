@@ -3,6 +3,12 @@
 # File          log.py
 # Python ver.   3.4
 # Description   For logging output
+# How to use
+#   Import the class from the module and call the static (class) methods.
+#   The log file is specified in the config file.
+# Remarks
+#   Theoretically, important stuff will be saved in the database, not a log file.
+#   So everything shares the same log file because it's not too important to have separate log files.
 
 import configparser
 import datetime

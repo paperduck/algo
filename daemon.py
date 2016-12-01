@@ -31,7 +31,6 @@ class daemon():
     
     #
     def __init__(self):
-        self.orders = []        # list of open orders
         self.stopped = False    # flag to stop running    
         log.clear()
         log.write( datetime.datetime.now().strftime("%c") + "\n\n" )
@@ -46,14 +45,15 @@ class daemon():
             for t in trades['trades']:
                 self.preexisting_trades.append( trade.trade( t['id'], t['instrument'] ) )
 
-        # strategies to run
+        # strategies to run. Change the '.append' lines to whatever strategies to run.
         self.strategies = []
         log.write('"daemon.py" __init__(): Appending 50/50 strategy.')
-        self.strategies.append( fifty.fifty( self.preexisting_trades ) )
+        self.strategies.append( fifty.fifty( self.preexisting_trades ) ) 
 
     # 
     def __del__(self):
-        self.stop()
+        #self.stop() TODO: too late for this?
+        pass
   
     #
     def start(self):
