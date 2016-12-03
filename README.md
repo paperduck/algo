@@ -1,18 +1,25 @@
-Algorithmic Trading Daemon ("algo")
+#Algorithmic Trading Daemon ("algo")
 
-There are two pieces to this project; the trading daemon and backtesting.
+There are three pieces to this project, as with any algorithmic trading: backtesting, forward testing, and live trading.
 
-# Daemon
-- Currently the trading daemon exists as a Python script `daemon.py`.
+## Backtesting
+- Backtesting will consist of a MySQL database with historical data. The daemon iterates through the historical data to simulate live trading.
+- The backtesting modules will use a strategy module as it is, so that strategy modules are blind to whether they are being used for backtesting or live trading. This eliminates the need to re-write strategy code for backtesting versus live trading.
+
+## Forward Testing
+- Same as live trading, except fake money is used.
+- The "practice" variable in the config file is toggled to `True`.
+
+## Live Trading
+- The main program is referred to as a "daemon", and exists in `daemon.py`.
+- Run it like this: `# python3 daemon.py`.
 - This utilizes a custom-built API (`oanda.py`), which in turn uses Oanda's REST API. Oanda is the Forex dealer I use. 
 - Each strategy gets its own module, for example the `fifty.py` strategy module encapsulates one simple strategy.
 
-# Backtesting
-- Backtesting will consist of a MySQL database with historical data and the `backtesting.py` module that iterates through the historical data and simulates live trading.
-- The backtesting module will use a strategy module the same way the daemon uses the strategy module, so that strategy modules are blind to whether they are being used for backtesting or live trading. This eliminates the need to re-write strategy code for backtesting versus live trading.
-
-# Platform Design
+## Platform Design
 - Everything is designed with scalability and modularity in mind.
-- Once a strategy module passes backtesting, the file can be moved from the backtesting directory into the daemon directory, with only trivial changes to the code.
-- The daemon is designed such that it can handle any number of strategies at any given time.
+- Strategy modules can be used or not used arbitrarily, with only trivial changes to the daemon.
+- Strategy modules can be used for backtesting, forward testing, and live trading with only trivial changes to the strategy module.
+- The daemon is designed such that it can handle  number of strategies at any given time.
+
 
