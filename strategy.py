@@ -6,7 +6,6 @@
 
 class strategy():
 
-    def __init__(self, in_preexisting_trades):
-        self.preexisting_trades = in_preexisting_trades
-
+    def __init__(self):
+        self.name = None
     

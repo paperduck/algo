@@ -14,6 +14,7 @@ import urllib.request
 import urllib.error
 import zlib
 #--------------------------
+from currency_pair_conversions import *
 from log import log
 import order
 #--------------------------
@@ -25,20 +26,7 @@ class oanda():
         practice = True
     else:
         practice = False
-    pip_factors = {\
-        'AUD_CAD':10000,\
-        'AUD_CHF':10000,\
-        'AUD_HKD':10000,\
-        'AUD_JPY':100,\
-        'AUD_USD':10000,\
-        'EUR_USD':10000,\
-        'GBP_JPY':100,
-        'GBP_USD':10000,\
-        'NZD_USD':10000,\
-        'USD_CAD':10000,\
-        'USD_CHF':10000,\
-        'USD_JPY':100,
-        }
+
     account_id_primary = 0
 
     #
@@ -271,16 +259,6 @@ class oanda():
             log.write('"oanda.py" get_bid(): Failed to get prices.')
             sys.exit()
 
-    # Given an instrument (e.g. 'USD_JPY') and price, convert price to pips
-    # Returns: decimal or None
-    @classmethod
-    def to_pips(cls, instrument, value):
-        #log.write('"oanda.py" to_pips(): Entering.')
-        if instrument in cls.pip_factors:
-            return cls.pip_factors[instrument] * value
-        else:
-            sys.exit()
-
     # Get spread, in pips, for given currency pairs (e.g. 'USD_JPY%2CEUR_USD')
     # Returns: dict of (<instrument>, <spread>) tuples.
     @classmethod
@@ -290,7 +268,7 @@ class oanda():
         if prices != None:
             spreads = {}
             for p in prices['prices']:
-                spreads[p['instrument']] = cls.to_pips( p['instrument'], (p['ask'] - p['bid']) )
+                spreads[p['instrument']] = price_to_pips( p['instrument'], (p['ask'] - p['bid']) )
             return spreads
         else:
             log.write('"oanda.py" get_spreads(): Failed to get prices.')

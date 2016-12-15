@@ -4,32 +4,24 @@
 # Fifty-fifty strategy
 # Python 3.4
 # Description: "50/50 Chance" strategy.
-#   The idea is that if you blindly pick an instrument, there is a 50/50 chance it will go up or down.
-#   This strategy starts with that probability then minimizes loss and lets winners ride. 
+
 
 #*************************************
 import sys # sys.exit()                        
 #*************************************
 from log import log
 from oanda import oanda
-import order
+from order import order
+from opportunity import opportunity
 from strategy import strategy
 import trade
 #*************************************
 
 class fifty( strategy ):
 
-    def __init__(self, in_preexisting_trades):
+    def __init__(self):
         self.next_direction = 'buy'
-        self.open_trades = []     # list of `trade' objects?
-        self.closed_trades = []       # list of `trade' objects?
-        # Fill up the list of open orders TODO
-        for t in in_preexisting_trades:
-            # Query db for the trade opened by this strategy.
-            my_open_trades = []
-            for t in my_open_trades:
-                print( '"fifty.py" __init__(): pre-existing trade ID: ', t.trade_id )
-                #self.open_trades.append( trade( xxx ) )
+        self.name = "fifty"
 
     def __str__(self):
         return '50/50'
@@ -56,7 +48,6 @@ class fifty( strategy ):
     #   If the daemon should enter a trade, an instance of `order', otherwise
     #   None.
     def refresh(self):
-        #log.write('"fifty.py" refresh(): Entering function.')
         # If there is an open trade, then babysit it. Also check if it has closed.
         # Otherwise, look for a new opportunity to enter a position.
         if len(self.open_trades) >= 1:
@@ -132,7 +123,6 @@ class fifty( strategy ):
                 return None
             else:
                 spread = round(spread_, 2)
-                log.write('"fifty.py" in refresh(): Spread =  ', spread)
                 if spread < 3: # return this opportunity
                     if self.next_direction == 'buy':
                         cur_ask_raw = oanda.get_ask('USD_JPY')
@@ -154,25 +144,19 @@ class fifty( strategy ):
                         else:
                             log.write('"fifty.py" in refresh(): Failed to get ask.') 
                             sys.exit()
-                    # Prepare the order.
-                    opp = order.order('USD_JPY', '100', self.next_direction, 'market', None, None, None, None, sl, tp, None)
                     # switch direction for next time
                     if self.next_direction == 'buy':
                         self.next_direction = 'sell'
                     else:
                         self.next_direction = 'buy'
-                    # send opportunity back to the main daemon.
+                    # Prepare the order and sent it back to daemon.
+                    opp = opportunity()
+                    opp.strategy = self.name
+                    opp.confidence = 50
+                    opp.order = order(
+                        'USD_JPY', '100', self.next_direction, 'market', None, None,
+                        None, None, sl, tp, None
+                    )
                     return ( opp )
+        return None
 
-    # Analyze the result of a suggestion.
-    # new_order is an instance of `order`.
-    # `order` is a Bool of success/failure.
-    def callback(self, opened, new_order):    
-        if opened:
-            log.write('"fifty.py" in callback(): Trade opened. ID: ', new_order.transaction_id)
-            self.open_trades.append( new_order )
-        else:
-            log.write('"fifty.py" in callback(): Failed to open trade with Order ID: ', new_order.transaction_id,\
-                '. ABORTING.')
-            sys.exit()
-        

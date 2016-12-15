@@ -15,9 +15,9 @@ import mysql.connector
 import sys
 
 from oanda import oanda
-import fifty
+import algo.fifty
 import candle
-from log import log
+from algo.log import log
 
 class daemon():
 

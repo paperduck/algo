@@ -16,6 +16,7 @@ import time         # for sleep()
 import fifty
 from log import log
 from oanda import oanda
+from opportunities import opportunities
 import order
 import trade
 #--------------------------
@@ -34,6 +35,7 @@ class daemon():
         self.stopped = False    # flag to stop running    
         log.clear()
         log.write( datetime.datetime.now().strftime("%c") + "\n\n" )
+        self.opportunities = opportunities()
 
         # Read in existing trades
         self.preexisting_trades = []
@@ -48,7 +50,7 @@ class daemon():
         # strategies to run. Change the '.append' lines to whatever strategies to run.
         self.strategies = []
         log.write('"daemon.py" __init__(): Appending 50/50 strategy.')
-        self.strategies.append( fifty.fifty( self.preexisting_trades ) ) 
+        self.strategies.append( fifty.fifty() ) 
 
     # 
     def __del__(self):
@@ -58,6 +60,7 @@ class daemon():
     #
     def start(self):
         log.write('Daemon starting.')
+        print ("starting daemon...")
         self.stopped = False
         if oanda.is_practice():
             log.write('Using practice mode.')
@@ -65,34 +68,37 @@ class daemon():
             log.write('Using live account.')
 
         # Loop:
-        log.write('Entering main daemon loop.')
+        """
+        1. Gather opportunities from each strategy
+        2. Decide which opportunities to execute.
+        3. Clear the opportunity list.
+        """
         while not self.stopped:
-            # Let the strategies update themselves
+            # Let each stratety suggest an order
+            # TODO: Let strategies suggest multiple orders?
             for s in self.strategies:
-                # See if the strategy has anything to offer
-                new_order = s.refresh()
-                if new_order != None:
-                    # The strategy has suggested an order, so attempt to place the order.
-                    #log.write('"daemon.py" in start(): Attempting to place order.')
-                    order_result = oanda.place_order( new_order )
-                    # TODO Check if the order failed, call the strategy's callback function 
-                    if order_result == None:
-                        s.callback( False, new_order )
-                        log.write('"daemon.py" start(): Failed to place order.')
-                    else:
-                        #new_order.transaction_id = order_result['tradeOpened']['id']
-                        trade = order_result['tradeOpened']
-                        # TODO: If I place a trade that reduces another trade to closing, then I get a 
-                        # 200 Code and information about the trade that closed (no trade opened!)
-                        new_order.transaction_id = trade['id']
-                        s.callback( True, new_order )
-                else:
+                new_opp = s.refresh()
+                if new_opp == None:
                     # Strategy has nothing to offer at the moment.
-                    #log.write('daemon.py: daemon.start(): Strategy "', str(s), '" placed no new orders.')
                     pass
-            # limit API request frequency
-            #log.write('daemon.py: start(): Sleeping.')
-            #time.sleep(1)
+                else:
+                    self.opportunities.push( new_opp )
+        
+            # Decide which opportunities to execute
+            order_result = oanda.place_order( self.opportunities.pop().order )
+            if order_result == None:
+                s.callback( False, new_order )
+                log.write('"daemon.py" start(): Failed to place order.')
+            else:
+                trade = order_result['tradeOpened']
+                # TODO: Oanda: If I place a trade that reduces another trade to closing, then I get a 
+                # 200 Code and information about the trade that closed. I.e. I don't get 
+                # info about an opened trade. (Oanda)
+                new_order.transaction_id = trade['id']
+
+            # Clear opportunity list
+            self.opportunities = []
+
     # stop daemon; tidy up open trades
     def stop(self):
         self.stopped = True
