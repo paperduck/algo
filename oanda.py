@@ -40,19 +40,18 @@ class oanda():
     #   returned by f.readline().
     @classmethod
     def get_auth_key(cls):
-        #log.write('"oanda.py" get_auth_key(): Entering.')
-        if cls.practice:
-            with open('/home/user/raid/documents/oanda_practice_token.txt', 'r') as f:
-                auth = f.readline()
-                auth = auth.rstrip()
-                f.close()
-            return auth
-        else:
-            with open('/home/user/raid/documents/oanda_token.txt', 'r') as f:
-                auth = f.readline()
-                auth = auth.rstrip()
-                f.close()
-            return auth
+         cfg = configparser.ConfigParser()
+                cfg.read('/home/user/raid/documents/algo.cfg')
+                if broker.practice:
+                    broker_name = cfg['oanda']['practice_token']
+                    if broker_name == None:
+                        log.write('"broker.py" __init__(): Failed to get broker from config file.')
+                        sys.exit()
+                    if broker_name == 'oanda':
+                        self.broker = oanda
+                    else:
+                        log.write('"broker.py" __init__(): Unknown broker name')
+                        sys.exit()
 
     # Which REST API to use?
     @classmethod
@@ -67,12 +66,10 @@ class oanda():
     # Parameter `b' is assumed to have type of `bytes'.
     @classmethod
     def btos(cls, b):
-        log.write('"oanda.py" btos(): Entering.')
         return b.decode('utf_8')
     #
     @classmethod
     def stob(cls, s):
-        #log.write('"oanda.py" stob(): Entering.')
         return s.encode('utf_8')
 
     # Helpful function for accessing Oanda's REST API
@@ -138,10 +135,12 @@ class oanda():
             log.write('"oanda.py" fetch(): other error:', sys.exc_info()[0])
             return None
 
-    # Get list of accounts
-    # Returns: dict or None
     @classmethod
     def get_accounts(cls):
+        """
+        Get list of accounts
+        Returns: dict or None
+        """
         #log.write('"oanda.py" get_accounts(): Entering.')
         accounts = cls.fetch(cls.get_rest_url() + '/v1/accounts')
         if accounts != None:
@@ -191,8 +190,8 @@ class oanda():
             log.write('"oanda.py" get_positions(): Failed to get positions.')
             sys.exit()
 
-    # Get number of positions for a give account ID
-    # Returns: Number
+    # Get number of positions for a given account ID
+    # Returns: Integer
     @classmethod
     def get_num_of_positions(cls, account_id):
         #log.write('"oanda.py" get_num_of_positions(): Entering.')
@@ -233,6 +232,7 @@ class oanda():
 
     # Get one ask price
     # Returns: Decimal or None
+    # TODO: Validate symbol passed in
     @classmethod
     def get_ask(cls, instrument, since=None):
         #log.write('"oanda.py" get_ask(): Entering.')
@@ -285,10 +285,12 @@ class oanda():
             log.write('"oanda.py" get_spread(): Failed to get spreads.')
             sys.exit()
 
-    # Buy an instrument
-    # Returns: dict or None
     @classmethod
     def place_order(cls, in_order):
+        """
+        # Place an order
+        # Returns: dict or None
+        """
         #log.write('"oanda.py" place_order(): Entering.')
         log.write ('"oanda.py" place_order(): Placing order...')
         request_args = {}
@@ -317,17 +319,21 @@ class oanda():
         else:
             return result
 
-    # Is the market open?
-    # Returns: Boolean
-    # instrument        = one currency pair formatted like this: 'EUR_USD' 
+
     @classmethod
-    def is_market_open(cls, instrument):
+    def is_market_open(cls, instrument='USD_JPY'):
+        """
+        # Is the market open?
+        # Returns: Boolean
+        # instrument        = one currency pair formatted like this: 'EUR_USD' 
+        """
         #log.write('"oanda.py" is_market_open(): Entering.')
         prices = cls.get_prices( instrument )
         if prices['prices'][0]['status'] == 'halted':
             return False
         else:
             return True
+
 
     # Get transaction history
     # Returns: dict or None
@@ -369,7 +375,7 @@ class oanda():
     @classmethod
     def is_trade_closed(cls, transaction_id):
         #log.write('"oanda.py" is_trade_closed(): Entering.')
-        # add a delay to allow time for the transaction history to be updated. 
+        # TODO: add a delay to allow time for the transaction history to be updated. 
         num_attempts = 2
         while num_attempts > 0:
             log.write('"oanda.py" is_trade_closed(): Remaining attempts: ', str(num_attempts))
@@ -475,8 +481,9 @@ class oanda():
         data = urllib.parse.urlencode(request_args)
         data = cls.stob(data) # convert string to bytes
 
-        response = cls.fetch( cls.get_rest_url() + '/v1/accounts/' + str(cls.get_account_id_primary()) + '/orders/'\
-            + str(in_order_id), None, data, None, False, 'PATCH' )
+        response = cls.fetch(cls.get_rest_url() + '/v1/accounts/'\
+            + str(cls.get_account_id_primary()) + '/orders/'\
+            + str(in_order_id), None, data, None, False, 'PATCH')
         if response != None:
             return response
         else:
@@ -498,7 +505,8 @@ class oanda():
         data = urllib.parse.urlencode(request_args)
         data = cls.stob(data) # convert string to bytes
     
-        response = cls.fetch( cls.get_rest_url() + '/v1/accounts/' + str(cls.get_account_id_primary()) + '/trades/'\
+        response = cls.fetch( cls.get_rest_url() + '/v1/accounts/'\
+            + str(cls.get_account_id_primary()) + '/trades/'\
             + str(in_trade_id), None, data, None, False, 'PATCH' )
         if response != None:
             return response
