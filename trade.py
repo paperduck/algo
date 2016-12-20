@@ -5,7 +5,7 @@
 
 class trade():
     
-    def __init__(self, in_id, in_instrument):
-        self.trade_id = in_id
-        self.instrument = in_instrument
+    def __init__(self, trade_id, instrument):
+        self.trade_id = trade_id
+        self.instrument = instrument
     

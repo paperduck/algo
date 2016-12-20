@@ -15,10 +15,10 @@ import time         # for sleep()
 #import entrance #TODO use this
 import fifty
 from log import log
-from oanda import oanda
+from broker import broker
 from opportunities import opportunities
 import order
-import trade
+from trade import trade
 #--------------------------
 
 # Limitations should be specified here, such as 
@@ -38,14 +38,17 @@ class daemon():
         self.opportunities = opportunities()
 
         # Read in existing trades
-        self.preexisting_trades = []
-        trades = oanda.get_trades()
+        self.open_trades = []
+        trades = oanda.get_trades() # list of `trade` objects
         if trades == None:
             log.write('"daemon.py" __init__(): Failed to get list of trades. ABORTING')
             sys.exit()
         else:
             for t in trades['trades']:
-                self.preexisting_trades.append( trade.trade( t['id'], t['instrument'] ) )
+                self.open_trades.append( trade.trade(
+                    trade_id=t['id'],
+                    instrument=t['instrument']
+                ) )
 
         # strategies to run. Change the '.append' lines to whatever strategies to run.
         self.strategies = []
