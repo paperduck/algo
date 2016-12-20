@@ -13,13 +13,14 @@ There are three pieces to this project, as with any algorithmic trading: backtes
 ## Live Trading
 - The main program is referred to as a "daemon", and exists in `daemon.py`.
 - Run it like this: `# python3 daemon.py`.
-- This utilizes a custom-built API (`oanda.py`), which in turn uses Oanda's REST API. Oanda is the Forex dealer I use. 
 - Each strategy gets its own module, for example the `fifty.py` strategy module encapsulates one simple strategy.
 
 ## Platform Design
 - Everything is designed with scalability and modularity in mind.
-- Strategy modules can be used or not used arbitrarily, with only trivial changes to the daemon.
-- Strategy modules can be used for backtesting, forward testing, and live trading with only trivial changes to the strategy module.
-- The daemon is designed such that it can handle  number of strategies at any given time.
+- Strategy modules can be used or not used arbitrarily, with only trivial changes to the code.
+- Strategy modules can be used for backtesting, forward testing, and live trading with only trivial changes to the code.
+- `daemon.py` and the strategy modules make calls to `broker.py` which makes calls to a broker-specific module specified in the config file. Having the generic `broker.py` layer allows the broker/dealer to be changed arbitrarily by only changing one line in the config file. 
+- The daemon is intended to handle any number of strategies at any given time. Thus the daemon must manage margin, account balance, diversification, and other considerations when placing orders.
+
 
 

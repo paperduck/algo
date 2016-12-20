@@ -15,6 +15,7 @@ import urllib.error
 import zlib
 #--------------------------
 from currency_pair_conversions import *
+import data_conversions
 from log import log
 import order
 #--------------------------
@@ -53,6 +54,7 @@ class oanda():
                         log.write('"broker.py" __init__(): Unknown broker name')
                         sys.exit()
 
+
     # Which REST API to use?
     @classmethod
     def get_rest_url(cls):
@@ -62,7 +64,7 @@ class oanda():
         else:
             return 'https://api-fxtrade.oanda.com'
      
-    # Decode bytes to string using UTF8.
+
     # Parameter `b' is assumed to have type of `bytes'.
     @classmethod
     def btos(cls, b):
@@ -71,6 +73,7 @@ class oanda():
     @classmethod
     def stob(cls, s):
         return s.encode('utf_8')
+
 
     # Helpful function for accessing Oanda's REST API
     # Returns JSON as a string, or None.
