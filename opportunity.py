@@ -3,10 +3,8 @@
 """
 File:           opportunities.py
 Python verion:  3.4
-
-The `opportunity` class is a potential order plus meta information about the order.
-
-The `opportunities` class is a list of opportunities.
+Description:    The `opportunity` class represents one order.
+    The `opportunities` class is a list of opportunities.
 """
 import log
 

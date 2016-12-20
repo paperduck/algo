@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 
-@classmethod
 def btos(cls, b):
     """
     Decode bytes to string using UTF8.
@@ -9,7 +8,6 @@ def btos(cls, b):
     return b.decode('utf_8')
 
 
-@classmethod
 def stob(cls, s):
     """
     """

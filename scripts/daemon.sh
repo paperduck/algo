@@ -1,6 +1,4 @@
 #! /bin/sh
-#
-#
 
 ### BEGIN INIT INFO
 # Provides:             daemon.sh
@@ -12,6 +10,11 @@
 # Short-Description: algo daemon
 # Description: algo daemon
 ### END INIT INFO
+
+#**************************
+# DESCRIPTION: This bash script is intended to be run automatically when the
+#   computer boots. It can be used to start the trading daemon automatically.
+#**************************
 
 SUBJECT='Have a nice day.'
 BODY="
