@@ -1,8 +1,11 @@
 #!/usr/bin/python3
+# -*- coding: utf-8 -*-
 
-# File          oanda.py
-# Python ver.   3.4
-# Description   Python module for Oanda fxTrade REST API
+"""
+File          oanda.py
+Python ver.   3.4
+Description   Python module for Oanda fxTrade REST API
+"""
 
 #--------------------------
 import configparser
@@ -15,7 +18,7 @@ import urllib.error
 import zlib
 #--------------------------
 from currency_pair_conversions import *
-import data_conversions
+from data_conversions import *
 from log import log
 import order
 #--------------------------
@@ -64,16 +67,6 @@ class oanda():
         else:
             return 'https://api-fxtrade.oanda.com'
      
-
-    # Parameter `b' is assumed to have type of `bytes'.
-    @classmethod
-    def btos(cls, b):
-        return b.decode('utf_8')
-    #
-    @classmethod
-    def stob(cls, s):
-        return s.encode('utf_8')
-
 
     # Helpful function for accessing Oanda's REST API
     # Returns JSON as a string, or None.

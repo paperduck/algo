@@ -1,3 +1,5 @@
+日本語下記
+
 #Algorithmic Trading Daemon ("algo")
 
 There are three pieces to this project, as with any algorithmic trading: backtesting, forward testing, and live trading.
@@ -24,3 +26,19 @@ There are three pieces to this project, as with any algorithmic trading: backtes
 
 
 
+#アルゴリズミックトレーディングボット「アルゴ」
+仕掛品。    
+
+三つ部分：（１）バックテスティング（２）フォーワードテスティング（３）③　ライブトレーディング
+
+##　バックテスティング
+MySQLでの過去の価格のデーターでシミュレーションを行うつもりです。
+
+## フォーワードテスティング
+作り物のお金の以外、ライブトレーディングと同じです。
+
+## ライブトレーディング
+自動買うのと売るの。実行し方法： `$ python3 daemon.py`
+
+## デザイン
+フレックス
