@@ -33,10 +33,12 @@ class oanda():
 
     account_id_primary = 0
 
+
     #
     @classmethod
     def is_practice(cls):
         return cls.practice
+
 
     # Get authorization key.
     # Oanda was returning a '400 Bad Request' error 4 out of 5 times
@@ -48,14 +50,17 @@ class oanda():
                 cfg.read('/home/user/raid/documents/algo.cfg')
                 if broker.practice:
                     broker_name = cfg['oanda']['practice_token']
-                    if broker_name == None:
-                        log.write('"broker.py" __init__(): Failed to get broker from config file.')
-                        sys.exit()
-                    if broker_name == 'oanda':
-                        self.broker = oanda
-                    else:
-                        log.write('"broker.py" __init__(): Unknown broker name')
-                        sys.exit()
+                else:
+                    broker_name = cfg['oanda']['token']
+
+                if broker_name == None:
+                    log.write('"broker.py" __init__(): Failed to get broker from config file.')
+                    sys.exit()
+                if broker_name == 'oanda':
+                    self.broker = oanda
+                else:
+                    log.write('"broker.py" __init__(): Unknown broker name')
+                    sys.exit()
 
 
     # Which REST API to use?
