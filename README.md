@@ -42,3 +42,10 @@ MySQLでの過去の価格のデーターでシミュレーションを行うつ
 
 ## デザイン
 フレックス
+
+
+![diagram](media/platform_diagram.png)
+
+
+
+
