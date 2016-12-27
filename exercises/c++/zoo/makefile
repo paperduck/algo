@@ -5,20 +5,20 @@
 #	...
 
 # How to run:
-#   # make              automatically runs `make all`
+#   # make                  automatically runs first rule
 #   # make all          
 
+CC=g++                      # compiler
+CFLAGS=-I. -std=c++14       # compilation flags
+
 all : zoo
-	make clean
-	clear
-	./zoo
 zoo : main.o animal.o mammal.o
-	g++ -o zoo -std=c++11  main.o animal.o mammal.o
-mammal.o : animal.o
-	g++ -c -std=c++11 mammal.cpp
-animal.o : main.o
-	g++ -c -std=c++11 animal.cpp
+	$(CC) -o zoo main.o animal.o mammal.o $(CFLAGS)
+mammal.o : mammal.cpp mammal.h
+	$(CC) -c mammal.cpp $(CFLAGS)
+animal.o : animal.cpp animal.h
+	$(CC) -c animal.cpp $(CFLAGS)
 main.o : main.cpp
-	g++ -c -std=c++11  main.cpp
+	$(CC) -c main.cpp $(CFLAGS)
 clean :
-	rm main.o animal.o mammal.o
+	rm main.o animal.o mammal.o zoo
