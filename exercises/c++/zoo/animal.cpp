@@ -24,3 +24,13 @@ bool animal::get_is_dead()
     return this->is_dead;
 }
 
+string animal::get_name()
+{
+    return this->name;
+}
+
+void animal::set_name(string new_name)
+{
+    this->name = new_name;
+}
+

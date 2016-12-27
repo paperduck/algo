@@ -8,12 +8,11 @@ class mammal: public animal
 {
     public:
         mammal();
-        mammal(string);
         ~mammal();
         string get_hair_color();
-        string get_name();
-    private:
+    protected:
         string hair_color;
+    private:
 };
 
 #endif

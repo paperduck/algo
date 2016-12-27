@@ -11,8 +11,10 @@ class animal
         animal();
         ~animal();
         bool feed();
-        virtual string get_name() = 0;  // pure virtual function
         bool get_is_dead();
+        string get_name();
+        void set_name(string);
+        virtual void jump() = 0;    // pure virtual function
     private:
         unsigned short int hunger_level;
         bool is_dead;
