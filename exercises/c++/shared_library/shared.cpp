@@ -2,7 +2,7 @@
 
 unsigned int add(unsigned int a, unsigned int b)
 {
-    printf("\n inside add()\n");
+    printf("\nInside add()\n");
     return (a+b);
 }
 
