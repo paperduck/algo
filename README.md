@@ -23,6 +23,7 @@ There are three pieces to this project, as with any algorithmic trading: backtes
 - Strategy modules can be used for backtesting, forward testing, and live trading with only trivial changes to the code.
 - `daemon.py` and the strategy modules make calls to `broker.py` which makes calls to a broker-specific module specified in the config file. Having the generic `broker.py` layer allows the broker/dealer to be changed arbitrarily by only changing one line in the config file. 
 - The daemon is intended to handle any number of strategies at any given time. Thus the daemon must manage margin, account balance, diversification, and other considerations when placing orders.
+- This is not intended to be used for high-frequency trading.
 
 
 
