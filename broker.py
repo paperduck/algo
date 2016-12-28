@@ -11,7 +11,7 @@ Description     Python module that provides a generic layer between
 import configparser
 import sys
 #****************************
-from log import log
+from logger import log
 from oanda import oanda
 #****************************
 
@@ -25,47 +25,47 @@ class broker():
         log.write('"broker.py" __init__(): Failed to get broker from config file.')
         sys.exit()
     if broker_name == 'oanda':
-        self.broker = oanda
+        broker = oanda
     else:
         log.write('"broker.py" __init__(): Unknown broker name')
         sys.exit()
 
     @classmethod
     def is_practice(cls):
-        return self.broker.practice
+        return cls.broker.practice
 
     # Get authorization key.
     @classmethod
     def get_auth_key(cls):
-        return self.broker.get_auth_key()
+        return cls.broker.get_auth_key()
 
 
     # Get list of accounts
     # Returns: dict or None
     @classmethod
     def get_accounts(cls):
-        return self.broker.get_accounts()
+        return cls.broker.get_accounts()
    
  
     # Get list of open positions
     # Returns: dict or None 
     @classmethod
     def get_positions(cls, account_id):
-        return self.broker.get_positions(account_id)
+        return cls.broker.get_positions(account_id)
 
 
     # Get number of positions for a given account ID
     # Returns: Integer
     @classmethod
     def get_num_of_positions(cls, account_id):
-        return self.broker.get_num_of_positions(account_id)
+        return cls.broker.get_num_of_positions(account_id)
 
 
     # Get account balance for a given account ID
     # Returns: Decimal number
     @classmethod
     def get_balance(cls, account_id):
-        return self.broker.get_balance(account_id)
+        return cls.broker.get_balance(account_id)
 
 
     @classmethod
@@ -76,7 +76,7 @@ class broker():
         TODO: make this more robust. Maybe pass in a list, then have each broker-specific library
             do validation.
         """
-        return self.broker.get_prices(instruments, since)
+        return cls.broker.get_prices(instruments, since)
 
 
     @classmethod
@@ -85,7 +85,7 @@ class broker():
         Get one ask price
         Returns: Decimal or None
         """
-        return self.broker.get_ask(instrument, since)
+        return cls.broker.get_ask(instrument, since)
 
 
     @classmethod
@@ -94,7 +94,7 @@ class broker():
         # Get one bid price
         # Returns: Decimal or None
         """
-        return self.broker.get_bid(instrument, since)
+        return cls.broker.get_bid(instrument, since)
 
 
     @classmethod
@@ -102,7 +102,7 @@ class broker():
         """
         Returns: dict of (<symbol>, <spread>) tuples.
         """
-        return self.broker.get_spreads(symbols, since)
+        return cls.broker.get_spreads(symbols, since)
 
 
     @classmethod
@@ -110,7 +110,7 @@ class broker():
         """
         Get one spread value
         """
-        return self.broker.get_spread(symbol, since)
+        return cls.broker.get_spread(symbol, since)
 
 
     @classmethod
@@ -119,7 +119,7 @@ class broker():
         # Buy an instrument
         # Returns: dict or None
         """
-        return self.broker.place_order(in_order)
+        return cls.broker.place_order(in_order)
 
 
     @classmethod
@@ -128,7 +128,7 @@ class broker():
         # Is the market open?
         # Returns: Boolean
         """
-        return self.broker.is_market_open()
+        return cls.broker.is_market_open()
 
 
     @classmethod
@@ -137,7 +137,7 @@ class broker():
         # Get transaction history
         # Returns: dict or None
         """
-        return self.broker.get_transaction_history(maxId=maxId, minId=minId,
+        return cls.broker.get_transaction_history(maxId=maxId, minId=minId,
             count=count, instrument=instrument, ids=ids)
 
 
@@ -147,7 +147,7 @@ class broker():
         See if a trade is closed.
         Returns: Boolean or None
         """
-        return self.broker.is_trade_closed(transaction_id)
+        return cls.broker.is_trade_closed(transaction_id)
 
 
     @classmethod
@@ -156,21 +156,21 @@ class broker():
         Get info about all open trades
         Returns: dict or None
         """
-        return self.broker.get_trades()
+        return cls.broker.get_trades()
 
 
     # Get info about a particular trade
     # Returns: dict or None
     @classmethod
     def get_trade(cls, trade_id):
-        return self.broker.get_trade(trade_id)
+        return cls.broker.get_trade(trade_id)
 
 
     # Get order info
     # Returns: dict or None
     @classmethod
     def get_order_info(cls, order_id):
-        return self.broker.get_order_info(order_id)
+        return cls.broker.get_order_info(order_id)
 
  
     @classmethod
@@ -181,7 +181,7 @@ class broker():
         # Modify an existing order
         # Returns: dict or None
         """
-        return self.broker.modify_orders(locals())
+        return cls.broker.modify_orders(locals())
 
 
     @classmethod
@@ -190,6 +190,6 @@ class broker():
         # Modify an existing trade
         # Returns: dict or None
         """
-        return self.broker.modify_trade(locals()) 
+        return cls.broker.modify_trade(locals()) 
 
 

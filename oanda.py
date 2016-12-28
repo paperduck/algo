@@ -19,14 +19,14 @@ import zlib
 #--------------------------
 from currency_pair_conversions import *
 from data_conversions import *
-from log import log
+from logger import log
 import order
 #--------------------------
 
 class oanda():
     cfg = configparser.ConfigParser()
     cfg.read('/home/user/raid/documents/algo.cfg')
-    if cfg['oanda']['practice'] == 'True':
+    if cfg['oanda']['token_practice'] == 'True':
         practice = True
     else:
         practice = False
@@ -46,21 +46,17 @@ class oanda():
     #   returned by f.readline().
     @classmethod
     def get_auth_key(cls):
-         cfg = configparser.ConfigParser()
-                cfg.read('/home/user/raid/documents/algo.cfg')
-                if broker.practice:
-                    broker_name = cfg['oanda']['practice_token']
-                else:
-                    broker_name = cfg['oanda']['token']
-
-                if broker_name == None:
-                    log.write('"broker.py" __init__(): Failed to get broker from config file.')
-                    sys.exit()
-                if broker_name == 'oanda':
-                    self.broker = oanda
-                else:
-                    log.write('"broker.py" __init__(): Unknown broker name')
-                    sys.exit()
+        cfg = configparser.ConfigParser()
+        cfg.read('/home/user/raid/documents/algo.cfg')
+        if oanda.practice:
+            token = cfg['oanda']['practice_token']
+        else:
+            token = cfg['oanda']['token']
+        if token == None:
+            log.write('"oanda.py" get_auth_key(): Failed to read token.')
+            sys.exit()
+        else:
+            return token
 
 
     # Which REST API to use?
@@ -73,11 +69,14 @@ class oanda():
             return 'https://api-fxtrade.oanda.com'
      
 
-    # Helpful function for accessing Oanda's REST API
-    # Returns JSON as a string, or None.
-    # Prints error info to stdout.
     @classmethod
-    def fetch(cls, in_url, in_headers=None, in_data=None, origin_req_host=None, unverifiable=False, method=None):
+    def fetch(cls, in_url, in_headers=None, in_data=None, origin_req_host=None,
+    unverifiable=False, method=None):
+        """
+        Helpful function for accessing Oanda's REST API
+        Returns JSON as a string, or None.
+        Prints error info to stdout.
+        """
         log.write('"oanda.py" fetch(): Entering.')
         # headers; if anything is specified, then let that overwrite default.
         if in_headers == None:
@@ -142,7 +141,6 @@ class oanda():
         Get list of accounts
         Returns: dict or None
         """
-        #log.write('"oanda.py" get_accounts(): Entering.')
         accounts = cls.fetch(cls.get_rest_url() + '/v1/accounts')
         if accounts != None:
             return accounts
@@ -150,10 +148,12 @@ class oanda():
             log.write('"oanda.py" get_accounts(): Failed to get accounts.')
             sys.exit()
     
-    # Get ID of account to trade with.
-    # Returns: String
     @classmethod
     def get_account_id_primary(cls):
+        """
+        Get ID of account to trade with.
+        Returns: String
+        """
         if cls.account_id_primary == 0: # if it hasn't been defined yet
             #log.write('"oanda.py" get_account_id_primary(): Entering.')
             accounts = cls.get_accounts()

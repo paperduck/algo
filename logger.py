@@ -10,8 +10,11 @@
 #   Theoretically, important stuff will be saved in the database, not a log file.
 #   So everything shares the same log file because it's not too important to have separate log files.
 
+#*************************
 import configparser
 import datetime
+#*************************
+#*************************
 
 
 # TODO: add mutex so multiple threads can use this at the same time.
@@ -19,7 +22,13 @@ class log():
 
     cfg = configparser.ConfigParser()
     cfg.read('/home/user/raid/documents/algo.cfg')
-    log_path = cfg['log']['file']
+    log_path = cfg['log']['path']
+    log_file = cfg['log']['file']
+    if log_path == None or log_file == None:
+        print ('"logger.py": Failed to get log path+file from config file')
+        sys.exit()
+    else:
+        log_path = log_path + log_file
 
     # clear log
     @classmethod

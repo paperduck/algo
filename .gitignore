@@ -1,4 +1,4 @@
-# non-log output
+# log output
 output*
 # no need to save temporary output files
 backtesting/public/reversal/out/*

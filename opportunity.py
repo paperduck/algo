@@ -6,14 +6,21 @@ Python verion:  3.4
 Description:    The `opportunity` class represents one order.
     The `opportunities` class is a list of opportunities.
 """
-import log
+
+
+#*************************
+#*************************
+from logger import log
+#*************************
+
 
 class opportunity():
     """
     """
 
     def __init__(self):
-
+        """
+        """
         # type: int 1-100
         # description: estimated rating of success
         self.confidence = 1
@@ -25,16 +32,23 @@ class opportunity():
         self.order = None
 
     def __str__(self):
+        """
+        """
         return 'opportunity'
 
     
 class opportunities():
-    
-    #
+    """
+    """
+
     def __init__(self):
+        """
+        """
         self.opportunities = []
 
     def __str__(self):
+        """
+        """
         return 'opportunities'
 
     def push(self, opp):

@@ -10,53 +10,95 @@
 import sys # sys.exit()                        
 #*************************************
 from broker import broker
-from log import log
-#from oanda import oanda
+from logger import log
 from opportunity import opportunity
 from order import order
 from strategy import strategy
-import trade
+from trade import trade
 #*************************************
 
 class fifty( strategy ):
 
+
     def __init__(self):
+        """
+        """
         self.next_direction = 'buy'
         self.name = "fifty"
+        self.open_trades = []  # list of trades opened by this strategy. 
+
 
     def __str__(self):
+        """
+        """
         return '50/50'
 
-    # Returns: Bool or (None on failure)
-    # TODO: A similar function is going to be called in any strategy, so put this in oanda.py.
+
     def check_trade_closed(self, transaction_id):
+        """
+        Returns: Bool or (None on failure)
+        TODO: A similar function is going to be called in any strategy, so
+        put this in broker.py.
+        """
         # TODO If I decide to hold multiple current trades, I need to specify which 
         # order to pop. For now, just assume there is only one.
-        closed = oanda.is_trade_closed( transaction_id )
+        closed = broker.is_trade_closed( transaction_id )
         if closed == None:
-            log.write('"fifty.py" in check_trade_closed(): Call to oanda.is_trade_closed() failed')
+            log.write('"fifty.py" in check_trade_closed(): Call to broker.is_trade_closed() failed')
             sys.exit()
         else:
             if closed:
                 log.write('"fifty.py" refresh(): Trade with ID ', transaction_id, ' closed.')
                 self.closed_trades.append( self.open_trades.pop() )
-                log.transaction( transaction_id ) # this in particular needs to go in oanda.py so 
+                # this in particular needs
+                #to go in broker.py so 
                 # I don't forget to add it to each strategy.
+                log.transaction( transaction_id )
             return closed
         
-    # Look at current price and past prices and determine whether there is an opportunity or not.
-    # Returns:
-    #   If the daemon should enter a trade, an instance of `order', otherwise
-    #   None.
+
+    def callback_trade_opened(self, trade):
+        """
+        This is used to notify the strategy when an order that it suggested
+        was placed.
+        """
+        self.open_trades.append(trade)
+        # Save to database
+        # TODO
+
+
+    def callback_recover(self, trade):
+        """
+        When the daemon is initializing, for example after being restarted,
+        this can be used to tell the strategy
+        module about a trade that it had previously opened.
+        """
+        self.open_trades.append(trade)
+
+
     def refresh(self):
-        # If there is an open trade, then babysit it. Also check if it has closed.
-        # Otherwise, look for a new opportunity to enter a position.
+        """
+        Look at current price and past prices and determine whether there is
+        an opportunity or not.
+        Returns:
+            If the daemon should enter a trade, an instance of `order',
+            otherwise None.
+        """
+        self.babysit()
+        return self.scan()
+
+
+    def babysit(self):
+        """
+        If there is an open trade, then babysit it. Also check if it has closed.
+        Otherwise, look for a new opportunity to enter a position.
+        """
         if len(self.open_trades) >= 1:
             for t in self.open_trades:
                 # Trade is still active; babysit open position; adjust SL, TP, expiry, units, etc.
                 #log.write('"fifty.py" refresh(): Checking if trade with ID ', t.transaction_id,\
                 #    ' should be modified.')
-                trade_info = oanda.get_trade( t.transaction_id )
+                trade_info = broker.get_trade( t.transaction_id )
                 if trade_info == None:
                     if self.check_trade_closed( t.transaction_id ):
                         log.write('"fifty.py" in refresh(): Trade has closed.')
@@ -70,7 +112,7 @@ class fifty( strategy ):
                     sl = round( trade_info['stopLoss'], 2 )
                     side = trade_info['side']
                     if side == 'buy': # BUY
-                        cur_bid = oanda.get_bid( instrument )
+                        cur_bid = broker.get_bid( instrument )
                         if cur_bid != None:
                             if tp - cur_bid < 0.02:
                                 #log.write('"fifty.py" refresh(): Modifying BUY trade with ID: '\
@@ -78,7 +120,7 @@ class fifty( strategy ):
                                 new_sl = cur_bid - 0.02
                                 new_tp = tp + 0.05
                                 # send modify trade request
-                                resp = oanda.modify_trade(t.transaction_id, new_sl, new_tp, 0)
+                                resp = broker.modify_trade(t.transaction_id, new_sl, new_tp, 0)
                                 if resp == None:
                                     if self.check_trade_closed( t.transaction_id ):
                                         log.write('"fifty.py" in refresh(): BUY trade has closed.')
@@ -94,14 +136,14 @@ class fifty( strategy ):
                             log.write('"fifty.py" refresh(): Failed to get bid while babysitting.')
                             sys.exit()
                     else: # SELL
-                        cur_ask = oanda.get_ask( instrument )
+                        cur_ask = broker.get_ask( instrument )
                         if cur_ask != None:
                             if cur_ask - tp < 0.02:
                                 #log.write('"fifty.py" refresh(): Modifying SELL trade with ID ', str(t.transaction_id) )
                                 new_sl = cur_ask + 0.02
                                 new_tp = tp - 0.05
                                 # send modify trade request
-                                resp = oanda.modify_trade( t.transaction_id, new_sl, new_tp, 0)
+                                resp = broker.modify_trade( t.transaction_id, new_sl, new_tp, 0)
                                 if resp == None:
                                     if self.check_trade_closed( t.transaction_id ):
                                         log.write('"fifty.py" in refresh(): SELL trade has closed.')
@@ -116,9 +158,14 @@ class fifty( strategy ):
                         else:
                             log.write('"fifty.py" refresh(): Failed to get ask while babysitting.')
                             sys.exit()
-        else:
-            # No open trades, so look for opportunities to enter a trade
-            spread_ = oanda.get_spread('USD_JPY')
+
+
+        def scan(self):
+            """
+            Look for opportunities to enter a trade.
+            Returns: `opportunity` or None
+            """
+            spread_ = broker.get_spread('USD_JPY')
             if spread_ == None:
                 log.write('"fifty.py" in refresh(): Failed to get spread.') 
                 return None
@@ -126,7 +173,7 @@ class fifty( strategy ):
                 spread = round(spread_, 2)
                 if spread < 3: # return this opportunity
                     if self.next_direction == 'buy':
-                        cur_ask_raw = oanda.get_ask('USD_JPY')
+                        cur_ask_raw = broker.get_ask('USD_JPY')
                         if cur_ask_raw != None:
                             cur_ask = round(cur_ask_raw, 2)
                             sl = cur_ask - 0.1
@@ -137,7 +184,7 @@ class fifty( strategy ):
                             return None 
                     else: # sell
                         self.next_direction = 'sell'
-                        cur_bid_raw = oanda.get_bid('USD_JPY')
+                        cur_bid_raw = broker.get_bid('USD_JPY')
                         if cur_bid_raw != None:
                             cur_bid = round(cur_bid_raw, 2)
                             sl = cur_bid + 0.1
@@ -159,5 +206,6 @@ class fifty( strategy ):
                         None, None, sl, tp, None
                     )
                     return ( opp )
-        return None
+                else:
+                    return None
 
