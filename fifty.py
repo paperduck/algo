@@ -160,52 +160,52 @@ class fifty( strategy ):
                             sys.exit()
 
 
-        def scan(self):
-            """
-            Look for opportunities to enter a trade.
-            Returns: `opportunity` or None
-            """
-            spread_ = broker.get_spread('USD_JPY')
-            if spread_ == None:
-                log.write('"fifty.py" in refresh(): Failed to get spread.') 
-                return None
-            else:
-                spread = round(spread_, 2)
-                if spread < 3: # return this opportunity
-                    if self.next_direction == 'buy':
-                        cur_ask_raw = broker.get_ask('USD_JPY')
-                        if cur_ask_raw != None:
-                            cur_ask = round(cur_ask_raw, 2)
-                            sl = cur_ask - 0.1
-                            tp = cur_ask + 0.1
-                        else:
-                            log.write('"fifty.py" in refresh(): Failed to get bid.')
-                            sys.exit()
-                            return None 
-                    else: # sell
-                        self.next_direction = 'sell'
-                        cur_bid_raw = broker.get_bid('USD_JPY')
-                        if cur_bid_raw != None:
-                            cur_bid = round(cur_bid_raw, 2)
-                            sl = cur_bid + 0.1
-                            tp = cur_bid - 0.1
-                        else:
-                            log.write('"fifty.py" in refresh(): Failed to get ask.') 
-                            sys.exit()
-                    # switch direction for next time
-                    if self.next_direction == 'buy':
-                        self.next_direction = 'sell'
+    def scan(self):
+        """
+        Look for opportunities to enter a trade.
+        Returns: `opportunity` or None
+        """
+        spread_ = broker.get_spread('USD_JPY')
+        if spread_ == None:
+            log.write('"fifty.py" in refresh(): Failed to get spread.') 
+            return None
+        else:
+            spread = round(spread_, 2)
+            if spread < 3: # return this opportunity
+                if self.next_direction == 'buy':
+                    cur_ask_raw = broker.get_ask('USD_JPY')
+                    if cur_ask_raw != None:
+                        cur_ask = round(cur_ask_raw, 2)
+                        sl = cur_ask - 0.1
+                        tp = cur_ask + 0.1
                     else:
-                        self.next_direction = 'buy'
-                    # Prepare the order and sent it back to daemon.
-                    opp = opportunity()
-                    opp.strategy = self.name
-                    opp.confidence = 50
-                    opp.order = order(
-                        'USD_JPY', '100', self.next_direction, 'market', None, None,
-                        None, None, sl, tp, None
-                    )
-                    return ( opp )
+                        log.write('"fifty.py" in refresh(): Failed to get bid.')
+                        sys.exit()
+                        return None 
+                else: # sell
+                    self.next_direction = 'sell'
+                    cur_bid_raw = broker.get_bid('USD_JPY')
+                    if cur_bid_raw != None:
+                        cur_bid = round(cur_bid_raw, 2)
+                        sl = cur_bid + 0.1
+                        tp = cur_bid - 0.1
+                    else:
+                        log.write('"fifty.py" in refresh(): Failed to get ask.') 
+                        sys.exit()
+                # switch direction for next time
+                if self.next_direction == 'buy':
+                    self.next_direction = 'sell'
                 else:
-                    return None
+                    self.next_direction = 'buy'
+                # Prepare the order and sent it back to daemon.
+                opp = opportunity()
+                opp.strategy = self.name
+                opp.confidence = 50
+                opp.order = order(
+                    'USD_JPY', '100', self.next_direction, 'market', None, None,
+                    None, None, sl, tp, None
+                )
+                return ( opp )
+            else:
+                return None
 

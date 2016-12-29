@@ -13,6 +13,7 @@ import gzip
 import json
 import sys
 import time                 # for sleep()
+import traceback
 import urllib.request
 import urllib.error
 import zlib
@@ -91,7 +92,7 @@ class oanda():
         log.write ('"oanda.py" oanda.fetch():     url:  ', in_url)
         # data
         if in_data != None:
-            log.write('"oanda.py" fetch():     data: \n\n', cls.btos(in_data), '\n')
+            log.write('"oanda.py" fetch():     data: \n\n', btos(in_data), '\n')
         else:
             log.write('"oanda.py" fetch():     data: None')
         # log method
@@ -103,36 +104,47 @@ class oanda():
         #   so don't freak out if that happens.
         try:
             response = urllib.request.urlopen( req )
+
+            response_code = response.getcode()
+            if response_code == '404':
+                pass
+            elif response_code == '415':
+                pass # unsupported media type (content-encoding)
+
             log.write('"oanda.py" fetch(): ****************************************' )
             log.write('"oanda.py" fetch(): RESPONSE URL:\n    ', response.geturl())
             resp_info = response.info()
             log.write( '"oanda.py" fetch(): RESPONSE INFO:\n', resp_info )
             resp_data = ''
-            # cast to string; response.info() is email.message_from_string().
-            if 'Content-Encoding: gzip' in str(resp_info):                
-                log.write('"oanda.py" fetch(): (0)')
-                resp_data = cls.btos( gzip.decompress( response.read() ) )
-                log.write('"oanda.py" fetch(): (1)')
+            # See if the response is encoded.
+            """
+            response.info() is email.message_from_string(); it needs to be
+            # cast to a string.
+            """
+            #if 'Content-Encoding: gzip' in str(resp_info):
+            if response.getheader('Content-Encoding').strip().startswith('gzip'):
+                resp_data = btos(gzip.decompress(response.read()))
             else:
-                # cast to string; response.info() is email.message_from_string().
-                if 'Content-Encoding: deflate' in str(resp_info):
-                    log.write('"oanda.py" fetch(): (2)')
-                    resp_data = cls.btos( zlib.decompress( response.read() ) )
-                    log.write('"oanda.py" fetch(): (3)')
+                #if 'Content-Encoding: deflate' in str(resp_info):
+                if response.getheader('Content-Encoding').strip().startswith('deflate'):
+                    resp_data = btos( zlib.decompress( response.read() ) )
                 else:
-                    log.write('"oanda.py" fetch(): (4)')
-                    resp_data = cls.btos( response.read() )
-                    log.write('"oanda.py" fetch(): (5)')
-            log.write('"oanda.py" fetch(): RESPONSE CODE: ', response.getcode())
+                    resp_data = btos( response.read() )
+            log.write('"oanda.py" fetch(): RESPONSE CODE: ', response_code)
             log.write('"oanda.py" fetch(): RESPONSE:\n', resp_data, '\n')
             resp_data_str = json.loads(resp_data)
             return resp_data_str
         except (urllib.error.URLError):
-            log.write('"oanda.py" fetch(): URLError: ', sys.exc_info()[0])
-            log.write('"oanda.py" fetch(): EXC INFO: ', sys.exc_info()[1])
+            """
+            sys.last_traceback
+            https://docs.python.org/3.4/library/traceback.html
+            """
             return None
         except:
-            log.write('"oanda.py" fetch(): other error:', sys.exc_info()[0])
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            log.write('"oanda.py" fetch(): URLError: ', exc_type)
+            log.write('"oanda.py" fetch(): EXC INFO: ', exc_value)
+            log.write('"oanda.py" fetch(): TRACEBACK:\n', traceback.print_exc(), '\n')
             return None
 
     @classmethod
@@ -312,7 +324,7 @@ class oanda():
         if in_order.trailing_stop != None:
             request_args['trailingStop'] = in_order.trailing_stop
         data = urllib.parse.urlencode(request_args)
-        data = cls.stob(data) # convert string to bytes
+        data = stob(data) # convert string to bytes
         result = cls.fetch( cls.get_rest_url() + '/v1/accounts/' + cls.get_account_id_primary() + '/orders', None, data)
         if result == None:
             log.write('"oanda.py" place_order(): Failed to place order.')
@@ -480,7 +492,7 @@ class oanda():
             request_args['trailingStop'] = in_trailing_stop
 
         data = urllib.parse.urlencode(request_args)
-        data = cls.stob(data) # convert string to bytes
+        data = stob(data) # convert string to bytes
 
         response = cls.fetch(cls.get_rest_url() + '/v1/accounts/'\
             + str(cls.get_account_id_primary()) + '/orders/'\
@@ -504,7 +516,7 @@ class oanda():
         if in_trailing_stop != 0:
             request_args['trailingStop'] = in_trailing_stop
         data = urllib.parse.urlencode(request_args)
-        data = cls.stob(data) # convert string to bytes
+        data = stob(data) # convert string to bytes
     
         response = cls.fetch( cls.get_rest_url() + '/v1/accounts/'\
             + str(cls.get_account_id_primary()) + '/trades/'\

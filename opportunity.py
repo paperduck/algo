@@ -57,19 +57,20 @@ class opportunities():
         """
         self.opportunities.append(opp)
 
-    def pop (self, instrument):
+    def pop (self, instrument=None):
         """
         Find and return the best opportunity.
         If there are no opportunities, return an empty dict.
         If an error occurs, return None.
+        TODO: use the instrument parameter to restrict which opp to pop.
         """
         # Just pick the one with the highest confidence rating.
         max_conf_index = -1
         max_conf = 0
         if self.opportunities == []:
             return {}
-        for i in xrange(0, len(self._opportunities) - 1):
-            if self._opportunities[i]['confidence'] > max_conf:
+        for i in range(0, len(self.opportunities) - 1):
+            if self.opportunities[i]['confidence'] > max_conf:
                 max_conf_index = i
         return self.opportunities.pop(max_conf_index)
         

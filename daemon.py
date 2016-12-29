@@ -41,7 +41,7 @@ class daemon():
 
         # Read in existing trades
         open_trades = broker.get_trades() # get list of `trade` objects
-        if trades == None:
+        if open_trades == None:
             log.write('"daemon.py" __init__(): Failed to get list of trades. ABORTING')
             sys.exit()
         else:
@@ -59,7 +59,7 @@ class daemon():
         #self.stop() TODO: too late for this?
         pass
 
-  
+
     def start(self):
         """
         """
@@ -84,10 +84,10 @@ class daemon():
                     # Strategy has nothing to offer at the moment.
                     pass
                 else:
-                    self.opportunities.append( new_opp )
+                    self.opportunities.push(new_opp)
         
             # Decide which opportunities to execute
-            order_result = broker.place_order( self.opportunities.pop().order )
+            order_result = broker.place_order(self.opportunities.pop().order)
             if order_result == None:
                 s.callback( False, new_order )
                 log.write('"daemon.py" start(): Failed to place order.')

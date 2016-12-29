@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-def btos(cls, b):
+def btos(b):
     """
     Decode bytes to string using UTF8.
     Parameter `b' is assumed to have type of `bytes'.
@@ -8,7 +8,7 @@ def btos(cls, b):
     return b.decode('utf_8')
 
 
-def stob(cls, s):
+def stob(s):
     """
     """
     return s.encode('utf_8')
