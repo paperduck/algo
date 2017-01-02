@@ -39,18 +39,11 @@ class daemon():
         log.clear()
         log.write( datetime.datetime.now().strftime("%c") + "\n\n" )
 
-        # Read in existing trades
-        open_trades = broker.get_trades() # get list of `trade` objects
-        if open_trades == None:
-            log.write('"daemon.py" __init__(): Failed to get list of trades. ABORTING')
-            sys.exit()
-        else:
-            # Distribute tasks to their respective strategy modules
-            # TODO Query db: Get strategy that opened each trade.
-            pass
-
         # Specify which trategies to run.
         self.strategies.append( fifty.fifty() ) 
+
+        # Read in existing trades
+        self.recover_trades()
 
 
     def __del__(self):
@@ -97,6 +90,12 @@ class daemon():
                 # 200 Code and information about the trade that closed. I.e. I don't get 
                 # info about an opened trade. (Oanda)
                 new_order.transaction_id = trade['id']
+                # TODO write trade info my database
+                """
+                It's possible that a trade will be opened, then the system is
+                terminated before the trade is written to the database.
+                
+                """
 
             # Clear opportunity list.
             # Opportunities should be considered to exist only in the moment,
@@ -109,6 +108,51 @@ class daemon():
         stop daemon; tidy up open trades
         """
         self.stopped = True
+
+
+    def recover_trades(self):
+        """
+        See if there are any open trades.
+        """
+        # Get trades from broker.
+        open_trades = broker.get_trades() # get list of `trade` objects
+        if open_trades == None:
+            log.write('"daemon.py" __init__(): Failed to get list of trades. ABORTING')
+            sys.exit()
+
+        # Fil in strategy info
+        open_trades.fill_in_trade_extra_info()
+
+        # Distribute tasks to their respective strategy modules
+        for i in range(0, len(open_trades)-1):
+            if open_trades[i].strategy_name != None:
+                # find the strategy that made this trade and notify it.
+                for s in self.strategies:
+                    if open_trades[i].strategy_name == s.name:
+                        s.callback_recover_trade(open_trades[i])
+                        open_trades.pop(i)
+
+        # See if there were any trades that were not distributed back to their
+        # strategy.
+        unknown_state = False
+        for t in open_trades:
+            if broker.is_trade_closed(t.transaction_id):
+                # Trade closed; don't need to track it any more; no problem.
+                log.write('"daemon.py" recover_trades(): This trade has closed\
+                           since daemon last ran:\n{}\n'.format(str(t)))
+                pass
+            else:
+                # Trade hasn't closed, but the broker is not aware of a matching
+                # live trade. Problem!
+                log.write('"daemon.py" recover_trades(): Trade with unknown \
+                           state:')
+                log.write(str(t))
+                log.write('~')
+                unknown_state = True
+        if unknown_state:
+            log.write('"daemon.py" recover_trades(): Aborting due to trade \
+                       with unknown state.')
+            sys.exit()
 
 
 if __name__ == "__main__":

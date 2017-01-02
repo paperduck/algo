@@ -25,7 +25,6 @@ class fifty( strategy ):
         """
         self.next_direction = 'buy'
         self.name = "fifty"
-        self.open_trades = []  # list of trades opened by this strategy. 
 
 
     def __str__(self):
@@ -49,43 +48,12 @@ class fifty( strategy ):
         else:
             if closed:
                 log.write('"fifty.py" refresh(): Trade with ID ', transaction_id, ' closed.')
-                self.closed_trades.append( self.open_trades.pop() )
+
                 # this in particular needs
-                #to go in broker.py so 
+                # to go in broker.py so 
                 # I don't forget to add it to each strategy.
                 log.transaction( transaction_id )
             return closed
-        
-
-    def callback_trade_opened(self, trade):
-        """
-        This is used to notify the strategy when an order that it suggested
-        was placed.
-        """
-        self.open_trades.append(trade)
-        # Save to database
-        # TODO
-
-
-    def callback_recover(self, trade):
-        """
-        When the daemon is initializing, for example after being restarted,
-        this can be used to tell the strategy
-        module about a trade that it had previously opened.
-        """
-        self.open_trades.append(trade)
-
-
-    def refresh(self):
-        """
-        Look at current price and past prices and determine whether there is
-        an opportunity or not.
-        Returns:
-            If the daemon should enter a trade, an instance of `order',
-            otherwise None.
-        """
-        self.babysit()
-        return self.scan()
 
 
     def babysit(self):

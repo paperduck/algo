@@ -121,11 +121,9 @@ class oanda():
             response.info() is email.message_from_string(); it needs to be
             # cast to a string.
             """
-            #if 'Content-Encoding: gzip' in str(resp_info):
             if response.getheader('Content-Encoding').strip().startswith('gzip'):
                 resp_data = btos(gzip.decompress(response.read()))
             else:
-                #if 'Content-Encoding: deflate' in str(resp_info):
                 if response.getheader('Content-Encoding').strip().startswith('deflate'):
                     resp_data = btos( zlib.decompress( response.read() ) )
                 else:

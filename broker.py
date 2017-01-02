@@ -109,6 +109,8 @@ class broker():
     def get_spread(cls, symbol, since=None):
         """
         Get one spread value
+
+        Returns: Decimal/Float
         """
         return cls.broker.get_spread(symbol, since)
 
@@ -116,17 +118,22 @@ class broker():
     @classmethod
     def place_order(cls, in_order):
         """
-        # Buy an instrument
-        # Returns: dict or None
+        Place an order.
+        
+        Returns: dict or None
         """
-        return cls.broker.place_order(in_order)
-
+        result = cls.broker.place_order(in_order)
+        # TODO: If a trade is opened, write trade info to db
+        # (table: live_open_trades)
+        # if result then: write to db
+        return result
 
     @classmethod
     def is_market_open(cls):
         """
-        # Is the market open?
-        # Returns: Boolean
+        Is the market open?
+
+        Returns: Boolean
         """
         return cls.broker.is_market_open()
 
@@ -153,10 +160,15 @@ class broker():
     @classmethod
     def get_trades(cls):
         """
-        Get info about all open trades
+        Get info about all open trades from the broker.
+        To get more info about the trades, use
+        trade.fill_in_trade_extra_info().
+
         Returns: dict or None
         """
-        return cls.broker.get_trades()
+        # First, get the information that the broker provides.
+        # These `trade` instances will be missing the strategy names.
+        broker_trades = cls.broker.get_trades()
 
 
     # Get info about a particular trade

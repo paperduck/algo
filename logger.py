@@ -48,11 +48,12 @@ class log():
         with open(cls.log_path, 'a') as f:
             f.write(msg)
             f.close()
-
+    """
     # save info about a transaction
     @classmethod
     def transaction(cls, trans_id):
         # TODO: retrieve transaction info and write it to database
         cls.write('"log.py" in transaction(): Saving transaction info to database. ID: ', trans_id)
+    """
 
 
