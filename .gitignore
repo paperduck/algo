@@ -1,3 +1,5 @@
+# package files
+*.deb
 # log output
 output*
 # no need to save temporary output files
