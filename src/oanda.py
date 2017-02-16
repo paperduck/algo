@@ -22,15 +22,15 @@ from currency_pair_conversions import *
 from data_conversions import *
 from logger import log
 import order
+from trade import *
 #--------------------------
 
 class oanda():
     cfg = configparser.ConfigParser()
-    cfg.read('/home/user/raid/documents/algo.cfg')
-    if cfg['oanda']['token_practice'] == 'True':
-        practice = True
-    else:
-        practice = False
+    cfg.read('config_nonsecure.cfg')
+    config_path = cfg['config_secure']['path']
+    cfg.read(config_path)
+    practice = cfg['trading']['practice']
 
     account_id_primary = 0
 
@@ -48,9 +48,11 @@ class oanda():
     @classmethod
     def get_auth_key(cls):
         cfg = configparser.ConfigParser()
-        cfg.read('/home/user/raid/documents/algo.cfg')
+        cfg.read('config_nonsecure.cfg')
+        config_path = cfg['config_secure']['path']
+        cfg.read(config_path)
         if oanda.practice:
-            token = cfg['oanda']['practice_token']
+            token = cfg['oanda']['token_practice']
         else:
             token = cfg['oanda']['token']
         if token == None:
@@ -75,10 +77,18 @@ class oanda():
     unverifiable=False, method=None):
         """
         Helpful function for accessing Oanda's REST API
-        Returns JSON as a string, or None.
-        Prints error info to stdout.
+        Returns: dict or None.
         """
         log.write('"oanda.py" fetch(): Entering.')
+        log.write('"oanda.py" fetch(): Parameters:\n\
+            in_url: {0}\n\
+            in_headers: {1}\n\
+            in_data: {2}\n\
+            origin_req_host: {3}\n\
+            unverifiable: {4}\n\
+            method: {5}\n\
+            '.format(in_url, in_headers, btos(in_data), origin_req_host,
+            unverifiable,method))
         # headers; if anything is specified, then let that overwrite default.
         if in_headers == None:
             headers = {\
@@ -87,49 +97,48 @@ class oanda():
             'Accept-Encoding': 'gzip, deflate'}
         else:
             headers = in_headers
-        log.write ('"oanda.py" fetch():     headers: ', headers)
-        # url
-        log.write ('"oanda.py" oanda.fetch():     url:  ', in_url)
-        # data
-        if in_data != None:
-            log.write('"oanda.py" fetch():     data: \n\n', btos(in_data), '\n')
-        else:
-            log.write('"oanda.py" fetch():     data: None')
-        # log method
-        log.write('"oanda.py" fetch():     method: ', method, '.')
         # send request
         req = urllib.request.Request(in_url, in_data, headers, origin_req_host, unverifiable, method)
+        log.write('"oanda.py" fetch(): ****************************************' )
         response = None
         # The Oanda REST API returns 404 error if you try to get trade info for a closed trade,
         #   so don't freak out if that happens.
         try:
             response = urllib.request.urlopen( req )
-
+            # Check the response code.
             response_code = response.getcode()
-            if response_code == '404':
-                pass
-            elif response_code == '415':
-                pass # unsupported media type (content-encoding)
-
-            log.write('"oanda.py" fetch(): ****************************************' )
+            if response_code == 404:
+                log.write('"oanda.py" fetch(): Response code ', response_code)
+            elif response_code == 415:
+                # unsupported media type (content-encoding)
+                log.write('"oanda.py" fetch(): Response code 415: Unsupported media type')
+            elif response_code != 200:
+                log.write('"oanda.py" fetch(): Response code was not 200.')
+            log.write('"oanda.py" fetch(): RESPONSE CODE: ', response_code)
+            # Other stuff
             log.write('"oanda.py" fetch(): RESPONSE URL:\n    ', response.geturl())
             resp_info = response.info()
             log.write( '"oanda.py" fetch(): RESPONSE INFO:\n', resp_info )
-            resp_data = ''
-            # See if the response is encoded.
+            # Get the response data.
             """
             response.info() is email.message_from_string(); it needs to be
             # cast to a string.
             """
-            if response.getheader('Content-Encoding').strip().startswith('gzip'):
-                resp_data = btos(gzip.decompress(response.read()))
-            else:
-                if response.getheader('Content-Encoding').strip().startswith('deflate'):
-                    resp_data = btos( zlib.decompress( response.read() ) )
+            resp_data = ''
+            # See if the response data is encoded.
+            header = response.getheader('Content-Encoding')
+            if header != None:
+                if header.strip().startswith('gzip'):
+                    resp_data = btos(gzip.decompress(response.read()))
                 else:
-                    resp_data = btos( response.read() )
-            log.write('"oanda.py" fetch(): RESPONSE CODE: ', response_code)
-            log.write('"oanda.py" fetch(): RESPONSE:\n', resp_data, '\n')
+                    if header.strip().startswith('deflate'):
+                        resp_data = btos( zlib.decompress( response.read() ) )
+                    else:
+                        resp_data = btos( response.read() )
+            else:
+                resp_data = btos(response.read())
+            log.write('"oanda.py" fetch(): RESPONSE PAYLOAD:\n', resp_data, '\n')
+            # Parse the JSON from Oanda into a dict, then return it.
             resp_data_str = json.loads(resp_data)
             return resp_data_str
         except (urllib.error.URLError):
@@ -145,18 +154,21 @@ class oanda():
             log.write('"oanda.py" fetch(): TRACEBACK:\n', traceback.print_exc(), '\n')
             return None
 
+
     @classmethod
     def get_accounts(cls):
         """
         Get list of accounts
         Returns: dict or None
         """
+        log.write('"oanda.py" get_accounts(): Entering.')
         accounts = cls.fetch(cls.get_rest_url() + '/v1/accounts')
         if accounts != None:
             return accounts
         else:
             log.write('"oanda.py" get_accounts(): Failed to get accounts.')
             sys.exit()
+
     
     @classmethod
     def get_account_id_primary(cls):
@@ -164,6 +176,7 @@ class oanda():
         Get ID of account to trade with.
         Returns: String
         """
+        log.write('"oanda.py" get_account_id_primary(): Entering.')
         if cls.account_id_primary == 0: # if it hasn't been defined yet
             #log.write('"oanda.py" get_account_id_primary(): Entering.')
             accounts = cls.get_accounts()
@@ -177,10 +190,12 @@ class oanda():
         else: # reduce overhead
             return cls.account_id_primary
 
+
     # Get account info for a given account ID
     # Returns: dict or None 
     @classmethod
     def get_account(cls, account_id):
+        log.write('"oanda.py" get_account(): Entering.')
         #log.write('"oanda.py" get_account(): Entering.')
         account = cls.fetch(cls.get_rest_url() + '/v1/accounts/' + account_id)
         if account != None:
@@ -201,6 +216,7 @@ class oanda():
             log.write('"oanda.py" get_positions(): Failed to get positions.')
             sys.exit()
 
+
     # Get number of positions for a given account ID
     # Returns: Integer
     @classmethod
@@ -213,6 +229,7 @@ class oanda():
             log.write('"oanda.py" get_num_of_positions(): Failed to get positions.')
             sys.exit()
 
+
     # Get account balance for a given account ID
     # Returns: Decimal number
     @classmethod
@@ -224,6 +241,7 @@ class oanda():
         else:
             log.write('"oanda.py" get_balance(): Failed to get account.')
             sys.exit()
+
 
     # Fetch live prices for specified instruments that are available on the OANDA platform.
     # Returns: dict or None
@@ -241,6 +259,7 @@ class oanda():
             log.write('"oanda.py" get_prices(): Failed to get prices.')
             sys.exit()
 
+
     # Get one ask price
     # Returns: Decimal or None
     # TODO: Validate symbol passed in
@@ -256,6 +275,7 @@ class oanda():
             log.write('"oanda.py" get_ask(): Failed to get prices.')
             sys.exit()
 
+
     # Get one bid price
     # Returns: Decimal or None
     @classmethod
@@ -269,6 +289,7 @@ class oanda():
         else:
             log.write('"oanda.py" get_bid(): Failed to get prices.')
             sys.exit()
+
 
     # Get spread, in pips, for given currency pairs (e.g. 'USD_JPY%2CEUR_USD')
     # Returns: dict of (<instrument>, <spread>) tuples.
@@ -285,6 +306,7 @@ class oanda():
             log.write('"oanda.py" get_spreads(): Failed to get prices.')
             sys.exit()
 
+
     # Get one spread value
     @classmethod
     def get_spread(cls, instrument, since=None):
@@ -295,6 +317,7 @@ class oanda():
         else:
             log.write('"oanda.py" get_spread(): Failed to get spreads.')
             sys.exit()
+
 
     @classmethod
     def place_order(cls, in_order):
@@ -425,17 +448,23 @@ class oanda():
         log.write('"oanda.py" is_trade_closed(): Unable to locate trade. Assuming trade is still open.')
         return False
 
+
     # Get info about all open trades
-    # Returns: dict or None
+    # Returns: `trades` instance.
     @classmethod
     def get_trades(cls):
-        #log.write('"oanda.py" get_trades(): Entering.')
-        info = cls.fetch(\
-             cls.get_rest_url() + '/v1/accounts/' + str(cls.get_account_id_primary()) + '/trades/' )
-        if info == None:
+        log.write('"oanda.py" get_trades(): Entering.')
+        trade_list_oanda = cls.fetch(\
+            cls.get_rest_url() + '/v1/accounts/' + \
+                str(cls.get_account_id_primary()) + '/trades/' )
+        if trade_list_oanda == None:
             return None
         else:
-            return info
+            trade_list = trades()
+            for t in trade_list_oanda: 
+                trade_list.append(trade(t["id"], t["instrument"]))
+            return trade_list
+
 
     # Get info about a particular trade
     # Returns: dict or None

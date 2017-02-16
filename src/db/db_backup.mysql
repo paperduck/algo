@@ -1,0 +1,660 @@
+--
+-- Thu Feb 16 14:54:53 JST 2017
+--
+
+-- MySQL dump 10.13  Distrib 5.7.16, for Linux (x86_64)
+--
+-- Host: localhost    Database: algo
+-- ------------------------------------------------------
+-- Server version	5.7.16-2
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8 */;
+/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
+/*!40103 SET TIME_ZONE='+00:00' */;
+/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
+/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+
+--
+-- Table structure for table `brokers`
+--
+
+DROP TABLE IF EXISTS `brokers`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `brokers` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'pk',
+  `name` varchar(100) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=latin1 ENCRYPTION='Y';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `brokers`
+--
+
+LOCK TABLES `brokers` WRITE;
+/*!40000 ALTER TABLE `brokers` DISABLE KEYS */;
+INSERT INTO `brokers` VALUES (5,'oanda');
+/*!40000 ALTER TABLE `brokers` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `instruments`
+--
+
+DROP TABLE IF EXISTS `instruments`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `instruments` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `symbol` varchar(100) NOT NULL,
+  `description` varchar(100) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `instruments`
+--
+
+LOCK TABLES `instruments` WRITE;
+/*!40000 ALTER TABLE `instruments` DISABLE KEYS */;
+INSERT INTO `instruments` VALUES (1,'AMZN','amazon'),(2,'DCK','duck'),(3,'SNK','snake');
+/*!40000 ALTER TABLE `instruments` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `open_trades_backtesting`
+--
+
+DROP TABLE IF EXISTS `open_trades_backtesting`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `open_trades_backtesting` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'real (non-simulation) open trades',
+  `strategy_id` varchar(100) DEFAULT NULL,
+  `transaction_id` varchar(100) DEFAULT NULL,
+  `broker_id` int(10) unsigned DEFAULT NULL,
+  `instrument_id` int(10) unsigned DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `open_trades_backtesting`
+--
+
+LOCK TABLES `open_trades_backtesting` WRITE;
+/*!40000 ALTER TABLE `open_trades_backtesting` DISABLE KEYS */;
+/*!40000 ALTER TABLE `open_trades_backtesting` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `open_trades_live`
+--
+
+DROP TABLE IF EXISTS `open_trades_live`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `open_trades_live` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'real (non-simulation) open trades',
+  `strategy_id` int(10) unsigned NOT NULL,
+  `transaction_id` varchar(100) DEFAULT NULL,
+  `broker_id` int(10) unsigned NOT NULL,
+  `instrument_id` int(10) unsigned NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `broker_id` (`broker_id`),
+  KEY `strategy_id` (`strategy_id`),
+  KEY `instrument_id` (`instrument_id`),
+  CONSTRAINT `open_trades_live_ibfk_2` FOREIGN KEY (`broker_id`) REFERENCES `brokers` (`id`),
+  CONSTRAINT `open_trades_live_ibfk_3` FOREIGN KEY (`strategy_id`) REFERENCES `strategies` (`id`),
+  CONSTRAINT `open_trades_live_ibfk_4` FOREIGN KEY (`instrument_id`) REFERENCES `instruments` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `open_trades_live`
+--
+
+LOCK TABLES `open_trades_live` WRITE;
+/*!40000 ALTER TABLE `open_trades_live` DISABLE KEYS */;
+/*!40000 ALTER TABLE `open_trades_live` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `pidata_fx_audjpy`
+--
+
+DROP TABLE IF EXISTS `pidata_fx_audjpy`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `pidata_fx_audjpy` (
+  `date` date DEFAULT NULL,
+  `time` time DEFAULT NULL,
+  `open` decimal(11,4) DEFAULT NULL,
+  `high` decimal(11,4) DEFAULT NULL,
+  `low` decimal(11,4) DEFAULT NULL,
+  `close` decimal(11,4) DEFAULT NULL,
+  `volume` int(10) unsigned DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `pidata_fx_audjpy`
+--
+
+LOCK TABLES `pidata_fx_audjpy` WRITE;
+/*!40000 ALTER TABLE `pidata_fx_audjpy` DISABLE KEYS */;
+/*!40000 ALTER TABLE `pidata_fx_audjpy` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `pidata_fx_audusd`
+--
+
+DROP TABLE IF EXISTS `pidata_fx_audusd`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `pidata_fx_audusd` (
+  `date` date DEFAULT NULL,
+  `time` time DEFAULT NULL,
+  `open` decimal(11,4) DEFAULT NULL,
+  `high` decimal(11,4) DEFAULT NULL,
+  `low` decimal(11,4) DEFAULT NULL,
+  `close` decimal(11,4) DEFAULT NULL,
+  `volume` int(10) unsigned DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `pidata_fx_audusd`
+--
+
+LOCK TABLES `pidata_fx_audusd` WRITE;
+/*!40000 ALTER TABLE `pidata_fx_audusd` DISABLE KEYS */;
+/*!40000 ALTER TABLE `pidata_fx_audusd` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `pidata_fx_chfjpy`
+--
+
+DROP TABLE IF EXISTS `pidata_fx_chfjpy`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `pidata_fx_chfjpy` (
+  `date` date DEFAULT NULL,
+  `time` time DEFAULT NULL,
+  `open` decimal(11,4) DEFAULT NULL,
+  `high` decimal(11,4) DEFAULT NULL,
+  `low` decimal(11,4) DEFAULT NULL,
+  `close` decimal(11,4) DEFAULT NULL,
+  `volume` int(10) unsigned DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `pidata_fx_chfjpy`
+--
+
+LOCK TABLES `pidata_fx_chfjpy` WRITE;
+/*!40000 ALTER TABLE `pidata_fx_chfjpy` DISABLE KEYS */;
+/*!40000 ALTER TABLE `pidata_fx_chfjpy` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `pidata_fx_euraud`
+--
+
+DROP TABLE IF EXISTS `pidata_fx_euraud`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `pidata_fx_euraud` (
+  `date` date DEFAULT NULL,
+  `time` time DEFAULT NULL,
+  `open` decimal(11,4) DEFAULT NULL,
+  `high` decimal(11,4) DEFAULT NULL,
+  `low` decimal(11,4) DEFAULT NULL,
+  `close` decimal(11,4) DEFAULT NULL,
+  `volume` int(10) unsigned DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `pidata_fx_euraud`
+--
+
+LOCK TABLES `pidata_fx_euraud` WRITE;
+/*!40000 ALTER TABLE `pidata_fx_euraud` DISABLE KEYS */;
+/*!40000 ALTER TABLE `pidata_fx_euraud` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `pidata_fx_eurcad`
+--
+
+DROP TABLE IF EXISTS `pidata_fx_eurcad`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `pidata_fx_eurcad` (
+  `date` date DEFAULT NULL,
+  `time` time DEFAULT NULL,
+  `open` decimal(11,4) DEFAULT NULL,
+  `high` decimal(11,4) DEFAULT NULL,
+  `low` decimal(11,4) DEFAULT NULL,
+  `close` decimal(11,4) DEFAULT NULL,
+  `volume` int(10) unsigned DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `pidata_fx_eurcad`
+--
+
+LOCK TABLES `pidata_fx_eurcad` WRITE;
+/*!40000 ALTER TABLE `pidata_fx_eurcad` DISABLE KEYS */;
+/*!40000 ALTER TABLE `pidata_fx_eurcad` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `pidata_fx_eurchf`
+--
+
+DROP TABLE IF EXISTS `pidata_fx_eurchf`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `pidata_fx_eurchf` (
+  `date` date DEFAULT NULL,
+  `time` time DEFAULT NULL,
+  `open` decimal(11,4) DEFAULT NULL,
+  `high` decimal(11,4) DEFAULT NULL,
+  `low` decimal(11,4) DEFAULT NULL,
+  `close` decimal(11,4) DEFAULT NULL,
+  `volume` int(10) unsigned DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `pidata_fx_eurchf`
+--
+
+LOCK TABLES `pidata_fx_eurchf` WRITE;
+/*!40000 ALTER TABLE `pidata_fx_eurchf` DISABLE KEYS */;
+/*!40000 ALTER TABLE `pidata_fx_eurchf` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `pidata_fx_eurgbp`
+--
+
+DROP TABLE IF EXISTS `pidata_fx_eurgbp`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `pidata_fx_eurgbp` (
+  `date` date DEFAULT NULL,
+  `time` time DEFAULT NULL,
+  `open` decimal(11,4) DEFAULT NULL,
+  `high` decimal(11,4) DEFAULT NULL,
+  `low` decimal(11,4) DEFAULT NULL,
+  `close` decimal(11,4) DEFAULT NULL,
+  `volume` int(10) unsigned DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `pidata_fx_eurgbp`
+--
+
+LOCK TABLES `pidata_fx_eurgbp` WRITE;
+/*!40000 ALTER TABLE `pidata_fx_eurgbp` DISABLE KEYS */;
+/*!40000 ALTER TABLE `pidata_fx_eurgbp` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `pidata_fx_eurjpy`
+--
+
+DROP TABLE IF EXISTS `pidata_fx_eurjpy`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `pidata_fx_eurjpy` (
+  `date` date DEFAULT NULL,
+  `time` time DEFAULT NULL,
+  `open` decimal(11,4) DEFAULT NULL,
+  `high` decimal(11,4) DEFAULT NULL,
+  `low` decimal(11,4) DEFAULT NULL,
+  `close` decimal(11,4) DEFAULT NULL,
+  `volume` int(10) unsigned DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `pidata_fx_eurjpy`
+--
+
+LOCK TABLES `pidata_fx_eurjpy` WRITE;
+/*!40000 ALTER TABLE `pidata_fx_eurjpy` DISABLE KEYS */;
+/*!40000 ALTER TABLE `pidata_fx_eurjpy` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `pidata_fx_eurusd`
+--
+
+DROP TABLE IF EXISTS `pidata_fx_eurusd`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `pidata_fx_eurusd` (
+  `date` date DEFAULT NULL,
+  `time` time DEFAULT NULL,
+  `open` decimal(11,4) DEFAULT NULL,
+  `high` decimal(11,4) DEFAULT NULL,
+  `low` decimal(11,4) DEFAULT NULL,
+  `close` decimal(11,4) DEFAULT NULL,
+  `volume` int(10) unsigned DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `pidata_fx_eurusd`
+--
+
+LOCK TABLES `pidata_fx_eurusd` WRITE;
+/*!40000 ALTER TABLE `pidata_fx_eurusd` DISABLE KEYS */;
+/*!40000 ALTER TABLE `pidata_fx_eurusd` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `pidata_fx_gbpchf`
+--
+
+DROP TABLE IF EXISTS `pidata_fx_gbpchf`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `pidata_fx_gbpchf` (
+  `date` date DEFAULT NULL,
+  `time` time DEFAULT NULL,
+  `open` decimal(11,4) DEFAULT NULL,
+  `high` decimal(11,4) DEFAULT NULL,
+  `low` decimal(11,4) DEFAULT NULL,
+  `close` decimal(11,4) DEFAULT NULL,
+  `volume` int(10) unsigned DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `pidata_fx_gbpchf`
+--
+
+LOCK TABLES `pidata_fx_gbpchf` WRITE;
+/*!40000 ALTER TABLE `pidata_fx_gbpchf` DISABLE KEYS */;
+/*!40000 ALTER TABLE `pidata_fx_gbpchf` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `pidata_fx_gbpjpy`
+--
+
+DROP TABLE IF EXISTS `pidata_fx_gbpjpy`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `pidata_fx_gbpjpy` (
+  `date` date DEFAULT NULL,
+  `time` time DEFAULT NULL,
+  `open` decimal(11,4) DEFAULT NULL,
+  `high` decimal(11,4) DEFAULT NULL,
+  `low` decimal(11,4) DEFAULT NULL,
+  `close` decimal(11,4) DEFAULT NULL,
+  `volume` int(10) unsigned DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `pidata_fx_gbpjpy`
+--
+
+LOCK TABLES `pidata_fx_gbpjpy` WRITE;
+/*!40000 ALTER TABLE `pidata_fx_gbpjpy` DISABLE KEYS */;
+/*!40000 ALTER TABLE `pidata_fx_gbpjpy` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `pidata_fx_gbpusd`
+--
+
+DROP TABLE IF EXISTS `pidata_fx_gbpusd`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `pidata_fx_gbpusd` (
+  `date` date DEFAULT NULL,
+  `time` time DEFAULT NULL,
+  `open` decimal(11,4) DEFAULT NULL,
+  `high` decimal(11,4) DEFAULT NULL,
+  `low` decimal(11,4) DEFAULT NULL,
+  `close` decimal(11,4) DEFAULT NULL,
+  `volume` int(10) unsigned DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `pidata_fx_gbpusd`
+--
+
+LOCK TABLES `pidata_fx_gbpusd` WRITE;
+/*!40000 ALTER TABLE `pidata_fx_gbpusd` DISABLE KEYS */;
+/*!40000 ALTER TABLE `pidata_fx_gbpusd` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `pidata_fx_nzdusd`
+--
+
+DROP TABLE IF EXISTS `pidata_fx_nzdusd`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `pidata_fx_nzdusd` (
+  `date` date DEFAULT NULL,
+  `time` time DEFAULT NULL,
+  `open` decimal(11,4) DEFAULT NULL,
+  `high` decimal(11,4) DEFAULT NULL,
+  `low` decimal(11,4) DEFAULT NULL,
+  `close` decimal(11,4) DEFAULT NULL,
+  `volume` int(10) unsigned DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `pidata_fx_nzdusd`
+--
+
+LOCK TABLES `pidata_fx_nzdusd` WRITE;
+/*!40000 ALTER TABLE `pidata_fx_nzdusd` DISABLE KEYS */;
+/*!40000 ALTER TABLE `pidata_fx_nzdusd` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `pidata_fx_usdcad`
+--
+
+DROP TABLE IF EXISTS `pidata_fx_usdcad`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `pidata_fx_usdcad` (
+  `date` date DEFAULT NULL,
+  `time` time DEFAULT NULL,
+  `open` decimal(11,4) DEFAULT NULL,
+  `high` decimal(11,4) DEFAULT NULL,
+  `low` decimal(11,4) DEFAULT NULL,
+  `close` decimal(11,4) DEFAULT NULL,
+  `volume` int(10) unsigned DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `pidata_fx_usdcad`
+--
+
+LOCK TABLES `pidata_fx_usdcad` WRITE;
+/*!40000 ALTER TABLE `pidata_fx_usdcad` DISABLE KEYS */;
+/*!40000 ALTER TABLE `pidata_fx_usdcad` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `pidata_fx_usdchf`
+--
+
+DROP TABLE IF EXISTS `pidata_fx_usdchf`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `pidata_fx_usdchf` (
+  `date` date DEFAULT NULL,
+  `time` time DEFAULT NULL,
+  `open` decimal(11,4) DEFAULT NULL,
+  `high` decimal(11,4) DEFAULT NULL,
+  `low` decimal(11,4) DEFAULT NULL,
+  `close` decimal(11,4) DEFAULT NULL,
+  `volume` int(10) unsigned DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `pidata_fx_usdchf`
+--
+
+LOCK TABLES `pidata_fx_usdchf` WRITE;
+/*!40000 ALTER TABLE `pidata_fx_usdchf` DISABLE KEYS */;
+/*!40000 ALTER TABLE `pidata_fx_usdchf` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `pidata_fx_usdjpy`
+--
+
+DROP TABLE IF EXISTS `pidata_fx_usdjpy`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `pidata_fx_usdjpy` (
+  `date` date DEFAULT NULL,
+  `time` time DEFAULT NULL,
+  `open` decimal(11,4) DEFAULT NULL,
+  `high` decimal(11,4) DEFAULT NULL,
+  `low` decimal(11,4) DEFAULT NULL,
+  `close` decimal(11,4) DEFAULT NULL,
+  `volume` int(10) unsigned DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `pidata_fx_usdjpy`
+--
+
+LOCK TABLES `pidata_fx_usdjpy` WRITE;
+/*!40000 ALTER TABLE `pidata_fx_usdjpy` DISABLE KEYS */;
+/*!40000 ALTER TABLE `pidata_fx_usdjpy` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `results_backtesting`
+--
+
+DROP TABLE IF EXISTS `results_backtesting`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `results_backtesting` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `strategy_id` varchar(100) NOT NULL,
+  `execution_time` time NOT NULL DEFAULT '00:00:00',
+  `principal` float unsigned NOT NULL DEFAULT '0',
+  `num_round_trips` int(10) unsigned NOT NULL,
+  `start_simulation` datetime NOT NULL,
+  `stop_simulation` datetime NOT NULL,
+  `balance_final` float NOT NULL,
+  `commission_fixed` float unsigned NOT NULL COMMENT 'fixed amount to be deducted from balance per round trip trade.',
+  `commission_percent` float unsigned NOT NULL COMMENT 'amount deducted from balance per round trip trade; percentage of invested amount. 0.05 = 5%.',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `id` (`id`),
+  UNIQUE KEY `strategy_id` (`strategy_id`),
+  CONSTRAINT `results_backtesting_ibfk_1` FOREIGN KEY (`strategy_id`) REFERENCES `strategies` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COMMENT='result of running one strategy';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `results_backtesting`
+--
+
+LOCK TABLES `results_backtesting` WRITE;
+/*!40000 ALTER TABLE `results_backtesting` DISABLE KEYS */;
+/*!40000 ALTER TABLE `results_backtesting` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `strategies`
+--
+
+DROP TABLE IF EXISTS `strategies`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `strategies` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL,
+  `description` varchar(100) DEFAULT NULL COMMENT 'detailed description of this strategy',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `strategies`
+--
+
+LOCK TABLES `strategies` WRITE;
+/*!40000 ALTER TABLE `strategies` DISABLE KEYS */;
+/*!40000 ALTER TABLE `strategies` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `trades_backtesting`
+--
+
+DROP TABLE IF EXISTS `trades_backtesting`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `trades_backtesting` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'primary key',
+  `result_id` int(10) unsigned NOT NULL,
+  `timestamp` datetime NOT NULL COMMENT 'real-world timestamp',
+  `instrument` varchar(100) NOT NULL COMMENT 'stock symbol, forex pair',
+  `enter_price` float NOT NULL,
+  `enter_timestamp` datetime NOT NULL COMMENT 'simulation timestamp',
+  `exit_price` float NOT NULL,
+  `exit_timestamp` datetime NOT NULL COMMENT 'simulation timestamp',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `result_id` (`result_id`),
+  CONSTRAINT `trades_backtesting_ibfk_1` FOREIGN KEY (`result_id`) REFERENCES `results_backtesting` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `trades_backtesting`
+--
+
+LOCK TABLES `trades_backtesting` WRITE;
+/*!40000 ALTER TABLE `trades_backtesting` DISABLE KEYS */;
+/*!40000 ALTER TABLE `trades_backtesting` ENABLE KEYS */;
+UNLOCK TABLES;
+/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
+
+/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
+/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+
+-- Dump completed on 2017-02-16 14:54:56

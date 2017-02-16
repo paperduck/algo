@@ -19,7 +19,9 @@ class broker():
 
     # read in which broker/dealer to use from the config file
     cfg = configparser.ConfigParser()
-    cfg.read('/home/user/raid/documents/algo.cfg')
+    cfg.read('config_nonsecure.cfg')
+    config_path = cfg['config_secure']['path']
+    cfg.read(config_path)
     broker_name = cfg['trading']['broker']
     if broker_name == None:
         log.write('"broker.py" __init__(): Failed to get broker from config file.')
@@ -168,7 +170,8 @@ class broker():
         """
         # First, get the information that the broker provides.
         # These `trade` instances will be missing the strategy names.
-        broker_trades = cls.broker.get_trades()
+        log.write('"broker.py" get_trades(): entering')
+        return cls.broker.get_trades()
 
 
     # Get info about a particular trade

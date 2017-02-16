@@ -37,11 +37,11 @@ class trades():
         self.trade_list = []
 
 
-    def push(self, trade):
+    def append(self, trade):
         self.trade_list.append(trade)
 
 
-    def pop(self, transaction_id):
+    def remove(self, transaction_id):
         """
         Remove the trade with the given transaction ID.
         

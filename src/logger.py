@@ -21,7 +21,9 @@ import datetime
 class log():
 
     cfg = configparser.ConfigParser()
-    cfg.read('/home/user/raid/documents/algo.cfg')
+    cfg.read('config_nonsecure.cfg')
+    config_path = cfg['config_secure']['path']
+    cfg.read(config_path)
     log_path = cfg['log']['path']
     log_file = cfg['log']['file']
     if log_path == None or log_file == None:
