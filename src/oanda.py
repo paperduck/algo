@@ -2,9 +2,11 @@
 # -*- coding: utf-8 -*-
 
 """
-File          oanda.py
-Python ver.   3.4
-Description   Python module for Oanda fxTrade REST API
+File            oanda.py
+Python ver.     3.4
+Description     Python module for Oanda fxTrade REST API
+                This is a singleton class. Methods have the @classmethod
+                attribute.
 """
 
 #--------------------------
@@ -454,16 +456,17 @@ class oanda():
     @classmethod
     def get_trades(cls):
         log.write('"oanda.py" get_trades(): Entering.')
-        trade_list_oanda = cls.fetch(\
+        trades_oanda = cls.fetch(\
             cls.get_rest_url() + '/v1/accounts/' + \
                 str(cls.get_account_id_primary()) + '/trades/' )
-        if trade_list_oanda == None:
-            return None
+        if trades_oanda == None:
+            log.write('"oanda.py" get_trades(): Failed to get trades from Oanda.')
+            raise Exception
         else:
-            trade_list = trades()
-            for t in trade_list_oanda: 
-                trade_list.append(trade(t["id"], t["instrument"]))
-            return trade_list
+            ts = trades()
+            for t in trades_oanda['trades']: 
+                ts.append(trade(t['id'], t['instrument']))
+            return ts
 
 
     # Get info about a particular trade

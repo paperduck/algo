@@ -58,9 +58,9 @@ class daemon():
         """
         log.write('Daemon starting.')
         if broker.is_practice():
-            log.write('Using practice mode.')
+            log.write('"daemon.py" start(): Using practice mode.')
         else:
-            log.write('Using live account.')
+            log.write('"daemon.py" start(): Using live account.')
 
         # Loop:
         """
@@ -94,7 +94,6 @@ class daemon():
                 """
                 It's possible that a trade will be opened, then the system is
                 terminated before the trade is written to the database.
-                
                 """
 
             # Clear opportunity list.
@@ -115,27 +114,27 @@ class daemon():
         See if there are any open trades.
         """
         # Get trades from broker.
-        open_trades = broker.get_trades() # get list of `trade` objects
-        if open_trades == None:
+        open_trades_broker = broker.get_trades() # instance of `trades`
+        if open_trades_broker == None:
             log.write('"daemon.py" __init__(): Failed to get list of trades. ABORTING')
             sys.exit()
 
-        # Fil in strategy info
-        open_trades.fill_in_trade_extra_info()
+        # Fill in strategy info
+        open_trades_broker.fill_in_trade_extra_info()
 
-        # Distribute tasks to their respective strategy modules
-        for i in range(0, len(open_trades)-1):
-            if open_trades[i].strategy_name != None:
+        # Distribute trades to their respective strategy modules
+        for i in range(0, (open_trades_broker.length())-1):
+            if open_trades_broker[i].strategy_name != None:
                 # find the strategy that made this trade and notify it.
                 for s in self.strategies:
-                    if open_trades[i].strategy_name == s.name:
-                        s.callback_recover_trade(open_trades[i])
-                        open_trades.pop(i)
+                    if open_trades_broker[i].strategy_name == s.name:
+                        s.callback_recover_trade(open_trades_broker[i])
+                        open_trades_broker.pop(i)
 
         # See if there were any trades that were not distributed back to their
         # strategy.
         unknown_state = False
-        for t in open_trades:
+        for t in open_trades_broker:
             if broker.is_trade_closed(t.transaction_id):
                 # Trade closed; don't need to track it any more; no problem.
                 log.write('"daemon.py" recover_trades(): This trade has closed\

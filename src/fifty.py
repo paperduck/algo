@@ -13,12 +13,11 @@ from broker import broker
 from logger import log
 from opportunity import opportunity
 from order import order
-from strategy import strategy
+from strategy_base import strategy
 from trade import trade
 #*************************************
 
-class fifty( strategy ):
-
+class fifty(strategy):
 
     def __init__(self):
         """

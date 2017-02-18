@@ -2,7 +2,11 @@
 
 #Algorithmic Trading Daemon ("algo")
 
-This is a work in progress. There are three pieces to this project, as with any algorithmic trading: backtesting, forward testing, and live trading.
+## Introduction
+
+- This is a work in progress. As of 2017-02-17, live trading and forward testing are about half ready. Backtesting is mostly non-existent. 
+- Python is used for the bulk of the program currently (`/src/`). The database is MySQL (`/src/db/`). There are some shell scripts in `/src/scripts`.
+- There are three pieces to this project, as with any algorithmic trading: backtesting, forward testing, and live trading.
 
 ## Backtesting
 - Backtesting will consist of a MySQL database with historical data. The daemon iterates through the historical data to simulate live trading.
@@ -13,9 +17,9 @@ This is a work in progress. There are three pieces to this project, as with any 
 - The "practice" variable in the config file is toggled to `True`.
 
 ## Live Trading
-- The main program is referred to as a "daemon", and exists in `daemon.py`.
-- Run it like this: `# python3 daemon.py`.
-- Each strategy gets its own module, for example the `fifty.py` strategy module encapsulates one simple strategy.
+- The main program is referred to as a "daemon" because ideally it will be 100% self-sufficient. It exists in `daemon.py`.
+- The daemon is started like this: `# python3 daemon.py`.
+- Each strategy gets its own module. For example, the `fifty.py` module encapsulates one simple strategy.
 
 ## Platform Design: Scalability and Modularity
 - Scalability and user-friendliness take priority over speed. This is not intended to be used for high-frequency trading.

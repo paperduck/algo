@@ -34,11 +34,11 @@ class trades():
     """
     
     def __init__(self):
-        self.trade_list = []
-
+        self._trade_list = []
+        self.current_index = 0
 
     def append(self, trade):
-        self.trade_list.append(trade)
+        self._trade_list.append(trade)
 
 
     def remove(self, transaction_id):
@@ -47,11 +47,15 @@ class trades():
         
         Returns: Removed trade object on success; None on failure.
         """
-        for i in range(0, len(self.trade_list)-1):
-            if self.trade_list[i].transaction_id == transaction_id:
-                return self.trade_list.pop[i]
+        for i in range(0, len(self._trade_list)-1):
+            if self._trade_list[i].transaction_id == transaction_id:
+                return self._trade_list.pop[i]
         return None
-    
+
+
+    def length(self):
+        return len(self._trade_list)    
+
 
     def fill_in_trade_extra_info(self):
         """
@@ -66,8 +70,26 @@ class trades():
         Returns: Bool (0=success 1=failure)
         """
         # TODO
-        for t in self.trade_list:
+        for t in self._trade_list:
             pass
 
+
+    def __iter__(self):
+        """
+        Make this class iterable
+        """
+        return self
+
+
+    def __next__(self):
+        """
+        Make this class iterable
+        """
+        if self.current_index >= len(self._trade_list):
+            self.current_index = 0
+            raise StopIteration
+        else:
+            self.current_index = self.current_index + 1
+            return self._trade_list[self.current_index - 1]
 
 
