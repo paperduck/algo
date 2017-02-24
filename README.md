@@ -1,4 +1,6 @@
-(日本語下記)
+（日本語下記）
+
+---
 
 #Algorithmic Trading Daemon ("algo")
 
@@ -17,8 +19,8 @@
 - The "practice" variable in the config file is toggled to `True`.
 
 ## Live Trading
-- The main program is referred to as a "daemon" because ideally it will be 100% self-sufficient. It exists in `daemon.py`.
-- The daemon is started like this: `# python3 daemon.py`.
+- The main program is referred to as a "daemon" because ideally it will be 100% self-sufficient. It exists in `/src/daemon.py`.
+- The daemon is started like this: `$ python3 daemon.py`.
 - Each strategy gets its own module. For example, the `/src/strategies/fifty.py` module encapsulates one simple strategy.
 
 ## Platform Design: Scalability and Modularity
@@ -32,7 +34,7 @@
 
 ---
 
-#アルゴリズミックトレーディングボット「アルゴ」
+#アルゴリズミックトレーディングボット（「アルゴ」）
 仕掛品。    
 
 三つ部分：（１）バックテスティング（２）フォーワードテスティング（３）③　ライブトレーディング
