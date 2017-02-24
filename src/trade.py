@@ -6,7 +6,7 @@ Python version:     3.4
 Description:        Containers for trades.
 """
 
-class trade():
+class Trade():
     """
     Represents one trade, either past or present.
     Future trades are "opportunities" or "orders".
@@ -28,7 +28,7 @@ class trade():
                )
 
 
-class trades():
+class Trades():
     """
     List of `trade` objects.
     """

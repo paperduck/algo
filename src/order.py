@@ -4,7 +4,7 @@
 # The variables align with the fxTrade REST API for placing orders.
 # There are some extra fields as well.
 
-class order():
+class Order():
 
     def __init__(self, in_instrument,in_units,in_side, in_type, in_expiry=None, in_price=None,\
     in_lower_bound = None, in_upper_bound = None, in_stop_loss = None, in_take_profit = None\

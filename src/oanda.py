@@ -22,12 +22,11 @@ import zlib
 #--------------------------
 from currency_pair_conversions import *
 from data_conversions import *
-from logger import log
-import order
+from log import log
 from trade import *
 #--------------------------
 
-class oanda():
+class Oanda():
     cfg = configparser.ConfigParser()
     cfg.read('config_nonsecure.cfg')
     config_path = cfg['config_secure']['path']
@@ -53,7 +52,7 @@ class oanda():
         cfg.read('config_nonsecure.cfg')
         config_path = cfg['config_secure']['path']
         cfg.read(config_path)
-        if oanda.practice:
+        if Oanda.practice:
             token = cfg['oanda']['token_practice']
         else:
             token = cfg['oanda']['token']
@@ -76,12 +75,12 @@ class oanda():
 
     @classmethod
     def fetch(cls, in_url, in_headers=None, in_data=None, origin_req_host=None,
-    unverifiable=False, method=None):
+    unverifiable=False, in_method=None):
         """
         Helpful function for accessing Oanda's REST API
         Returns: dict or None.
         """
-        log.write('"oanda.py" fetch(): Entering.')
+        log.write('"oanda.py" fetch(): ***** beginning ************************\\' )
         log.write('"oanda.py" fetch(): Parameters:\n\
             in_url: {0}\n\
             in_headers: {1}\n\
@@ -90,7 +89,7 @@ class oanda():
             unverifiable: {4}\n\
             method: {5}\n\
             '.format(in_url, in_headers, btos(in_data), origin_req_host,
-            unverifiable,method))
+            unverifiable,in_method))
         # headers; if anything is specified, then let that overwrite default.
         if in_headers == None:
             headers = {\
@@ -100,8 +99,7 @@ class oanda():
         else:
             headers = in_headers
         # send request
-        req = urllib.request.Request(in_url, in_data, headers, origin_req_host, unverifiable, method)
-        log.write('"oanda.py" fetch(): ****************************************' )
+        req = urllib.request.Request(in_url, in_data, headers, origin_req_host, unverifiable, in_method)
         response = None
         # The Oanda REST API returns 404 error if you try to get trade info for a closed trade,
         #   so don't freak out if that happens.
@@ -142,16 +140,21 @@ class oanda():
             log.write('"oanda.py" fetch(): RESPONSE PAYLOAD:\n', resp_data, '\n')
             # Parse the JSON from Oanda into a dict, then return it.
             resp_data_str = json.loads(resp_data)
+            log.write('"oanda.py" fetch(): ***** ending ***************************/' )
             return resp_data_str
         except (urllib.error.URLError):
             """
             sys.last_traceback
             https://docs.python.org/3.4/library/traceback.html
             """
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            log.write('"oanda.py" fetch(): URLError: ', exc_type)
+            log.write('"oanda.py" fetch(): EXC INFO: ', exc_value)
+            log.write('"oanda.py" fetch(): TRACEBACK:\n', traceback.print_exc(), '\n')
             return None
         except:
             exc_type, exc_value, exc_traceback = sys.exc_info()
-            log.write('"oanda.py" fetch(): URLError: ', exc_type)
+            log.write('"oanda.py" fetch(): Exception: ', exc_type)
             log.write('"oanda.py" fetch(): EXC INFO: ', exc_value)
             log.write('"oanda.py" fetch(): TRACEBACK:\n', traceback.print_exc(), '\n')
             return None
@@ -198,7 +201,6 @@ class oanda():
     @classmethod
     def get_account(cls, account_id):
         log.write('"oanda.py" get_account(): Entering.')
-        #log.write('"oanda.py" get_account(): Entering.')
         account = cls.fetch(cls.get_rest_url() + '/v1/accounts/' + account_id)
         if account != None:
             return account
@@ -348,9 +350,18 @@ class oanda():
             request_args['trailingStop'] = in_order.trailing_stop
         data = urllib.parse.urlencode(request_args)
         data = stob(data) # convert string to bytes
-        result = cls.fetch( cls.get_rest_url() + '/v1/accounts/' + cls.get_account_id_primary() + '/orders', None, data)
+        result = cls.fetch(
+            in_url="{}/v1/accounts/{}/orders".format(
+                cls.get_rest_url(),
+                cls.get_account_id_primary()
+            ),
+            in_headers=None,
+            in_data=data,
+            in_method="POST"
+            )
         if result == None:
             log.write('"oanda.py" place_order(): Failed to place order.')
+            log.write('"oanda.py" place_order(): Aborting.')
             sys.exit()
         else:
             return result
@@ -463,9 +474,9 @@ class oanda():
             log.write('"oanda.py" get_trades(): Failed to get trades from Oanda.')
             raise Exception
         else:
-            ts = trades()
+            ts = Trades()
             for t in trades_oanda['trades']: 
-                ts.append(trade(t['id'], t['instrument']))
+                ts.append(Trade(t['id'], t['instrument']))
             return ts
 
 

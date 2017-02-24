@@ -10,11 +10,11 @@ Description:    The `opportunity` class represents one order.
 
 #*************************
 #*************************
-from logger import log
+from log import *
 #*************************
 
 
-class opportunity():
+class Opportunity():
     """
     """
 
@@ -37,7 +37,7 @@ class opportunity():
         return 'opportunity'
 
     
-class opportunities():
+class Opportunities():
     """
     """
 

@@ -12,12 +12,12 @@ import time         # for sleep()
 #import urllib.request
 #import urllib.error
 #*************************
-import fifty
-from logger import log
-from broker import broker
+from strategies.fifty import *
+from log import *
+from broker import *
 from opportunity import *
-import order
-from trade import trade
+from order import *
+from trade import *
 #*************************
 
 # Limitations should be specified here, such as 
@@ -27,20 +27,20 @@ from trade import trade
 # The daemon:
 #   - Manages account balance, margin, risk.  Can block trades to protect these.
 #   - Forcefully close trades as needed (e.g. shutdown)
-class daemon():
+class Daemon():
     
     def __init__(self):
         """
         """
         self.stopped = False    # flag to stop running    
-        self.opportunities = opportunities()
+        self.opportunities = Opportunities()
         self.strategies = []
 
         log.clear()
         log.write( datetime.datetime.now().strftime("%c") + "\n\n" )
 
         # Specify which trategies to run.
-        self.strategies.append( fifty.fifty() ) 
+        self.strategies.append( Fifty() )
 
         # Read in existing trades
         self.recover_trades()
@@ -57,7 +57,7 @@ class daemon():
         """
         """
         log.write('Daemon starting.')
-        if broker.is_practice():
+        if Broker.is_practice():
             log.write('"daemon.py" start(): Using practice mode.')
         else:
             log.write('"daemon.py" start(): Using live account.')
@@ -80,7 +80,7 @@ class daemon():
                     self.opportunities.push(new_opp)
         
             # Decide which opportunities to execute
-            order_result = broker.place_order(self.opportunities.pop().order)
+            order_result = Broker.place_order(self.opportunities.pop().order)
             if order_result == None:
                 s.callback( False, new_order )
                 log.write('"daemon.py" start(): Failed to place order.')
@@ -114,7 +114,7 @@ class daemon():
         See if there are any open trades.
         """
         # Get trades from broker.
-        open_trades_broker = broker.get_trades() # instance of `trades`
+        open_trades_broker = Broker.get_trades() # instance of `trades`
         if open_trades_broker == None:
             log.write('"daemon.py" __init__(): Failed to get list of trades. ABORTING')
             sys.exit()
@@ -155,6 +155,6 @@ class daemon():
 
 
 if __name__ == "__main__":
-    d = daemon()
+    d = Daemon()
     d.start()
 

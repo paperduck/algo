@@ -19,7 +19,7 @@
 ## Live Trading
 - The main program is referred to as a "daemon" because ideally it will be 100% self-sufficient. It exists in `daemon.py`.
 - The daemon is started like this: `# python3 daemon.py`.
-- Each strategy gets its own module. For example, the `fifty.py` module encapsulates one simple strategy.
+- Each strategy gets its own module. For example, the `/src/strategies/fifty.py` module encapsulates one simple strategy.
 
 ## Platform Design: Scalability and Modularity
 - Scalability and user-friendliness take priority over speed. This is not intended to be used for high-frequency trading.

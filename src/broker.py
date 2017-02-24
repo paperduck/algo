@@ -11,11 +11,11 @@ Description     Python module that provides a generic layer between
 import configparser
 import sys
 #****************************
-from logger import log
-from oanda import oanda
+from log import *
+from oanda import *
 #****************************
 
-class broker():
+class Broker():
 
     # read in which broker/dealer to use from the config file
     cfg = configparser.ConfigParser()
@@ -27,7 +27,7 @@ class broker():
         log.write('"broker.py" __init__(): Failed to get broker from config file.')
         sys.exit()
     if broker_name == 'oanda':
-        broker = oanda
+        broker = Oanda
     else:
         log.write('"broker.py" __init__(): Unknown broker name')
         sys.exit()

@@ -1,25 +1,24 @@
 #!/usr/bin/python3
 
-# Python ver.    3.4
+# Python ver.   3.4
 # File:         strategy.py
 # Description:  Base class for strategies
 
 #*************************
 #*************************
-from trade import trade
+from trade import *
 #*************************
 
-class strategy():
+class Strategy():
 
     def __init__(self):
         self.name = None
         """
-        Strategies track their trades for a few reasons:
-        - The strategy might need to babysit the position.
-        - Use open trades to make decisions regarding new trades.
+        Initialize a list of trades opened by this strategy. 
+        If the derived strategy class has its own __init__ function, then
+        this needs to be initialized there.
         """
-        self.open_trades = []  # list of trades opened by this strategy. 
-
+        #self.open_trades = []  
 
     def callback_trade_opened(self, trade):
         """
@@ -61,21 +60,29 @@ class strategy():
 
     def refresh(self):
         """
-        Look at current price and past prices and determine whether there is
-        an opportunity or not.
-        Returns:
-            If the daemon should enter a trade, an instance of `order',
-            otherwise None.
+        The daemon should call this over and over.
         """
         self.babysit()
         return self.scan()
 
 
     def babysit(self):
+        """
+        This needs to be implemented by a strategy module.
+        Babysit open trades.
+        """
         raise NotImplementedError()
 
 
     def scan(self):
+        """
+        This needs to be implemented by a strategy module.
+        Look at current price and past prices and determine whether there is
+        an opportunity or not.
+        Returns:
+            If the daemon should enter a trade, an instance of `order',
+            otherwise None.
+        """
         raise NotImplementedError()
 
 
