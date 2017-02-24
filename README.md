@@ -28,6 +28,8 @@
 - `daemon.py` and the strategy modules make calls to `broker.py` which makes calls to a broker-specific module specified in the config file. Having the generic `broker.py` layer allows the broker/dealer to be changed arbitrarily by only changing one line in the config file. 
 - The daemon is intended to handle any number of strategies at any given time. It is responsible for managing margin, account balance, order size, diversification, and other considerations when placing orders. If the strategies were responsible for those things, then they would have to communicate with each other. That would introduce unnecessary complexity.
 
+![diagram](media/platform_diagram.png)
+
 ---
 
 #アルゴリズミックトレーディングボット「アルゴ」
@@ -47,9 +49,10 @@ MySQLでの過去の価格のデーターでシミュレーションを行うつ
 ## デザイン
 スケーラビリティとモジュール性と使い勝手は高優先です。速度は低順位です。
 
+![diagram](media/platform_diagram_jp.png)
+
 ---
 
-![diagram](media/platform_diagram.png)
 
 
 
