@@ -79,27 +79,31 @@ class Daemon():
                 else:
                     self.opportunities.push(new_opp)
         
-            # Decide which opportunities to execute
-            order_result = Broker.place_order(self.opportunities.pop().order)
-            if order_result == None:
-                s.callback( False, new_order )
-                log.write('"daemon.py" start(): Failed to place order.')
+            # Decide which opportunity (or opportunities) to execute
+            best_opp = self.opportunities.pick()
+            if best_opp == None:
+                pass
             else:
-                trade = order_result['tradeOpened']
-                # TODO: Oanda: If I place a trade that reduces another trade to closing, then I get a 
-                # 200 Code and information about the trade that closed. I.e. I don't get 
-                # info about an opened trade. (Oanda)
-                new_order.transaction_id = trade['id']
-                # TODO write trade info my database
-                """
-                It's possible that a trade will be opened, then the system is
-                terminated before the trade is written to the database.
-                """
+                order_result = Broker.place_order(best_opp.order)
+                if order_result == None:
+                    s.callback( False, new_order )
+                    log.write('"daemon.py" start(): Failed to place order.')
+                else:
+                    trade = order_result['tradeOpened']
+                    # TODO: Oanda: If I place a trade that reduces another trade to closing, then I get a 
+                    # 200 Code and information about the trade that closed. I.e. I don't get 
+                    # info about an opened trade. (Oanda)
+                    new_order.transaction_id = trade['id']
+                    # TODO write trade info my database
+                    """
+                    It's possible that a trade will be opened, then the system is
+                    terminated before the trade is written to the database.
+                    """
 
             # Clear opportunity list.
             # Opportunities should be considered to exist only in the moment,
             # so there is no need to save them for later.
-            self.opportunities = []
+            self.opportunities.clear()
 
 
     def stop(self):

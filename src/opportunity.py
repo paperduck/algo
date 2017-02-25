@@ -11,6 +11,7 @@ Description:    The `opportunity` class represents one order.
 #*************************
 #*************************
 from log import *
+from order import *
 #*************************
 
 
@@ -21,15 +22,21 @@ class Opportunity():
     def __init__(self):
         """
         """
-        # type: int 1-100
-        # description: estimated rating of success
+        """
+        type: int 1-100
+        description: estimated rating of success
+        """
         self.confidence = 1
-        # type: string
-        # description: ID (name) of strategy
+        """
+        type: string
+        description: ID (name) of strategy
+        """
         self.strategy = None
-        # type: <order object>
-        # description: Order object that can be passed to broker API
-        self.order = None
+        """
+        type: order
+        description: Produce an order object that can be passed to `Broker`
+        """
+        self.order = None # TODO
 
     def __str__(self):
         """
@@ -44,36 +51,41 @@ class Opportunities():
     def __init__(self):
         """
         """
-        self.opportunities = []
+        self._opportunities = []
+
 
     def __str__(self):
         """
         """
         return 'opportunities'
 
+
+    def clear(self):
+        self._opporunities = []
+
+
     def push(self, opp):
         """
         Take an opportunity dict and add it to the list.
         """
-        self.opportunities.append(opp)
+        self._opportunities.append(opp)
 
-    def pop (self, instrument=None):
+
+    def pick(self, instrument=None):
         """
-        Find and return the best opportunity.
-        If there are no opportunities, return an empty dict.
-        If an error occurs, return None.
+        Find and return the best opportunity. If you want more than one,
+        just call this repeatedly.
+
         TODO: use the instrument parameter to restrict which opp to pop.
         """
         # Just pick the one with the highest confidence rating.
-        max_conf_index = -1
+        if self._opportunities == []:
+            return None
+        max_conf_index = 0
         max_conf = 0
-        if self.opportunities == []:
-            return {}
-        for i in range(0, len(self.opportunities) - 1):
-            if self.opportunities[i]['confidence'] > max_conf:
+        for i in range(0, len(self._opportunities) - 1):
+            if self._opportunities[i]['confidence'] > max_conf:
                 max_conf_index = i
-        return self.opportunities.pop(max_conf_index)
-        
-
+        return self._opportunities.pop(max_conf_index)
 
 

@@ -295,11 +295,17 @@ class Oanda():
             sys.exit()
 
 
-    # Get spread, in pips, for given currency pairs (e.g. 'USD_JPY%2CEUR_USD')
-    # Returns: dict of (<instrument>, <spread>) tuples.
     @classmethod
     def get_spreads(cls, instruments, since=None):
-        #log.write ('"oanda.py" get_spreads(): Entering. Retrieving spreads for: ', instruments)
+        """
+        Get spread, in pips, for given currency pairs (e.g. 'USD_JPY%2CEUR_USD')
+        Returns: dict of (<instrument>, <spread>) tuples.
+
+        TODO: If the instrument is halted (market closed), get_prices() will
+        include that (Oanda returns the `status` key). Include that flag in
+        the return dict.
+        """
+        log.write ('"oanda.py" get_spreads(): Entering. Retrieving spreads for: ', instruments)
         prices = cls.get_prices(instruments, since)
         if prices != None:
             spreads = {}
@@ -314,7 +320,7 @@ class Oanda():
     # Get one spread value
     @classmethod
     def get_spread(cls, instrument, since=None):
-        #log.write('"oanda.py" get_spread(): Entering.')
+        log.write('"oanda.py" get_spread(): Entering.')
         spreads = cls.get_spreads(instrument, since)
         if spreads != None:
             return spreads[instrument]
