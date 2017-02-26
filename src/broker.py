@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+# -*- coding: utf-8 -*-
 
 """
 File            broker_api.py
@@ -122,7 +122,7 @@ class Broker():
         """
         Place an order.
         
-        Returns: dict or None
+        Return: ???dict??? or None
         """
         result = cls.broker.place_order(in_order)
         # TODO: If a trade is opened, write trade info to db

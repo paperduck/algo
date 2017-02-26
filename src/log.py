@@ -1,14 +1,18 @@
 #!/usr/bin/python3
 
-# File          log.py
-# Python ver.   3.4
-# Description   For logging output
-# How to use
-#   Import the class from the module and call the static (class) methods.
-#   The log file is specified in the config file.
-# Remarks
-#   Theoretically, important stuff will be saved in the database, not a log file.
-#   So everything shares the same log file because it's not too important to have separate log files.
+"""
+File:               log.py
+Python version:     3.4
+Description:        Class for writing to a log file.
+How to use:
+    Import the class from the module and call the static (class) methods.
+    The location of the log file is specified in the non-public config file.
+Remarks
+    Sensitive information may be written to the log file, so keep it safe.
+    Important stuff should be saved to the database because that makes it
+    easier to analyze later.
+    The log file should only be used for debugging.
+"""
 
 #*************************
 import configparser

@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 """
@@ -332,18 +331,27 @@ class Oanda():
     @classmethod
     def place_order(cls, in_order):
         """
-        # Place an order
-        # Returns: dict or None
+        Place an order.
+        Returns: dict or None
+
+        If I place a trade that reduces another trade to closing, then I get a
+        200 Code and information about the trade that closed. I.e. I don't get
+        info about an opened trade.
         """
-        #log.write('"oanda.py" place_order(): Entering.')
         log.write ('"oanda.py" place_order(): Placing order...')
         request_args = {}
-        request_args['instrument'] = in_order.instrument
-        request_args['units'] = in_order.units
-        request_args['side'] = in_order.side
-        request_args['type'] = in_order.order_type
-        request_args['expiry'] = in_order.expiry
-        request_args['price'] = in_order.price
+        if in_order.instrument != None:
+            request_args['instrument'] = in_order.instrument
+        if in_order.units != None:
+            request_args['units'] = in_order.units
+        if in_order.side != None:
+            request_args['side'] = in_order.side
+        if in_order.order_type != None:
+            request_args['type'] = in_order.order_type
+        if in_order.expiry != None:
+            request_args['expiry'] = in_order.expiry
+        if in_order.price != None:
+            request_args['price'] = in_order.price
         if in_order.lower_bound != None:
             request_args['lowerBound'] = in_order.lower_bound
         if in_order.upper_bound != None:
@@ -370,6 +378,7 @@ class Oanda():
             log.write('"oanda.py" place_order(): Aborting.')
             sys.exit()
         else:
+            log.write ('"oanda.py" place_order(): Order successfully placed.')
             return result
 
 

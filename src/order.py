@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+# -*- coding: utf-8 -*-
 
 # Class to store order info for Oanda fxTrade REST API.
 # The variables align with the fxTrade REST API for placing orders.
