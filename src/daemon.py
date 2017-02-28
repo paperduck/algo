@@ -93,8 +93,8 @@ class Daemon():
                     log.write('"daemon.py" start(): Failed to place order.')
                 else:
                     # Order was placed.
-                    trade = order_result['tradeOpened'] # could be tradeClosed instead
-                    new_order.transaction_id = trade['id']
+                    # 'tradeOpened' could be 'tradeClosed' instead
+                    new_order.transaction_id = trade['id']['tradeOpened']
                     # TODO: Write trade info to database
 
             # Clear opportunity list.

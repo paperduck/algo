@@ -1,29 +1,29 @@
 # -*- coding: utf-8 -*-
 
-# Class to store order info for Oanda fxTrade REST API.
-# The variables align with the fxTrade REST API for placing orders.
-# There are some extra fields as well.
+"""
+Description:
+    Class to store order info.
+    It is generic for all brokers, so if more brokers are added in the
+    future, this may need to be tweaked.
+"""
 
 class Order():
 
-    def __init__(self, in_instrument,in_units,in_side, in_type, in_expiry=None, in_price=None,\
-    in_lower_bound = None, in_upper_bound = None, in_stop_loss = None, in_take_profit = None\
-    ,in_trailing_stop=None, in_transaction_id=None, in_confidence=0, in_reason=''):
-        self.instrument     = in_instrument
-        self.units          = in_units
-        self.side           = in_side
-        self.order_type     = in_type
-        self.expiry         = in_expiry
-        self.price          = in_price
-        self.lower_bound    = in_lower_bound
-        self.upper_bound    = in_upper_bound
-        self.stop_loss      = str(in_stop_loss)
-        self.take_profit    = str(in_take_profit)
-        self.trailing_stop  = in_trailing_stop
-        self.transaction_id = in_transaction_id
-        # extra fields
-        self.confidence = in_confidence
-        self.reason = ''    # reason why this trade should be entered        
+    def __init__(self, instrument, units, side, order_type, expiry=None, price=None,\
+    lower_bound=None, upper_bound=None, stop_loss=None, take_profit=None,\
+    trailing_stop=None, transaction_id=None, confidence=0, reason=''):
+        self.instrument     = instrument
+        self.units          = units
+        self.side           = side
+        self.order_type     = order_type
+        self.expiry         = expiry
+        self.price          = price
+        self.lower_bound    = lower_bound
+        self.upper_bound    = upper_bound
+        self.stop_loss      = str(stop_loss)
+        self.take_profit    = str(take_profit)
+        self.trailing_stop  = trailing_stop
+        self.transaction_id = transaction_id
 
 
 

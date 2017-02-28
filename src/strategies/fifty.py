@@ -27,7 +27,7 @@ class Fifty(Strategy):
     def __init__(cls):
         """
         """
-        cls.next_direction = 'buy'
+        cls.direction = 'buy'
         cls.name = "fifty"
         """
         If this class has an __init__() function, then the `open_trades`
@@ -142,6 +142,11 @@ class Fifty(Strategy):
         Look for opportunities to enter a trade.
         Returns: `opportunity` instance, or None
         """
+        # switch direction
+        if cls.direction == 'buy':
+            cls.direction = 'sell'
+        else:
+            cls.direction = 'buy'
         spread_ = Broker.get_spread('USD_JPY')
         if spread_ == None:
             log.write('"fifty.py" in scan(): Failed to get spread.') 
@@ -149,7 +154,8 @@ class Fifty(Strategy):
         else:
             spread = round(spread_, 2)
             if spread < 3: # return this opportunity
-                if cls.next_direction == 'buy':
+                if cls.direction == 'buy':
+                    log.write('"fifty.py" scan(): Buying.') 
                     cur_ask_raw = Broker.get_ask('USD_JPY')
                     if cur_ask_raw != None:
                         cur_ask = round(cur_ask_raw, 2)
@@ -160,28 +166,45 @@ class Fifty(Strategy):
                         sys.exit()
                         return None 
                 else: # sell
-                    cls.next_direction = 'sell'
-                    cur_bid_raw = Broker.get_bid('USD_JPY')
-                    if cur_bid_raw != None:
-                        cur_bid = round(cur_bid_raw, 2)
-                        sl = cur_bid + 0.1
-                        tp = cur_bid - 0.1
+                    log.write('"fifty.py" scan(): Selling.') 
+                    cls.direction = 'sell'
+                    cur_bid = Broker.get_bid('USD_JPY')
+                    if cur_bid != None:
+                        # Rounding the raw bid didn't prevent float inaccuracy
+                        # cur_bid = round(cur_bid_raw, 2)
+                        sl = round(cur_bid + 0.1, 2)
+                        tp = round(cur_bid - 0.1, 2)
                     else:
                         log.write('"fifty.py" in scan(): Failed to get ask.') 
                         sys.exit()
-                # switch direction for next time
-                if cls.next_direction == 'buy':
-                    cls.next_direction = 'sell'
-                else:
-                    cls.next_direction = 'buy'
                 # Prepare the order and sent it back to daemon.
                 opp = Opportunity()
                 opp.strategy = cls.name
                 opp.confidence = 50
                 opp.order = Order(
-                    'USD_JPY', '100', cls.next_direction, 'market', None, None,
-                    None, None, sl, tp, None
+                    instrument='USD_JPY',
+                    units='100',
+                    side=cls.direction,
+                    order_type='market',
+                    stop_loss=sl,
+                    take_profit=tp
                 )
+                log.write('"fifty.py" scan(): Returning opportunity with order:\n\
+                    instrument: {}\n\
+                    units: {}\n\
+                    side: {}\n\
+                    order_type: {}\n\
+                    stop_loss: {}\n\
+                    take_profit: {}\n'
+                    .format(
+                        opp.order.instrument,
+                        opp.order.units,
+                        opp.order.side,
+                        opp.order.order_type,
+                        opp.order.stop_loss,
+                        opp.order.take_profit
+                    )
+                ) 
                 return ( opp )
             else:
                 return None

@@ -3,7 +3,8 @@
 """
 File:           opportunities.py
 Python verion:  3.4
-Description:    The `opportunity` class represents one order.
+Description:
+    The `opportunity` class represents one order.
     The `opportunities` class is a list of opportunities.
 """
 
@@ -37,6 +38,9 @@ class Opportunity():
         description: Produce an order object that can be passed to `Broker`
         """
         self.order = None # TODO
+        """
+        """
+        self.reason = ''
 
     def __str__(self):
         """

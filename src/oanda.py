@@ -3,9 +3,10 @@
 """
 File            oanda.py
 Python ver.     3.4
-Description     Python module for Oanda fxTrade REST API
-                This is a singleton class. Methods have the @classmethod
-                attribute.
+Description     Python module for Oanda fxTrade REST API.
+                http://developer.oanda.com/
+                Class methods are used becuase only one instance of the Oanda
+                class is ever needed.
 """
 
 #--------------------------
@@ -73,8 +74,8 @@ class Oanda():
      
 
     @classmethod
-    def fetch(cls, in_url, in_headers=None, in_data=None, origin_req_host=None,
-    unverifiable=False, in_method=None):
+    def fetch(cls, in_url, in_headers={}, in_data=None, in_origin_req_host=None,
+    in_unverifiable=False, in_method=None):
         """
         Helpful function for accessing Oanda's REST API
         Returns: dict or None.
@@ -87,10 +88,10 @@ class Oanda():
             origin_req_host: {3}\n\
             unverifiable: {4}\n\
             method: {5}\n\
-            '.format(in_url, in_headers, btos(in_data), origin_req_host,
-            unverifiable,in_method))
-        # headers; if anything is specified, then let that overwrite default.
-        if in_headers == None:
+            '.format(in_url, in_headers, btos(in_data), in_origin_req_host,
+            in_unverifiable, in_method))
+        # If headers are specified, use those.
+        if in_headers == {}:
             headers = {\
             'Authorization': 'Bearer ' + cls.get_auth_key(),\
             'Content-Type': 'application/x-www-form-urlencoded',\
@@ -98,7 +99,7 @@ class Oanda():
         else:
             headers = in_headers
         # send request
-        req = urllib.request.Request(in_url, in_data, headers, origin_req_host, unverifiable, in_method)
+        req = urllib.request.Request(in_url, in_data, headers, in_origin_req_host, in_unverifiable, in_method)
         response = None
         # The Oanda REST API returns 404 error if you try to get trade info for a closed trade,
         #   so don't freak out if that happens.
@@ -362,16 +363,15 @@ class Oanda():
             request_args['takeProfit'] = in_order.take_profit
         if in_order.trailing_stop != None:
             request_args['trailingStop'] = in_order.trailing_stop
-        data = urllib.parse.urlencode(request_args)
-        data = stob(data) # convert string to bytes
+        # url-encode, then convert to bytes
+        data = stob(urllib.parse.urlencode(request_args))
         result = cls.fetch(
             in_url="{}/v1/accounts/{}/orders".format(
                 cls.get_rest_url(),
                 cls.get_account_id_primary()
             ),
-            in_headers=None,
             in_data=data,
-            in_method="POST"
+            in_method='POST'
             )
         if result == None:
             log.write('"oanda.py" place_order(): Failed to place order.')
