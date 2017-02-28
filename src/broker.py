@@ -3,8 +3,13 @@
 """
 File            broker_api.py
 Python ver.     3.4
-Description     Python module that provides a generic layer between
-                the daemon and the broker-specific code.
+Description:
+    Python module that provides a generic layer between
+    the daemon and the broker-specific code.
+
+    This would be a good place to centralize database calls wherever
+    possible, since the daemon and all strategies have to go through the
+    Broker class.
 """
 
 #****************************
@@ -27,6 +32,8 @@ class Broker():
         log.write('"broker.py" __init__(): Failed to get broker from config file.')
         sys.exit()
     if broker_name == 'oanda':
+        # Could just call the class directly. But maybe having this broker
+        # variable will come in handy.
         broker = Oanda
     else:
         log.write('"broker.py" __init__(): Unknown broker name')
@@ -100,21 +107,34 @@ class Broker():
 
 
     @classmethod
-    def get_spreads(cls, symbols, since=None):
+    def get_spreads(cls, instruments, since=None):
         """
-        Returns: dict of (<symbol>, <spread>) tuples.
+        Remarks:    Not messing with Oanda's timestamp format for now.
+        Returns:    List of spreads for the instruments provided.
+            Sample return value:
+            [
+                {
+                    "instrument":"USD_JPY",
+                    "time":"2013-06-21T17:49:02.475381Z",
+                    "spread":3.2,
+                    "status":"halted"
+                },
+                {
+                    "instrument":"USD_CAD",
+                    "time":"2013-06-21T17:49:02.575381Z",
+                    "spread":4.4,
+                    "status":""                 // no value means it's active
+                }
+            ]
         """
-        return cls.broker.get_spreads(symbols, since)
-
-
-    @classmethod
-    def get_spread(cls, symbol, since=None):
-        """
-        Get one spread value
-
-        Returns: Decimal/Float
-        """
-        return cls.broker.get_spread(symbol, since)
+        # TODO: use broker id from database instead of string?
+        if cls.broker_name == 'oanda':
+            oanda_spreads = cls.broker.get_spreads(instruments, since)
+            return oanda_spreads
+        else:
+            log.write('"broker.py" get_spreads(): Unknown broker name: {}'
+                .format(cls.broker_name))
+            raise NotImplementedError() 
 
 
     @classmethod
@@ -163,22 +183,23 @@ class Broker():
     def get_trades(cls):
         """
         Get info about all open trades from the broker.
-        To get more info about the trades, use
+        To get "local" info about the trades, use
         trade.fill_in_trade_extra_info().
 
-        Returns: dict or None
+        Returns: instance of <trades>
         """
-        # First, get the information that the broker provides.
-        # These `trade` instances will be missing the strategy names.
         log.write('"broker.py" get_trades(): entering')
         return cls.broker.get_trades()
 
 
-    # Get info about a particular trade
-    # Returns: dict or None
+    """
+    Get info about a particular trade
+    Returns: instance of <trade>
+    """
     @classmethod
     def get_trade(cls, trade_id):
-        return cls.broker.get_trade(trade_id)
+        log.write('"broker.py" get_trade(): entering')
+        return cls.broker.get_trades()
 
 
     # Get order info

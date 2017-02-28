@@ -8,6 +8,7 @@ Description:
 
 #*************************
 #*************************
+from log import *
 from trade import *
 #*************************
 
@@ -19,41 +20,69 @@ class Strategy():
 
     @classmethod
     def __init__(cls):
-        cls.name = None
+        cls.name = None  # strategy name
         """
         Initialize a list of trades opened by this strategy. 
         If the derived strategy class has its own __init__ function, then
         this needs to be initialized there.
         """
-        #cls.open_trades = []  
+        #cls.open_trades = []   # list of <trade>
 
     @classmethod
-    def trade_opened(cls, trade):
+    def trade_opened(cls, trade_id):
         """
-        This is used to notify the strategy when an order that it suggested
-        was placed.
-
-        This is separate from recover_trade() just in case I want to do
-        something different in either function later.
+        Description:
+            This must be called to notify the strategy when an order that it
+            suggested was placed.
+            This is separate from recover_trade() just in case I want to do
+            something different in either function later.
+        Input: 
+            trade id from broker
+        Returns:
         """
         cls.open_trades.append(trade)
+        log.write('"strategy.py" trade_opened(): Hooray, {} opened a trade!'
+            .format(cls.name))
+        # TODO: write to db
 
 
     @classmethod
-    def trade_closed(cls, transaction_id):
+    def trade_closed(cls, trade_id):
         """
-        This is used to notify the strategy that one of its trades has closed.
-        Returns: Bool (True if trade was aware of trade before being notified)
+        Description:
+            This must be called to notify a strategy that one of its trades
+            has closed.
+        Input:
+            trade id from broker (string)
+        Returns: 
         """
-        # Remove the trade from the list. 
+        #raise NotImplementedError()
+        # Remove the trade from the list.
         closed_trade = None
         for i in range(1, len(cls.open_trades)):
             if cls.open_trades[i].transaction_id == transaction_id:
                 closed_trade = cls.open_trades.pop[i-1]
+        # Make sure the popping went well.
         if closed_trade == None:
+            log.write('"strategy.py" trade_closed(): {} failed to pop trade\
+                from open_trades.'.format(cls.name))
             return False
         else:
+            log.write('"strategy.py" trade_closed(): Hooray, {} closed a trade!'
+                .format(cls.name))
             return True
+        # TODO: write to db
+
+
+    @classmethod
+    def trade_reduced(cls, trade_id):
+        """
+        Description:    This must be called when a trade is reduced.
+        """
+        # TODO: write to db
+        log.write('"strategy.py" trade_reduced(): Trade {} was reduced.'
+            .format(cls.name))
+        pass
 
 
     @classmethod
@@ -63,7 +92,7 @@ class Strategy():
         terminated, this can be used to tell the strategy
         module about a trade that it had previously opened.
         """
-        cls.open_trades.append(trade)
+        cls.open_trades.append(transaction_id)
 
 
     @classmethod
@@ -71,12 +100,12 @@ class Strategy():
         """
         The daemon should call this over and over.
         """
-        cls.babysit()
-        return cls.scan()
+        cls._babysit()
+        return cls._scan()
 
 
     @classmethod
-    def babysit(cls):
+    def _babysit(cls):
         """
         This needs to be implemented by a strategy module.
         Babysit open trades.
@@ -85,7 +114,7 @@ class Strategy():
 
 
     @classmethod
-    def scan(cls):
+    def _scan(cls):
         """
         This needs to be implemented by a strategy module.
         Look at current price and past prices and determine whether there is

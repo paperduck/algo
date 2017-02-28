@@ -299,33 +299,47 @@ class Oanda():
     def get_spreads(cls, instruments, since=None):
         """
         Get spread, in pips, for given currency pairs (e.g. 'USD_JPY%2CEUR_USD')
-        Returns: dict of (<instrument>, <spread>) tuples.
 
-        TODO: If the instrument is halted (market closed), get_prices() will
-        include that (Oanda returns the `status` key). Include that flag in
-        the return dict.
+        Sample return value:
+        [
+            {
+                "instrument":"USD_JPY",
+                "time":"2013-06-21T17:49:02.475381Z",
+                "spread":3.2,
+                "status":"halted"           // Oanda doesn't include this if
+                                            // the instrument isn't halted,
+                                            // but I will always include it.
+            },
+            {
+                "instrument":"USD_CAD",
+                "time":"2013-06-21T17:49:02.475381Z",
+                "spread":4.4,
+                "status":""
+            }
+        ]
         """
-        log.write ('"oanda.py" get_spreads(): Entering. Retrieving spreads for: ', instruments)
+        log.write ('"oanda.py" get_spreads(): Retrieving spreads for {}'.format(instruments))
         prices = cls.get_prices(instruments, since)
         if prices != None:
-            spreads = {}
+            spreads = []
             for p in prices['prices']:
-                spreads[p['instrument']] = price_to_pips( p['instrument'], (p['ask'] - p['bid']) )
+                # Since Oanda doesn't always include status, force it in.
+                if 'status' not in p:
+                    p['status'] = ""
+                #spreads[p['instrument']] = price_to_pips( p['instrument'], (p['ask'] - p['bid']) )
+                spreads.append(
+                    {
+                        "instrument":p['instrument'],
+                        "time":p['time'],
+                        "spread":price_to_pips(p['instrument'], (p['ask'] - p['bid'])),
+                        "status":p['status']
+                    }
+                )
+            log.write('"oanda.py" get_spreads(): Spreads:\n{}\n'
+                .format(spreads))
             return spreads
         else:
             log.write('"oanda.py" get_spreads(): Failed to get prices.')
-            sys.exit()
-
-
-    # Get one spread value
-    @classmethod
-    def get_spread(cls, instrument, since=None):
-        log.write('"oanda.py" get_spread(): Entering.')
-        spreads = cls.get_spreads(instrument, since)
-        if spreads != None:
-            return spreads[instrument]
-        else:
-            log.write('"oanda.py" get_spread(): Failed to get spreads.')
             sys.exit()
 
 
@@ -333,7 +347,7 @@ class Oanda():
     def place_order(cls, in_order):
         """
         Place an order.
-        Returns: dict or None
+        Returns: information about the order (and related trade)
 
         If I place a trade that reduces another trade to closing, then I get a
         200 Code and information about the trade that closed. I.e. I don't get
@@ -478,32 +492,42 @@ class Oanda():
 
 
     # Get info about all open trades
-    # Returns: `trades` instance.
+    # Returns: instance of <trades>.
     @classmethod
     def get_trades(cls):
         log.write('"oanda.py" get_trades(): Entering.')
         trades_oanda = cls.fetch(\
-            cls.get_rest_url() + '/v1/accounts/' + \
-                str(cls.get_account_id_primary()) + '/trades/' )
+            '{}/v1/accounts/{}/trades/'.format(
+                cls.get_rest_url(),
+                str(cls.get_account_id_primary())
+            )
+        )
         if trades_oanda == None:
             log.write('"oanda.py" get_trades(): Failed to get trades from Oanda.')
             raise Exception
         else:
             ts = Trades()
             for t in trades_oanda['trades']: 
+                # format into a <Trade>
                 ts.append(Trade(t['id'], t['instrument']))
             return ts
 
 
-    # Get info about a particular trade
-    # Returns: dict or None
+    # Get info about a particular trade.
+    # Returns: TODO: instance of <trade>
     @classmethod
     def get_trade(cls, trade_id):
         #log.write('"oanda.py" get_trade(): Entering.')
-        info = cls.fetch(\
-             cls.get_rest_url() + '/v1/accounts/' + str(cls.get_account_id_primary()) + '/trades/' + str(trade_id) )
-        if info != None:
-            return info
+        t = cls.fetch(
+            '{}/v1/accounts/{}/trades/{}'.format(
+                cls.get_rest_url(),
+                str(cls.get_account_id_primary()),
+                str(trade_id)
+            )
+        )
+        if t != None:
+            # format into a <Trade>
+            return Trade(t['id'], t['instrument'])
         else:
             # Apparently the Oanda REST API returns a 404 error if the trade has closed, so don't freak out here.
             log.write('"oanda.py" get_trade(): Failed to get trade info for trade with ID ', trade_id, '.')

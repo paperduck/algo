@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 """
 File:               trade.py
 Python version:     3.4

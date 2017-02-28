@@ -33,6 +33,11 @@ class Opportunity():
         description: ID (name) of strategy
         """
         self.strategy = None
+        
+        self.trade_opened_callback = None   # strategy's function
+        self.trade_closed_callback = None   # strategy's function        
+        self.trade_reduced_callback = None  # strategy's function
+
         """
         type: order
         description: Produce an order object that can be passed to `Broker`

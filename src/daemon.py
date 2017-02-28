@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 # daemon.py
 # main function for algo daemon 
 # Python 3.4
@@ -54,7 +52,7 @@ class Daemon():
         pass
 
 
-    def start(self):
+    def run(self):
         """
         """
         log.write('Daemon starting.')
@@ -76,11 +74,14 @@ class Daemon():
                 new_opp = s.refresh()
                 if new_opp == None:
                     # Strategy has nothing to offer at the moment.
+                    log.write('"daemon.py" run(): {} has nothing to offer \
+                        now.'.format(s.name))
                     pass
                 else:
                     self.opportunities.push(new_opp)
         
             # Decide which opportunity (or opportunities) to execute
+            log.write('"daemon.py" run(): Picking best opportunity...')
             best_opp = self.opportunities.pick()
             if best_opp == None:
                 # Nothing is being suggested.
@@ -90,16 +91,27 @@ class Daemon():
                 order_result = Broker.place_order(best_opp.order)
                 if order_result == None:
                     # Failed to place order.
-                    log.write('"daemon.py" start(): Failed to place order.')
+                    log.write('"daemon.py" run(): Failed to place order.')
                 else:
                     # Order was placed.
-                    # 'tradeOpened' could be 'tradeClosed' instead
-                    new_order.transaction_id = trade['id']['tradeOpened']
-                    # TODO: Write trade info to database
-
-            # Clear opportunity list.
-            # Opportunities should be considered to exist only in the moment,
-            # so there is no need to save them for later.
+                    # Notify the strategy.
+                    # TODO: This notification code is specific to Oanda.
+                    if 'tradeOpened' in order_result:
+                        best_opp.trade_opened(
+                            order_result['tradeOpened']['id']
+                        )
+                    if 'tradesClosed' in order_result:
+                        for tc in order_result['tradesClosed']:
+                            best_opp.trade_closed(tc['id'])
+                    if 'tradeReduced' in order_result:
+                        best_opp.trade_reduced(
+                            order_result['tradeReduced']['id']
+                        )
+            """
+            Clear opportunity list.
+            Opportunities should be considered to exist only in the moment,
+            so there is no need to save them for later.
+            """
             self.opportunities.clear()
 
 
@@ -161,5 +173,5 @@ class Daemon():
 
 if __name__ == "__main__":
     d = Daemon()
-    d.start()
+    d.run()
 
