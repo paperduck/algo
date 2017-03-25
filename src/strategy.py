@@ -8,7 +8,7 @@ Description:
 
 #*************************
 #*************************
-from log import *
+from log import Log
 from trade import *
 #*************************
 
@@ -41,7 +41,7 @@ class Strategy():
         Returns:
         """
         cls.open_trades.append(trade)
-        log.write('"strategy.py" trade_opened(): Hooray, {} opened a trade!'
+        Log.write('"strategy.py" trade_opened(): Hooray, {} opened a trade!'
             .format(cls.name))
         # TODO: write to db
 
@@ -64,11 +64,11 @@ class Strategy():
                 closed_trade = cls.open_trades.pop[i-1]
         # Make sure the popping went well.
         if closed_trade == None:
-            log.write('"strategy.py" trade_closed(): {} failed to pop trade\
+            Log.write('"strategy.py" trade_closed(): {} failed to pop trade\
                 from open_trades.'.format(cls.name))
             return False
         else:
-            log.write('"strategy.py" trade_closed(): Hooray, {} closed a trade!'
+            Log.write('"strategy.py" trade_closed(): Hooray, {} closed a trade!'
                 .format(cls.name))
             return True
         # TODO: write to db
@@ -80,7 +80,7 @@ class Strategy():
         Description:    This must be called when a trade is reduced.
         """
         # TODO: write to db
-        log.write('"strategy.py" trade_reduced(): Trade {} was reduced.'
+        Log.write('"strategy.py" trade_reduced(): Trade {} was reduced.'
             .format(cls.name))
         pass
 
@@ -111,7 +111,7 @@ class Strategy():
         Babysit open trades.
         """
         raise NotImplementedError()
-
+ 
 
     @classmethod
     def _scan(cls):
@@ -152,7 +152,7 @@ class BackupBabysitter():
         """
         # TODO
         for t in cls.open_trades:
-            log.write('"strategy.py" babysit(): Working hard!')
+            Log.write('"strategy.py" babysit(): Working hard!')
 
 
     @classmethod

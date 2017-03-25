@@ -21,8 +21,7 @@ import datetime
 #*************************
 
 
-# TODO: add mutex so multiple threads can use this at the same time.
-class log():
+class Log():
 
     cfg = configparser.ConfigParser()
     cfg.read('config_nonsecure.cfg')

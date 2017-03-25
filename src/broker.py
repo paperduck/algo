@@ -16,7 +16,7 @@ Description:
 import configparser
 import sys
 #****************************
-from log import *
+from log import Log
 from oanda import *
 #****************************
 
@@ -29,14 +29,14 @@ class Broker():
     cfg.read(config_path)
     broker_name = cfg['trading']['broker']
     if broker_name == None:
-        log.write('"broker.py" __init__(): Failed to get broker from config file.')
+        Log.write('"broker.py" __init__(): Failed to get broker from config file.')
         sys.exit()
     if broker_name == 'oanda':
         # Could just call the class directly. But maybe having this broker
         # variable will come in handy.
         broker = Oanda
     else:
-        log.write('"broker.py" __init__(): Unknown broker name')
+        Log.write('"broker.py" __init__(): Unknown broker name')
         sys.exit()
 
     @classmethod
@@ -132,7 +132,7 @@ class Broker():
             oanda_spreads = cls.broker.get_spreads(instruments, since)
             return oanda_spreads
         else:
-            log.write('"broker.py" get_spreads(): Unknown broker name: {}'
+            Log.write('"broker.py" get_spreads(): Unknown broker name: {}'
                 .format(cls.broker_name))
             raise NotImplementedError() 
 
@@ -146,7 +146,7 @@ class Broker():
         """
         result = cls.broker.place_order(in_order)
         # TODO: If a trade is opened, write trade info to db
-        # (table: live_open_trades)
+        # (table: open_trades_live)
         # if result then: write to db
         return result
 
@@ -188,7 +188,7 @@ class Broker():
 
         Returns: instance of <trades>
         """
-        log.write('"broker.py" get_trades(): entering')
+        Log.write('"broker.py" get_trades(): entering')
         return cls.broker.get_trades()
 
 
@@ -198,7 +198,7 @@ class Broker():
     """
     @classmethod
     def get_trade(cls, trade_id):
-        log.write('"broker.py" get_trade(): entering')
+        Log.write('"broker.py" get_trade(): entering')
         return cls.broker.get_trades()
 
 

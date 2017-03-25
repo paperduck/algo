@@ -1,6 +1,8 @@
-# daemon.py
-# main function for algo daemon 
-# Python 3.4
+"""
+File:           daemon.py
+Python version: Python 3.4
+Description:    Main function.
+"""
 
 #*************************
 import datetime
@@ -11,7 +13,8 @@ import time         # for sleep()
 #import urllib.error
 #*************************
 from broker import *
-from log import *
+from db import DB
+from log import Log
 from opportunity import *
 from order import *
 from strategies.fifty import *
@@ -30,17 +33,15 @@ class Daemon():
     def __init__(self):
         """
         """
+        DB.execute('INSERT INTO startups (timestamp) VALUES (NOW())')
         self.stopped = False    # flag to stop running    
         self.opportunities = Opportunities()
         self.strategies = []
-        self.backup_babysitter = BackupBabysitter()
-
-        log.clear()
-        log.write( datetime.datetime.now().strftime("%c") + "\n\n" )
-
+        self.backup_babysitter = BackupBabysitter() # or use any strategy
+        Log.clear()
+        Log.write( datetime.datetime.now().strftime("%c") + "\n\n" )
         # Specify which trategies to run.
         self.strategies.append( Fifty() )
-
         # Read in existing trades
         self.recover_trades()
 
@@ -55,11 +56,11 @@ class Daemon():
     def run(self):
         """
         """
-        log.write('Daemon starting.')
+        Log.write('Daemon starting.')
         if Broker.is_practice():
-            log.write('"daemon.py" start(): Using practice mode.')
+            Log.write('"daemon.py" start(): Using practice mode.')
         else:
-            log.write('"daemon.py" start(): Using live account.')
+            Log.write('"daemon.py" start(): Using live account.')
 
         # Loop:
         """
@@ -74,14 +75,14 @@ class Daemon():
                 new_opp = s.refresh()
                 if new_opp == None:
                     # Strategy has nothing to offer at the moment.
-                    log.write('"daemon.py" run(): {} has nothing to offer \
+                    Log.write('"daemon.py" run(): {} has nothing to offer \
                         now.'.format(s.name))
                     pass
                 else:
                     self.opportunities.push(new_opp)
         
             # Decide which opportunity (or opportunities) to execute
-            log.write('"daemon.py" run(): Picking best opportunity...')
+            Log.write('"daemon.py" run(): Picking best opportunity...')
             best_opp = self.opportunities.pick()
             if best_opp == None:
                 # Nothing is being suggested.
@@ -91,7 +92,7 @@ class Daemon():
                 order_result = Broker.place_order(best_opp.order)
                 if order_result == None:
                     # Failed to place order.
-                    log.write('"daemon.py" run(): Failed to place order.')
+                    Log.write('"daemon.py" run(): Failed to place order.')
                 else:
                     # Order was placed.
                     # Notify the strategy.
@@ -138,7 +139,7 @@ class Daemon():
         # Get trades from broker.
         open_trades_broker = Broker.get_trades() # instance of `trades`
         if open_trades_broker == None:
-            log.write('"daemon.py" __init__(): Failed to get list of trades. ABORTING')
+            Log.write('"daemon.py" __init__(): Failed to get list of trades. ABORTING')
             sys.exit()
 
         # Fill in strategy info
@@ -157,16 +158,16 @@ class Daemon():
                 if broker.is_trade_closed(t.transaction_id):
                     # The trade has closed, so I don't need to track it any
                     # more.
-                    log.write('"daemon.py" recover_trades(): This trade has\
+                    Log.write('"daemon.py" recover_trades(): This trade has\
                         closed since daemon last ran:\n{}\n'.format(str(t)))
                     pass # TODO
                 else:
                     # The trade is open, but I don't know which strategy
                     # opened it. Assign it to the "backup babysitter".
                     # TODO
-                    log.write('"daemon.py" recover_trades(): Trade with unknown \
+                    Log.write('"daemon.py" recover_trades(): Trade with unknown \
                         state:\n{}\n'.format(str(t)))
-                    log.write('"daemon.py" recover_trades(): Assigning trade to\
+                    Log.write('"daemon.py" recover_trades(): Assigning trade to\
                         backup babysitter.')
                     self.backup_babysitter.adopt(t)
                 
