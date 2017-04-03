@@ -12,12 +12,13 @@ import time         # for sleep()
 #import urllib.request
 #import urllib.error
 #*************************
-from broker import *
+from broker import Broker
 from db import DB
 from log import Log
 from opportunity import *
 from order import *
 from strategies.fifty import *
+from timer import Timer
 from trade import *
 #*************************
 
@@ -26,64 +27,81 @@ from trade import *
 #   number of units
 #   amount of capital to use
 # The daemon:
-#   - Manages account balance, margin, risk.  Can block trades to protect these.
-#   - Forcefully close trades as needed (e.g. shutdown)
+#   - Manages account balance, margin, risk.
+#   - Accepts and rejects trade opportunities.
+#   - Forcefully close trades as needed (e.g. during shutdown)
 class Daemon():
-    
-    def __init__(self):
-        """
-        """
-        DB.execute('INSERT INTO startups (timestamp) VALUES (NOW())')
-        self.stopped = False    # flag to stop running    
-        self.opportunities = Opportunities()
-        self.strategies = []
-        self.backup_babysitter = BackupBabysitter() # or use any strategy
-        Log.clear()
-        Log.write( datetime.datetime.now().strftime("%c") + "\n\n" )
-        # Specify which trategies to run.
-        self.strategies.append( Fifty() )
-        # Read in existing trades
-        self.recover_trades()
+    """
+    """
+    # Initialize log.
+    Log.clear()
+    Log.write( datetime.datetime.now().strftime("%c") + "\n\n" )
+
+    # diagnostic info
+    DB.execute('INSERT INTO startups (timestamp) VALUES (NOW())')
+
+    # flag to shut down
+    stopped = False    
+
+    # opportunity pool
+    opportunities = Opportunities()
+
+    # Specify the backup strategy.
+    backup_strategy = Fifty 
+    # Set the strategies to use.
+    # If backup_strategy is different than the other
+    # strategies, be sure to add that too. If it matches one of
+    # the strategies you will use, then don't add it.
+    strategies = []
+    strategies.append(Fifty)
+    #strategies.append(backup_strategy)
 
 
-    def __del__(self):
+    @classmethod
+    def __del__(cls):
         """
         """
-        #self.stop() TODO: too late for this?
+        #cls.stop() TODO: too late for this?
         pass
 
 
-    def run(self):
+    @classmethod
+    def run(cls):
         """
         """
-        Log.write('Daemon starting.')
+        Log.write('"daemon.py" run(): Recovering trades...')
+        # Read in existing trades
+        cls.recover_trades()
         if Broker.is_practice():
             Log.write('"daemon.py" start(): Using practice mode.')
         else:
             Log.write('"daemon.py" start(): Using live account.')
 
-        # Loop:
         """
+        Main loop:
         1. Gather opportunities from each strategy.
         2. Decide which opportunities to execute.
         3. Clear the opportunity list.
         """
-        while not self.stopped:
+        while not cls.stopped:
             # Let each strategy suggest an order
             # TODO: Let strategies suggest multiple orders
-            for s in self.strategies:
+            for s in cls.strategies:
                 new_opp = s.refresh()
                 if new_opp == None:
+                    Log.write('"daemon.py" run(): refresh() failed for {}.'
+                        .format(s.get_name()))
+                elif new_opp == []:
                     # Strategy has nothing to offer at the moment.
-                    Log.write('"daemon.py" run(): {} has nothing to offer \
-                        now.'.format(s.name))
+                    Log.write('"daemon.py" run(): {} has nothing to offer '
+                        'now.'.format(s.get_name()))
                     pass
                 else:
-                    self.opportunities.push(new_opp)
+                    cls.opportunities.push(new_opp)
         
             # Decide which opportunity (or opportunities) to execute
             Log.write('"daemon.py" run(): Picking best opportunity...')
-            best_opp = self.opportunities.pick()
+            best_opp = cls.opportunities.pick()
             if best_opp == None:
                 # Nothing is being suggested.
                 pass
@@ -97,35 +115,46 @@ class Daemon():
                     # Order was placed.
                     # Notify the strategy.
                     # TODO: This notification code is specific to Oanda.
-                    if 'tradeOpened' in order_result:
-                        best_opp.trade_opened(
+                    if order_result['tradeOpened'] != {}:
+                        Log.write('"daemon.py" run(): order_result = \n{}'
+                            .format(order_result))
+                        best_opp.strategy.trade_opened(
                             order_result['tradeOpened']['id']
                         )
-                    if 'tradesClosed' in order_result:
+                    elif order_result['tradesClosed'] != []:
                         for tc in order_result['tradesClosed']:
-                            best_opp.trade_closed(tc['id'])
-                    if 'tradeReduced' in order_result:
-                        best_opp.trade_reduced(
+                            best_opp.strategy.trade_closed(tc['id'])
+                    elif order_result['tradeReduced'] != {}:
+                        best_opp.strategy.trade_reduced(
                             order_result['tradeReduced']['id']
                         )
+                    else:
+                        # catch-all for formality
+                        Log.write('"daemon.py" run(): Unknown trade result.')
+                        raise Exception
             """
             Clear opportunity list.
             Opportunities should be considered to exist only in the moment,
             so there is no need to save them for later.
             """
-            self.opportunities.clear()
+            cls.opportunities.clear()
 
 
-    def stop(self):
+    @classmethod
+    def stop(cls):
         """
-        stop daemon; tidy up open trades
+        Stop daemon.
+        TODO:
+            * set SL and TP
+            * write diagnostic info to db
         """
-        self.stopped = True
+        cls.stopped = True
 
 
-    def recover_trades(self):
+    @classmethod
+    def recover_trades(cls):
         """
-        See if there are any open trades, and start babysitting them again.
+        See if there are any open trades, and resume babysitting.
 
         If trades are opened without writing their info to the db,
         the trade cannot be distributed back to the strategy that opened
@@ -133,46 +162,45 @@ class Daemon():
         This could be solved by writing to the db before placing the order,
         synchronously. However if placing the order failed, then the database
         record would have to be deleted, and this would be messy.
-        Instead, have a generic "nanny" function that takes care of "orphan"
-        trades instead of a particular strategy; a "backup babysitter".
+        Instead, designate a backup strategy that adopts orphan trades.
         """
+        Log.write('"daemon.py" recover_trades(): Entering.')
         # Get trades from broker.
-        open_trades_broker = Broker.get_trades() # instance of `trades`
+        open_trades_broker = Broker.get_trades() # instance of <Trades>
         if open_trades_broker == None:
-            Log.write('"daemon.py" __init__(): Failed to get list of trades. ABORTING')
-            sys.exit()
+            Log.write('"daemon.py" recover_trades(): Failed to get list of trades. ABORTING')
+            cls.stop()
+            #sys.exit()
 
         # Fill in strategy info
         open_trades_broker.fill_in_trade_extra_info()
 
         # Distribute trades to their respective strategy modules
-        for i in range(0, (open_trades_broker.length())-1):
-            if open_trades_broker[i].strategy_name != None:
+        for trade in open_trades_broker:
+            if trade.strategy != None:
                 # Find the strategy that made this trade and notify it.
-                for s in self.strategies:
-                    if open_trades_broker[i].strategy_name == s.name:
-                        s.recover_trade(open_trades_broker[i])
-                        open_trades_broker.pop(i)
+                for s in cls.strategies:
+                    if trade.strategy.get_name() == s.get_name(): 
+                        s.recover_trade(trade)
+                        open_trades_broker.pop(trade.trade_id)
             else:
                 # It is not known what strategy opened this trade.
-                if broker.is_trade_closed(t.transaction_id):
+                Log.write('"daemon.py" recover_trades(): Trade\'s strategy unknown. Checking if closed.')
+                if Broker.is_trade_closed(trade.trade_id):
                     # The trade has closed, so I don't need to track it any
                     # more.
                     Log.write('"daemon.py" recover_trades(): This trade has\
-                        closed since daemon last ran:\n{}\n'.format(str(t)))
-                    pass # TODO
+                        closed since daemon last ran:\n{}\n'\
+                        .format(t.trade_id))
+                    pass # TODO: write something to the database
                 else:
                     # The trade is open, but I don't know which strategy
-                    # opened it. Assign it to the "backup babysitter".
-                    # TODO
-                    Log.write('"daemon.py" recover_trades(): Trade with unknown \
-                        state:\n{}\n'.format(str(t)))
-                    Log.write('"daemon.py" recover_trades(): Assigning trade to\
-                        backup babysitter.')
-                    self.backup_babysitter.adopt(t)
+                    # opened it. Assign it to the backup strategy.
+                    Log.write('"daemon.py" recover_trades(): Trade with ',
+                        'unknown state:\n{}\n'.format(trade))
+                    Log.write('"daemon.py" recover_trades(): Assigning trade ',
+                        'to backup strategy ({}).'.format(cls.backup_strategy.get_name()))
+                    cls.backup_strategy.recover_trade(trade)
                 
 
-if __name__ == "__main__":
-    d = Daemon()
-    d.run()
 

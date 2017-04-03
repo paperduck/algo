@@ -7,6 +7,7 @@ Description:
 """
 
 #*************************
+import sys
 #*************************
 from log import Log
 from trade import *
@@ -18,15 +19,25 @@ class Strategy():
     instance of each strategy.
     """
 
+    #List of trade (transaction) IDs. TODO: Might use [<Trade>] in the future.
+    _open_trades = []
+
+
     @classmethod
-    def __init__(cls):
-        cls.name = None  # strategy name
+    def get_name(cls):
         """
-        Initialize a list of trades opened by this strategy. 
-        If the derived strategy class has its own __init__ function, then
-        this needs to be initialized there.
+        Needs to be overloaded.
+        This is a method only instead of a string member in order to enforce
+        implementation by derived classes. 
+        Returns: Name of strategy as a unique string.
         """
-        #cls.open_trades = []   # list of <trade>
+        raise NotImplementedError()
+
+
+    @classmethod
+    def __str__(cls):
+        return cls.get_name()
+
 
     @classmethod
     def trade_opened(cls, trade_id):
@@ -40,9 +51,11 @@ class Strategy():
             trade id from broker
         Returns:
         """
-        cls.open_trades.append(trade)
-        Log.write('"strategy.py" trade_opened(): Hooray, {} opened a trade!'
-            .format(cls.name))
+        cls._open_trades.append(trade_id)
+        Log.write('"strategy.py" trade_opened(): Hooray, strategy {} ',
+            'opened a trade with ID "{}"'.format(cls.get_name(), trade_id)) 
+        Log.write('"strategy.py" trade_opened(): cls._open_trades contains:')
+        Log.write(cls._open_trades)
         # TODO: write to db
 
 
@@ -56,22 +69,42 @@ class Strategy():
             trade id from broker (string)
         Returns: 
         """
-        #raise NotImplementedError()
+        Log.write('"strategy.py" trade_closed(): Attempting to pop trade ',
+            'ID {}'.format(trade_id))
         # Remove the trade from the list.
-        closed_trade = None
-        for i in range(1, len(cls.open_trades)):
-            if cls.open_trades[i].transaction_id == transaction_id:
-                closed_trade = cls.open_trades.pop[i-1]
-        # Make sure the popping went well.
-        if closed_trade == None:
-            Log.write('"strategy.py" trade_closed(): {} failed to pop trade\
-                from open_trades.'.format(cls.name))
-            return False
+        # TODO: Put a lock on cls._open_trades to make it thread safe while
+        # deleting from it.
+        num_trades = len(cls._open_trades)
+        if num_trades > 0:
+            closed_trade = None
+            for i in range(0, num_trades):
+                if cls._open_trades[i] == trade_id:
+                    closed_trade = cls._open_trades.pop(i)
+                    Log.write('match')
+                else:
+                    Log.write(cls._open_trades[i], ' does not match ', trade_id)
+            # Make sure the popping went well.
+            if closed_trade == None:
+                Log.write('"strategy.py" trade_closed(): Strategy ',
+                    '"{}" failed to pop trade from _open_trades.'
+                    .format(cls.get_name()))
+                #return False
+                Log.write('"strategy.py" trade_closed(): Looked for trade ID ',
+                    '{}'.format(trade_id))
+                Log.write('"strategy.py" trade_closed(): cls._open_trades contains:')
+                Log.write(cls._open_trades)
+                print('Aborting')
+                sys.exit()
+            else:
+                Log.write('"strategy.py" trade_closed(): Trade of strategy "{}" has closed.'
+                    .format(cls.get_name()))
+                return True
+            # TODO: write to db
         else:
-            Log.write('"strategy.py" trade_closed(): Hooray, {} closed a trade!'
-                .format(cls.name))
-            return True
-        # TODO: write to db
+            # Not tracking any trades! Oh no.
+            Log.write('"strategy.py" trade_closed(): Trade closed but list of open trades is empty!')
+            Log.write('"strategy.py" trade_closed(): Aborting.')
+            sys.abort()
 
 
     @classmethod
@@ -81,7 +114,7 @@ class Strategy():
         """
         # TODO: write to db
         Log.write('"strategy.py" trade_reduced(): Trade {} was reduced.'
-            .format(cls.name))
+            .format(cls.get_name()))
         pass
 
 
@@ -92,7 +125,7 @@ class Strategy():
         terminated, this can be used to tell the strategy
         module about a trade that it had previously opened.
         """
-        cls.open_trades.append(transaction_id)
+        cls._open_trades.append(trade.trade_id)
 
 
     @classmethod
@@ -126,7 +159,8 @@ class Strategy():
         raise NotImplementedError()
 
 
-class BackupBabysitter():
+'''
+class BackupBabysitter(Strategy):
     """
     Class used for babysitting orphan trades.
     An orphan trade is a trade that is not assigned to a strategy.
@@ -140,18 +174,14 @@ class BackupBabysitter():
         backup babysitter.
     """
     
-    @classmethod
-    def __init__(cls):
-        cls.open_trades = []
-
 
     @classmethod
     def babysit(cls):
         """
-        Same as the babysit() function in the base Strategy class.
+        Same as the _babysit() function in the base Strategy class.
         """
         # TODO
-        for t in cls.open_trades:
+        for t in cls._open_trades:
             Log.write('"strategy.py" babysit(): Working hard!')
 
 
@@ -164,5 +194,7 @@ class BackupBabysitter():
         Strategy class, there is no need to
         differentiate between trade_opened() and recover_trade().
         """
-        cls.open_trades.append(trade)
+        cls._open_trades.append(trade)
+'''
+
 

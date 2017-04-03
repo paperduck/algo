@@ -11,8 +11,8 @@ Description:
 
 #*************************
 #*************************
-from log import *
-from order import *
+from log import Log
+from order import Order
 #*************************
 
 
@@ -22,43 +22,43 @@ class Opportunity():
 
     def __init__(self):
         """
+        Description: The <Order> instance to be set by a strategy when it suggests
+        an opportunity.
+        Type: <Order>
         """
+        self.order = None
         """
-        type: int 1-100
         description: estimated rating of success
+        type: Int 1-100
         """
         self.confidence = 1
         """
-        type: string
-        description: ID (name) of strategy
+        Description:
+            Reference to strategy class that created this opportunity.
+            <Trade> objects also hold a reference to their strategy.
+        Type: <Strategy>
         """
         self.strategy = None
-        
-        self.trade_opened_callback = None   # strategy's function
-        self.trade_closed_callback = None   # strategy's function        
-        self.trade_reduced_callback = None  # strategy's function
-
         """
-        type: order
-        description: Produce an order object that can be passed to `Broker`
-        """
-        self.order = None # TODO
-        """
+        A note to save to the database.
+        Type: String
         """
         self.reason = ''
 
     def __str__(self):
         """
         """
-        return 'opportunity'
+        return 'Opportunity:\norder: {}\nconfidence: {}\nstrategy: {}\nreason: {}\n\
+            '.format(self.order, self.confidence, self.strategy.get_name(), self.reason)
 
-    
+
 class Opportunities():
     """
     """
 
     def __init__(self):
         """
+        List of <Opportunity>.
         """
         self._opportunities = []
 
@@ -66,7 +66,7 @@ class Opportunities():
     def __str__(self):
         """
         """
-        return 'opportunities'
+        return 'Opportunities'
 
 
     def clear(self):
@@ -75,7 +75,7 @@ class Opportunities():
 
     def push(self, opp):
         """
-        Take an opportunity dict and add it to the list.
+        Add an <Opportunity> to the list.
         """
         self._opportunities.append(opp)
 

@@ -4,31 +4,53 @@ Python version:     3.4
 Description:        Containers for trades.
 """
 
+####################
+from collections.abc import Sequence
+####################
+
+
 class Trade():
     """
     Represents one trade, either past or present.
     Future trades are "opportunities" or "orders".
     """
     
-    def __init__(self, transaction_id, instrument_id, strategy_name=None):
-        self.transaction_id = transaction_id
-        self.instrument_id = instrument_id
-        self.strategy_name = strategy_name
+    def __init__(self,
+        instrument=None,        # TODO, using strings for now
+        side=None,              # 'buy' / 'sell'
+        stop_loss=None,         # numeric
+        strategy=None,          # <Strategy>
+        take_profit=None,       # numeric
+        trade_id=None     # string
+    ):
+        self.instrument     = instrument
+        self.side           = side
+        self.stop_loss      = stop_loss
+        self.strategy       = strategy
+        self.take_profit    = take_profit
+        self.trade_id = trade_id
    
+
     def __str__(self):
+
+        strategy_name = "(unknown)"
+        if self.strategy != None:
+            strategy_name = self.strategy.name
         msg = 'Transaction ID: {}\n\
-               Instrument ID: {}\n\
-               Strategy Name: {}'\
-               .format(
-               self.transaction_id,
-               self.instrument_id,
-               self.strategy_name
-               )
+            Instrument: {}\n\
+            Strategy: {}'\
+            .format(
+                self.trade_id,
+                self.instrument,
+                strategy_name
+            )
+        return msg
 
 
-class Trades():
+class Trades(Sequence):
     """
     List of `trade` objects.
+    TODO:  This could be a heap, with the trade's ID as the key.
     """
     
     def __init__(self):
@@ -39,15 +61,17 @@ class Trades():
         self._trade_list.append(trade)
 
 
-    def remove(self, transaction_id):
+    def pop(self, trade_id):
         """
         Remove the trade with the given transaction ID.
         
         Returns: Removed trade object on success; None on failure.
         """
-        for i in range(0, len(self._trade_list)-1):
-            if self._trade_list[i].transaction_id == transaction_id:
-                return self._trade_list.pop[i]
+        index = 0
+        for t in self._trade_list:
+            if t.trade_id == trade_id:
+                return self._trade_list.pop(index)
+            index = index + 1
         return None
 
 
@@ -75,6 +99,7 @@ class Trades():
     def __iter__(self):
         """
         Make this class iterable
+        https://docs.python.org/3/library/stdtypes.html#typeiter
         """
         return self
 
@@ -90,4 +115,17 @@ class Trades():
             self.current_index = self.current_index + 1
             return self._trade_list[self.current_index - 1]
 
+
+    def __getitem__(self, key):
+        """
+        Expose index operator.
+        """
+        return self._trade_list[key]
+    
+
+    def __len__(self):
+        """
+        Expose len() function.
+        """
+        return len(self._trade_list)
 

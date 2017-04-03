@@ -6,10 +6,6 @@ Python ver.     3.4
 Description:
     Python module that provides a generic layer between
     the daemon and the broker-specific code.
-
-    This would be a good place to centralize database calls wherever
-    possible, since the daemon and all strategies have to go through the
-    Broker class.
 """
 
 #****************************
@@ -138,16 +134,15 @@ class Broker():
 
 
     @classmethod
-    def place_order(cls, in_order):
+    def place_order(cls, order):
         """
         Place an order.
         
-        Return: ???dict??? or None
+        Return: TODO: develop generic format for all brokers
         """
-        result = cls.broker.place_order(in_order)
+        result = cls.broker.place_order(order)
         # TODO: If a trade is opened, write trade info to db
         # (table: open_trades_live)
-        # if result then: write to db
         return result
 
     @classmethod
@@ -199,7 +194,7 @@ class Broker():
     @classmethod
     def get_trade(cls, trade_id):
         Log.write('"broker.py" get_trade(): entering')
-        return cls.broker.get_trades()
+        return cls.broker.get_trade(trade_id)
 
 
     # Get order info
@@ -210,9 +205,9 @@ class Broker():
 
  
     @classmethod
-    def modify_order(cls, in_order_id, in_units=0, in_price=0, in_expiry=0,
-        in_lower_bound=0, in_upper_bound=0, in_stop_loss=0,
-        in_take_profit=0, in_trailing_stop=0):
+    def modify_order(cls, order_id, units=0, price=0, expiry=0,
+        lower_bound=0, upper_bound=0, stop_loss=0,
+        take_profit=0, trailing_stop=0):
         """
         # Modify an existing order
         # Returns: dict or None
@@ -221,11 +216,16 @@ class Broker():
 
 
     @classmethod
-    def modify_trade(cls, in_trade_id, in_stop_loss=0, in_take_profit=0, in_trailing_stop=0):
+    def modify_trade(cls, trade_id, stop_loss=0, take_profit=0, trailing_stop=0):
         """
         # Modify an existing trade
         # Returns: dict or None
         """
-        return cls.broker.modify_trade(locals()) 
+        return cls.broker.modify_trade(
+            trade_id = trade_id,
+            stop_loss = stop_loss,
+            take_profit = take_profit,
+            trailing_stop = trailing_stop
+        )
 
 

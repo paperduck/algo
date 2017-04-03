@@ -11,12 +11,12 @@ Strategy Overview:
 #*************************************
 import sys # sys.exit()                        
 #*************************************
-from broker import *
+from broker import Broker
 from log import Log
-from opportunity import *
-from order import *
-from strategy import *
-from trade import *
+from opportunity import Opportunity, Opportunities
+from order import Order
+from strategy import Strategy
+from trade import Trade, Trades
 #*************************************
 
 class Fifty(Strategy):
@@ -25,70 +25,68 @@ class Fifty(Strategy):
     instance of each strategy.
     """
 
+    #Long or short? (Oanda specifically takes 'buy' or 'sell' as argument)
+    direction = 'buy'
+
+
     @classmethod
-    def __init__(cls):
+    def get_name(cls):
         """
+        Return the name of the strategy.
         """
-        cls.direction = 'buy'
-        cls.name = "fifty"
-        """
-        If this class has an __init__() function, then the `open_trades`
-        list defined in the base <Strategy> class cannot be used and needs
-        to be defined here.
-        A list of IDs is used instead of an instance of <Trades>. Might change
-        in the future.
-        """
-        cls.open_trades = [] # list of trade IDs ("transaction ID" for Oanda)
+        return "Fifty"
 
 
     @classmethod
     def __str__(cls):
         """
         """
-        return '50/50'
+        return cls.get_name()
 
 
     @classmethod
     def _babysit(cls):
         """
-        If there is an open trade, then babysit it. Also check if it has closed.
-        "Babysit" means adjust SL, TP, expiry, units, etc.
+        If there is an open trade, then babysit it. Also check if it has
+        closed. "Babysit" means adjust SL, TP, expiry, units, etc.
         """
-        for t in cls.open_trades:
-            trade_info = Broker.get_trade( t.transaction_id )
-            if trade_info == None:
-                if broker.is_trade_closed( t.transaction_id ):
-                    Log.write('"fifty.py" in _babysit(): Trade has closed.')
-                    cls.open_trades.remove(t.transaction_id)
+        for trade_id in cls._open_trades:
+            trade = Broker.get_trade(trade_id)
+            if trade == None:
+                Log.write('"fifty.py" _babysit(): Failed to get trade info. Checking if closed.')
+                if Broker.is_trade_closed(trade_id):
+                    Log.write('"fifty.py" _babysit(): Trade has closed.')
+                    cls._open_trades.remove(trade_id)
                 else:
-                    Log.write('"fifty.py" in _babysit(): broker.is_trade_closed\
-                        failed for trade w/ID {}).'
-                        .format(str(t.transaction_id)))
+                    Log.write('"fifty.py" _babysit(): ',
+                        'Broker.is_trade_closed() failed for trade w/ID ',
+                        '{}).'.format(str(trade_id)))
                     sys.exit()
             else:
-                instrument = trade_info['instrument']
-                tp = round( trade_info['takeProfit'], 2 )
-                sl = round( trade_info['stopLoss'], 2 )
-                side = trade_info['side']
+                instrument = trade.instrument
+                tp = round( trade.take_profit, 2 )
+                sl = round( trade.stop_loss, 2 )
+                side = trade.side
                 if side == 'buy': # BUY
                     cur_bid = Broker.get_bid( instrument )
                     if cur_bid != None:
                         if tp - cur_bid < 0.02:
-                                #,str(t.transaction_id), '...')
                             new_sl = cur_bid - 0.02
                             new_tp = tp + 0.05
                             # send modify trade request
-                            resp = Broker.modify_trade(t.transaction_id, new_sl, new_tp, 0)
+                            resp = Broker.modify_trade(trade_id, new_sl, new_tp, 0)
                             if resp == None:
-                                if broker.is_trade_closed( t.transaction_id ):
-                                    Log.write('"fifty.py" in _babysit(): BUY trade has closed.')
-                                    cls.open_trades.remove(t.transaction_id)
+                                Log.write('"fifty.py" _babysit(): Modify failed. Checking if trade is closed.')
+                                if Broker.is_trade_closed(trade_id):
+                                    Log.write('"fifty.py" _babysit(): BUY trade has closed. (BUY)')
+                                    cls._open_trades.remove(trade_id)
                                 else:
-                                    Log.write('"fifty.py" in _babysit(): Failed to modify BUY trade.')
+                                    Log.write('"fifty.py" _babysit(): Failed',
+                                        ' to modify BUY trade. Aborting.')
                                     sys.exit() 
                             else:                                       
                                 Log.write('"fifty.py" _babysit(): Modified BUY trade with ID (',\
-                                     t.transaction_id, ').')
+                                     trade_id, ').')
                         else:
                             pass # trade fine where it is
                     else:
@@ -101,17 +99,23 @@ class Fifty(Strategy):
                             new_sl = cur_ask + 0.02
                             new_tp = tp - 0.05
                             # send modify trade request
-                            resp = Broker.modify_trade( t.transaction_id, new_sl, new_tp, 0)
+                            resp = Broker.modify_trade(
+                                trade_id=trade_id,
+                                stop_loss=new_sl,
+                                take_profit=new_tp,
+                                trailing_stop=0
+                            )
                             if resp == None:
-                                if broker.is_trade_closed( t.transaction_id ):
+                                Log.write('"fifty.py" _babysit(): Modify failed. Checking if trade is closed. (SELL)')
+                                if Broker.is_trade_closed(trade_id ):
                                     Log.write('"fifty.py" in _babysit(): SELL trade has closed.')
-                                    cls.open_trades.remove(t.transaction_id)
+                                    cls._open_trades.remove(trade_id)
                                 else:
                                     Log.write('"fifty.py" in _babysit(): Failed to modify SELL trade.')
                                     sys.exit()
                             else:
                                 Log.write('"fifty.py" _babysit(): Modified SELL trade with ID (',\
-                                     t.transaction_id, ').')
+                                    trade_id, ').')
                         else:
                             pass # trade fine where it is
                     else:
@@ -123,8 +127,14 @@ class Fifty(Strategy):
     def _scan(cls):
         """
         Look for opportunities to enter a trade.
-        Returns: `opportunity` instance, or None
+        Returns:
+            <opportunity> object(s) if there is an opportunity
+            Empty list if no opportunities.
+            None on failure
         """
+        # If we're babysitting a trade, don't open a new one.
+        if len(cls._open_trades) > 0:
+            return []
         # switch direction
         if cls.direction == 'buy':
             cls.direction = 'sell'
@@ -135,20 +145,21 @@ class Fifty(Strategy):
         if spreads == None:
             Log.write('"fifty.py" in _scan(): Failed to get spread of {}.'
                 .format(instrument)) 
-            return None
-        elif len(spreads) != 1:
+            return []
+        elif len(spreads) < 1:
             Log.write('"fifty.py" in _scan(): len(spreads) == {}.'
                 .format(len(spreads))) 
             return None
+        # This only checks for one instrument.
         elif spreads[0]['status'] == 'halted':
                 Log.write('"fifty.py" in _scan(): Instrument {} is halted.'
                     .format(instrument)) 
-                return None
+                return []
         else:
             spread = spreads[0]['spread']
             if spread < 3:
                 if cls.direction == 'buy':
-                    Log.write('"fifty.py" _scan(): Buying.') 
+                    Log.write('"fifty.py" _scan(): Going long.') 
                     cur_ask_raw = Broker.get_ask('USD_JPY')
                     if cur_ask_raw != None:
                         cur_ask = round(cur_ask_raw, 2)
@@ -159,7 +170,7 @@ class Fifty(Strategy):
                         sys.exit()
                         return None 
                 else: # sell
-                    Log.write('"fifty.py" _scan(): Selling.') 
+                    Log.write('"fifty.py" _scan(): Shorting.') 
                     cls.direction = 'sell'
                     cur_bid = Broker.get_bid('USD_JPY')
                     if cur_bid != None:
@@ -172,38 +183,21 @@ class Fifty(Strategy):
                         sys.exit()
                 # Prepare the order and sent it back to daemon.
                 opp = Opportunity()
-                opp.strategy = cls.name
-                # Include callback functions that point to this strategy.
-                opp.trade_opened_callback = cls.trade_opened
-                opp.trade_closed_callback = cls.trade_closed
+                opp.strategy = cls
                 opp.confidence = 50
                 opp.order = Order(
                     instrument='USD_JPY',
-                    units='100',
-                    side=cls.direction,
                     order_type='market',
+                    side=cls.direction,
                     stop_loss=sl,
-                    take_profit=tp
+                    take_profit=tp,
+                    units='100'
                 )
-                Log.write('"fifty.py" _scan(): Returning opportunity with order:\n\
-                    instrument: {}\n\
-                    units: {}\n\
-                    side: {}\n\
-                    order_type: {}\n\
-                    stop_loss: {}\n\
-                    take_profit: {}\n'
-                    .format(
-                        opp.order.instrument,
-                        opp.order.units,
-                        opp.order.side,
-                        opp.order.order_type,
-                        opp.order.stop_loss,
-                        opp.order.take_profit
-                    )
-                ) 
+                Log.write('"fifty.py" _scan(): Returning opportunity with \
+                    order:\n{}'.format(opp))
                 return ( opp )
             else:
-                return None
+                return []
 
 
 
