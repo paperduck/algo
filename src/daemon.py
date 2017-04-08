@@ -5,6 +5,7 @@ Description:    Main function.
 """
 
 #*************************
+import curses
 import datetime
 import json
 import sys
@@ -66,9 +67,15 @@ class Daemon():
 
 
     @classmethod
-    def run(cls):
+    def run(cls, stdcsr):
         """
         """
+        # curses
+        curses.echo()   # echo key presses
+        stdcsr.nodelay(1) # non-blocking window
+        stdcsr.clear() # clear screen
+        stdcsr.addstr('Press q to shut down.')
+
         Log.write('"daemon.py" run(): Recovering trades...')
         # Read in existing trades
         cls.recover_trades()
@@ -84,6 +91,19 @@ class Daemon():
         3. Clear the opportunity list.
         """
         while not cls.stopped:
+            # curses
+            ch = stdcsr.getch() # get one char
+            if ch == 113: # q
+                stdcsr.addstr('\n!!! Initiating shutdown... !!!\n')
+                stdcsr.refresh() # redraw
+                curses.nocbreak()
+                stdcsr.keypad(False)
+                #curses.echo()   
+                curses.endwin() # restore terminal
+                cls.stopped = True
+                DB.shutdown()
+                
+
             # Let each strategy suggest an order
             # TODO: Let strategies suggest multiple orders
             for s in cls.strategies:
@@ -141,7 +161,7 @@ class Daemon():
 
 
     @classmethod
-    def stop(cls):
+    def shutdown(cls):
         """
         Stop daemon.
         TODO:
@@ -183,6 +203,7 @@ class Daemon():
                     if trade.strategy.get_name() == s.get_name(): 
                         s.recover_trade(trade)
                         open_trades_broker.pop(trade.trade_id)
+                        break
             else:
                 # It is not known what strategy opened this trade.
                 Log.write('"daemon.py" recover_trades(): Trade\'s strategy unknown. Checking if closed.')

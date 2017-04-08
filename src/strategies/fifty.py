@@ -158,13 +158,13 @@ class Fifty(Strategy):
         else:
             spread = spreads[0]['spread']
             if spread < 3:
-                if cls.direction == 'buy':
+                if cls.direction == 'buy': # buy
                     Log.write('"fifty.py" _scan(): Going long.') 
                     cur_ask_raw = Broker.get_ask('USD_JPY')
                     if cur_ask_raw != None:
-                        cur_ask = round(cur_ask_raw, 2)
-                        sl = cur_ask - 0.1
-                        tp = cur_ask + 0.1
+                        #cur_ask = round(cur_ask_raw, 2)
+                        sl = round(cur_ask - 0.1, 2)
+                        tp = round(cur_ask + 0.1, 2)
                     else:
                         Log.write('"fifty.py" in _scan(): Failed to get bid.')
                         sys.exit()

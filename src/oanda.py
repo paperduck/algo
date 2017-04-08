@@ -428,6 +428,19 @@ class Oanda():
             in_method='POST'
             )
         if result == None:
+            Log.write('"oanda.py" place_order(): Failed to place order; one more try.')
+            
+            time.sleep(1)
+            result = cls.fetch(
+                in_url="{}/v1/accounts/{}/orders".format(
+                    cls.get_rest_url(),
+                    cls.get_account_id_primary()
+                ),
+                in_data=data,
+                in_method='POST'
+                )
+
+        if result == None:
             Log.write('"oanda.py" place_order(): Failed to place order.')
             Log.write('"oanda.py" place_order(): Aborting.')
             sys.exit()
