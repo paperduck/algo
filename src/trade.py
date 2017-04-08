@@ -9,6 +9,19 @@ from collections.abc import Sequence
 ####################
 
 
+class TradeClosedReason():
+    """
+    An enum.
+    """
+    reduced = 1
+    manual = 2 # manually closed
+    migrated = 3
+    sl = 4 # stop loss
+    tp = 5 # take profit
+    ts = 6 # trailing stop
+    margin_closeout = 7
+
+
 class Trade():
     """
     Represents one trade, either past or present.
@@ -16,7 +29,7 @@ class Trade():
     """
     
     def __init__(self,
-        instrument=None,        # TODO, using strings for now
+        instrument=None,        # TODO strings OK? Generic better.
         side=None,              # 'buy' / 'sell'
         stop_loss=None,         # numeric
         strategy=None,          # <Strategy>
@@ -24,7 +37,7 @@ class Trade():
         trade_id=None     # string
     ):
         self.instrument     = instrument
-        self.side           = side
+        self.side           = side # 'buy' or 'sell'. TODO maybe bool self.long
         self.stop_loss      = stop_loss
         self.strategy       = strategy
         self.take_profit    = take_profit

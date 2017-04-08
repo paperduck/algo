@@ -222,6 +222,23 @@ class Oanda():
 
 
     @classmethod
+    def get_account_primary(cls):
+        """
+        Get info for primary account
+        Returns: dict. Raises exception on error.
+        """
+        Log.write('"oanda.py" get_account(primary): Entering.')
+        account = cls.fetch('{}/v1/accounts/{}'
+            .format(cls.get_rest_url(), cls.get_account_id_primary())
+            )
+        if account != None:
+            return account
+        else:
+            Log.write('"oanda.py" get_account(): Failed to get account.')
+            raise Exception
+
+
+    @classmethod
     def get_account(cls, account_id):
         """
         Get account info for a given account ID
@@ -506,8 +523,10 @@ class Oanda():
         """
         Go through all transactions that have occurred since a given order, and see if any of those
         transactions have closed or canceled the order.
-        Returns:    True if trade is closed; False if not closed.
-                    None on error.
+        Returns:    Tuple: (
+                        True=trade closed; False=not closed
+                        Reason trade closed (or None)
+                    )
         """
         Log.write('"oanda.py" is_trade_closed(): Entering with trade ID {}'
             .format(trade_id))
@@ -518,7 +537,7 @@ class Oanda():
             transactions = cls.get_transaction_history(minId=trade_id)
             if transactions == None:
                 Log.write('"oanda.py" is_trade_closed(): Failed to get transaction history.')
-                sys.exit()
+                raise Exception
             else:
                 for trans in transactions['transactions']:
                     if trans['type'] == 'MARKET_ORDER_CREATE':
@@ -526,44 +545,44 @@ class Oanda():
                             if trans['tradeReduced']['id'] == trade_id:
                                 Log.write('"oanda.py" is_trade_closed(): MARKET_ORDER_CREATE')
                                 Timer.stop(start, 'Oanda.is_trade_closed()', 'market order create')
-                                return True
+                                return (True, TradeClosedReason.reduced)
                         # trans['tradeOpened'] will be the original trade
                     if trans['type'] == 'TRADE_CLOSE':
                         if trans['tradeId'] == trade_id:
                             Log.write('"oanda.py" is_trade_closed(): TRADE_CLOSE')
                             Timer.stop(start, 'Oanda.is_trade_closed()', 'trade close')
-                            return True
+                            return (True, TradeClosedReason.manual)
                     if trans['type'] == 'MIGRATE_TRADE_CLOSE':
                         if trans['tradeId'] == trade_id:
                             Log.write('"oanda.py" is_trade_closed(): MIGRATE_TRADE_CLOSED')
                             Timer.stop(start, 'Oanda.is_trade_closed()', 'migrate trade closed')
-                            return True
+                            return (True, TradeClosedReason.migrated)
                     if trans['type'] == 'STOP_LOSS_FILLED':
                         if trans['tradeId'] == trade_id:
                             Log.write('"oanda.py" is_trade_closed(): STOP_LOSS_FILLED')
                             Timer.stop(start, 'Oanda.is_trade_closed()', 'stop loss filled')
-                            return True
+                            return (True, TradeClosedReason.sl)
                     if trans['type'] == 'TAKE_PROFIT_FILLED':
                         if trans['tradeId'] == trade_id:
                             Log.write('"oanda.py" is_trade_closed(): TAKE_PROFIT_FILLED')
                             Timer.stop(start, 'Oanda.is_trade_closed()', 'take profit filled')
-                            return True
+                            return (True, TradeClosedReason.tp)
                     if trans['type'] == 'TRAILING_STOP_FILLED':
                         if trans['tradeId'] == trade_id:
                             Log.write('"oanda.py" is_trade_closed(): TRAILING_STOP_FILLED')
                             Timer.stop(start, 'Oanda.is_trade_closed()', 'trailing stop filed')
-                            return True
+                            return (True, TradeClosedReason.ts)
                     if trans['type'] == 'MARGIN_CLOSEOUT':
                         if trans['tradeId'] == trade_id:
                             Log.write('"oanda.py" is_trade_closed(): MARGIN_CLOSEOUT')
                             Timer.stop(start, 'Oanda.is_trade_closed()', 'margin closeout')
-                            return True
+                            return (True, TradeClosedReason.margin_closeout)
             num_attempts = num_attempts - 1
             # Delay to allow the trade to be processed on the dealer end
             time.sleep(1)
         Log.write('"oanda.py" is_trade_closed(): Unable to locate trade.')
         Timer.stop(start, 'Oanda.is_trade_closed()', 'unable to locate')
-        return False
+        return (False, None)
 
 
     @classmethod

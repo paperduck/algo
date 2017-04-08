@@ -80,24 +80,20 @@ class Strategy():
             for i in range(0, num_trades):
                 if cls._open_trades[i] == trade_id:
                     closed_trade = cls._open_trades.pop(i)
-                    Log.write('match')
-                else:
-                    Log.write(cls._open_trades[i], ' does not match ', trade_id)
+                    break
             # Make sure the popping went well.
             if closed_trade == None:
                 Log.write('"strategy.py" trade_closed(): Strategy ',
-                    '"{}" failed to pop trade from _open_trades.'
-                    .format(cls.get_name()))
-                #return False
-                Log.write('"strategy.py" trade_closed(): Looked for trade ID ',
-                    '{}'.format(trade_id))
-                Log.write('"strategy.py" trade_closed(): cls._open_trades contains:')
-                Log.write(cls._open_trades)
-                print('Aborting')
+                    '"{}" failed to pop trade {} from _open_trades.'
+                    .format(cls.get_name(), trade_id))
+                Log.write('"strategy.py" trade_closed(): cls._open_trades ',
+                    'contains: {}'.format(cls._open_trades))
                 sys.exit()
             else:
-                Log.write('"strategy.py" trade_closed(): Trade of strategy "{}" has closed.'
-                    .format(cls.get_name()))
+                Log.write('"strategy.py" trade_closed(): Trade of strategy ',
+                 '"{}" has closed.'.format(cls.get_name()))
+                # Send trade info to strategy
+                cls._trade_closed(trade_id)
                 return True
             # TODO: write to db
         else:

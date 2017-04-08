@@ -12,6 +12,5 @@ from daemon import Daemon
 
 
 if __name__ == "__main__":
-    stdcsr = curses.initscr()
     curses.wrapper(Daemon.run)
 

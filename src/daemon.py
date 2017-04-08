@@ -16,6 +16,7 @@ import time         # for sleep()
 from broker import Broker
 from db import DB
 from log import Log
+from oanda import Oanda
 from opportunity import *
 from order import *
 from strategies.fifty import *
@@ -70,11 +71,17 @@ class Daemon():
     def run(cls, stdcsr):
         """
         """
-        # curses
+        # initialize curses
         curses.echo()   # echo key presses
         stdcsr.nodelay(1) # non-blocking window
         stdcsr.clear() # clear screen
-        stdcsr.addstr('Press q to shut down.')
+        msg_base = '\n\
+Press q to shut down.\n\
+Press m to monitor.\n\n\
+Account balance: {}\n\
+>'
+        stdcsr.addstr(msg_base)
+        stdcsr.refresh() # redraw
 
         Log.write('"daemon.py" run(): Recovering trades...')
         # Read in existing trades
@@ -91,10 +98,11 @@ class Daemon():
         3. Clear the opportunity list.
         """
         while not cls.stopped:
+
             # curses
             ch = stdcsr.getch() # get one char
-            if ch == 113: # q
-                stdcsr.addstr('\n!!! Initiating shutdown... !!!\n')
+            if ch == 113: # q == quit
+                stdcsr.addstr('\nInitiating shutdown...\n')
                 stdcsr.refresh() # redraw
                 curses.nocbreak()
                 stdcsr.keypad(False)
@@ -102,6 +110,12 @@ class Daemon():
                 curses.endwin() # restore terminal
                 cls.stopped = True
                 DB.shutdown()
+            elif ch == 109: # m == monitor
+                acct = Oanda.get_account_primary()
+                msg = msg_base.format(acct['balance'])
+                stdcsr.clear()
+                stdcsr.addstr(msg)
+                stdcsr.refresh() # redraw
                 
 
             # Let each strategy suggest an order

@@ -19,7 +19,7 @@ class Order():
         order_type=None,
         price=None,
         reason='',
-        side=None,
+        go_long=None,
         stop_loss=None,
         take_profit=None,
         trailing_stop=None,
@@ -32,7 +32,7 @@ class Order():
         self.lower_bound    = lower_bound
         self.order_type     = order_type
         self.price          = price
-        self.side           = side
+        self.go_long        = go_long
         self.stop_loss      = str(stop_loss)
         self.take_profit    = str(take_profit)
         self.trailing_stop  = trailing_stop
@@ -48,7 +48,7 @@ class Order():
             lower_bound: {}\n\
             order_type: {}\n\
             price: {}\n\
-            side: {}\n\
+            long: {}\n\
             stop_loss: {}\n\
             take_profit: {}\n\
             trailing_stop: {}\n\
@@ -60,7 +60,7 @@ class Order():
                 self.lower_bound,
                 self.order_type,
                 self.price,
-                self.side,
+                self.go_long,
                 self.stop_loss,
                 self.take_profit,
                 self.trailing_stop,

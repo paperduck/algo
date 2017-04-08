@@ -26,7 +26,8 @@ class Fifty(Strategy):
     """
 
     #Long or short? (Oanda specifically takes 'buy' or 'sell' as argument)
-    direction = 'buy'
+    #direction = 'buy'
+    go_long = True
 
 
     @classmethod
@@ -54,36 +55,35 @@ class Fifty(Strategy):
             trade = Broker.get_trade(trade_id)
             if trade == None:
                 Log.write('"fifty.py" _babysit(): Failed to get trade info. Checking if closed.')
-                if Broker.is_trade_closed(trade_id):
+                if Broker.is_trade_closed(trade_id)[0]:
                     Log.write('"fifty.py" _babysit(): Trade has closed.')
                     cls._open_trades.remove(trade_id)
-                else:
-                    Log.write('"fifty.py" _babysit(): ',
-                        'Broker.is_trade_closed() failed for trade w/ID ',
-                        '{}).'.format(str(trade_id)))
-                    sys.exit()
             else:
                 instrument = trade.instrument
                 tp = round( trade.take_profit, 2 )
                 sl = round( trade.stop_loss, 2 )
                 side = trade.side
-                if side == 'buy': # BUY
+                if side == 'buy': # currently long
                     cur_bid = Broker.get_bid( instrument )
                     if cur_bid != None:
                         if tp - cur_bid < 0.02:
                             new_sl = cur_bid - 0.02
-                            new_tp = tp + 0.05
+                            # new_tp = tp + 0.05
                             # send modify trade request
                             resp = Broker.modify_trade(trade_id, new_sl, new_tp, 0)
                             if resp == None:
                                 Log.write('"fifty.py" _babysit(): Modify failed. Checking if trade is closed.')
-                                if Broker.is_trade_closed(trade_id):
+                                closed = Broker.is_trade_closed(trade_id)
+                                if closed[0]:
                                     Log.write('"fifty.py" _babysit(): BUY trade has closed. (BUY)')
                                     cls._open_trades.remove(trade_id)
+                                    # check reason
+                                    if closed[1] == TradeClosedReason.sl:
+                                        cls.go_long = False
                                 else:
                                     Log.write('"fifty.py" _babysit(): Failed',
-                                        ' to modify BUY trade. Aborting.')
-                                    sys.exit() 
+                                        ' to modify BUY trade.')
+                                    raise Exception
                             else:                                       
                                 Log.write('"fifty.py" _babysit(): Modified BUY trade with ID (',\
                                      trade_id, ').')
@@ -92,12 +92,12 @@ class Fifty(Strategy):
                     else:
                         Log.write('"fifty.py" _babysit(): Failed to get bid while babysitting.')
                         sys.exit()
-                else: # SELL
+                else: # currently short
                     cur_ask = Broker.get_ask( instrument )
                     if cur_ask != None:
                         if cur_ask - tp < 0.02:
                             new_sl = cur_ask + 0.02
-                            new_tp = tp - 0.05
+                            #new_tp = tp - 0.05
                             # send modify trade request
                             resp = Broker.modify_trade(
                                 trade_id=trade_id,
@@ -107,9 +107,13 @@ class Fifty(Strategy):
                             )
                             if resp == None:
                                 Log.write('"fifty.py" _babysit(): Modify failed. Checking if trade is closed. (SELL)')
-                                if Broker.is_trade_closed(trade_id ):
+                                closed = Broker.is_trade_closed(trade_id)
+                                if closed[0]:
                                     Log.write('"fifty.py" in _babysit(): SELL trade has closed.')
                                     cls._open_trades.remove(trade_id)
+                                    # check reason
+                                    if closed[1] == TradeClosedReason.sl:
+                                        cls.go_long = True
                                 else:
                                     Log.write('"fifty.py" in _babysit(): Failed to modify SELL trade.')
                                     sys.exit()
@@ -135,11 +139,6 @@ class Fifty(Strategy):
         # If we're babysitting a trade, don't open a new one.
         if len(cls._open_trades) > 0:
             return []
-        # switch direction
-        if cls.direction == 'buy':
-            cls.direction = 'sell'
-        else:
-            cls.direction = 'buy'
         instrument = 'USD_JPY'
         spreads = Broker.get_spreads(instrument)
         if spreads == None:
@@ -158,7 +157,7 @@ class Fifty(Strategy):
         else:
             spread = spreads[0]['spread']
             if spread < 3:
-                if cls.direction == 'buy': # buy
+                if cls.go_long: # buy
                     Log.write('"fifty.py" _scan(): Going long.') 
                     cur_ask_raw = Broker.get_ask('USD_JPY')
                     if cur_ask_raw != None:
@@ -171,7 +170,7 @@ class Fifty(Strategy):
                         return None 
                 else: # sell
                     Log.write('"fifty.py" _scan(): Shorting.') 
-                    cls.direction = 'sell'
+                    cls.go_long = 'sell'
                     cur_bid = Broker.get_bid('USD_JPY')
                     if cur_bid != None:
                         # Rounding the raw bid didn't prevent float inaccuracy
@@ -188,7 +187,7 @@ class Fifty(Strategy):
                 opp.order = Order(
                     instrument='USD_JPY',
                     order_type='market',
-                    side=cls.direction,
+                    side=cls.go_long,
                     stop_loss=sl,
                     take_profit=tp,
                     units='100'
