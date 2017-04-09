@@ -8,7 +8,6 @@ Description     Python module for Oanda fxTrade REST API.
 """
 
 #--------------------------
-import configparser
 import gzip
 import json
 import sys
@@ -18,6 +17,7 @@ import urllib.request
 import urllib.error
 import zlib
 #--------------------------
+from config import Config
 from currency_pair_conversions import *
 from data_conversions import *
 from log import Log
@@ -27,24 +27,10 @@ from timer import Timer
 
 class Oanda():
     """
-    Class methods are used becuase only one instance of the Oanda
+    Class methods are used because only one instance of the Oanda
     class is ever needed.
     """
-    cfg = configparser.ConfigParser()
-    cfg.read('config_nonsecure.cfg')
-    config_path = cfg['config_secure']['path']
-    cfg.read(config_path)
-    practice = cfg['trading']['practice']
-
     account_id_primary = 0
-
-
-    @classmethod
-    def is_practice(cls):
-        """
-        Live trading or forward testing?
-        """
-        return cls.practice
 
 
     @classmethod
@@ -55,32 +41,8 @@ class Oanda():
         until I removed the trailing '\n' from the string
         returned by f.readline().
         """
-        cfg = configparser.ConfigParser()
-        cfg.read('config_nonsecure.cfg')
-        config_path = cfg['config_secure']['path']
-        cfg.read(config_path)
-        if Oanda.practice:
-            token = cfg['oanda']['token_practice']
-        else:
-            token = cfg['oanda']['token']
-        if token == None:
-            Log.write('"oanda.py" get_auth_key(): Failed to read token.')
-            sys.exit()
-        else:
-            return token
-
-
-    @classmethod
-    def get_rest_url(cls):
-        """
-        Which REST API to use?
-        """
-        #Log.write('"oanda.py" get_rest_url(): Entering.')
-        if cls.practice:
-            return 'https://api-fxpractice.oanda.com'
-        else:
-            return 'https://api-fxtrade.oanda.com'
-     
+        return Config.oanda_token
+ 
 
     @classmethod
     def fetch(cls, in_url, in_headers={}, in_data=None, in_origin_req_host=None,
@@ -191,7 +153,7 @@ class Oanda():
         Returns: dict or None
         """
         Log.write('"oanda.py" get_accounts(): Entering.')
-        accounts = cls.fetch(cls.get_rest_url() + '/v1/accounts')
+        accounts = cls.fetch(Config.oanda_url + '/v1/accounts')
         if accounts != None:
             return accounts
         else:
@@ -229,7 +191,7 @@ class Oanda():
         """
         Log.write('"oanda.py" get_account(primary): Entering.')
         account = cls.fetch('{}/v1/accounts/{}'
-            .format(cls.get_rest_url(), cls.get_account_id_primary())
+            .format(Config.oanda_url, cls.get_account_id_primary())
             )
         if account != None:
             return account
@@ -245,7 +207,7 @@ class Oanda():
         Returns: dict or None 
         """
         Log.write('"oanda.py" get_account(): Entering.')
-        account = cls.fetch(cls.get_rest_url() + '/v1/accounts/' + account_id)
+        account = cls.fetch(Config.oanda_url + '/v1/accounts/' + account_id)
         if account != None:
             return account
         else:
@@ -260,7 +222,7 @@ class Oanda():
         Returns: dict or None 
         """
         #Log.write('"oanda.py" get_positions(): Entering.')
-        pos = cls.fetch( cls.get_rest_url() + '/v1/accounts/' + account_id + '/positions')
+        pos = cls.fetch(Config.oanda_url + '/v1/accounts/' + account_id + '/positions')
         if pos != None:
             return pos
         else:
@@ -309,7 +271,7 @@ class Oanda():
         url_args = '?instruments=' + instruments
         if since != None:
             url_args += '&since=' + since
-        prices = cls.fetch( cls.get_rest_url() + '/v1/prices' + url_args )
+        prices = cls.fetch(Config.oanda_url + '/v1/prices' + url_args )
         if prices != None:
             return prices
         else:
@@ -356,7 +318,6 @@ class Oanda():
     def get_spreads(cls, instruments, since=None):
         """
         Get spread, in pips, for given currency pairs (e.g. 'USD_JPY%2CEUR_USD')
-
         Sample return value:
         [
             {
@@ -438,7 +399,7 @@ class Oanda():
         data = stob(urllib.parse.urlencode(request_args))
         result = cls.fetch(
             in_url="{}/v1/accounts/{}/orders".format(
-                cls.get_rest_url(),
+                Config.oanda_url,
                 cls.get_account_id_primary()
             ),
             in_data=data,
@@ -450,7 +411,7 @@ class Oanda():
             time.sleep(1)
             result = cls.fetch(
                 in_url="{}/v1/accounts/{}/orders".format(
-                    cls.get_rest_url(),
+                    Config.oanda_url,
                     cls.get_account_id_primary()
                 ),
                 in_data=data,
@@ -510,7 +471,7 @@ class Oanda():
             args = args + 'ids=' & str(ids)
         trans = cls.fetch(
              in_url='{}/v1/accounts/{}/transactions?{}'
-            .format(cls.get_rest_url(), cls.get_account_id_primary(), args)
+            .format(Config.oanda_url, cls.get_account_id_primary(), args)
             )
         if trans == None:
             sys.exit()
@@ -594,7 +555,7 @@ class Oanda():
         Log.write('"oanda.py" get_trades(): Entering.')
         trades_oanda = cls.fetch(\
             '{}/v1/accounts/{}/trades/'.format(
-                cls.get_rest_url(),
+                Config.oanda_url,
                 str(cls.get_account_id_primary())
             )
         )
@@ -624,7 +585,7 @@ class Oanda():
         Log.write('"oanda.py" get_trade(): Entering.')
         t = cls.fetch(
             '{}/v1/accounts/{}/trades/{}'.format(
-                cls.get_rest_url(),
+                Config.oanda_url,
                 str(cls.get_account_id_primary()),
                 str(trade_id)
             )
@@ -649,7 +610,7 @@ class Oanda():
     def get_order_info(cls, order_id):
         #Log.write('"oanda.py" get_order_info(): Entering.')
         response = cls.fetch(\
-             cls.get_rest_url() + '/v1/accounts/' + str(cls.get_account_id_primary()) + '/orders/' + str(order_id) )
+             Config.oanda_url + '/v1/accounts/' + str(cls.get_account_id_primary()) + '/orders/' + str(order_id) )
         if response != None:
             return response
         else:
@@ -687,7 +648,7 @@ class Oanda():
         response = cls.fetch(
             in_url= + '{}/v1/accounts/{}/orders/{}'
             .format(
-                cls.get_rest_url(),
+                Config.oanda_url,
                 str(cls.get_account_id_primary()),
                 str(in_order_id)
             ),
@@ -718,7 +679,7 @@ class Oanda():
         response = cls.fetch(
             in_url='{}/v1/accounts/{}/trades/{}'
             .format(
-                cls.get_rest_url(),
+                Config.oanda_url,
                 str(cls.get_account_id_primary()),
                 str(trade_id)
             ),

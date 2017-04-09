@@ -14,12 +14,12 @@ Overview:
 
 ####################
 import concurrent.futures
-import configparser
 import datetime
 import mysql.connector
 from threading import Thread
 import timeit
 ####################
+from config import Config
 from log import Log
 import sys
 ####################
@@ -42,33 +42,23 @@ class Timer():
     The db module is not used because that would create a circular
     dependence; the db module uses this module to time itself.
     """
-    cfg = configparser.ConfigParser()
-    cfg.read('config_nonsecure.cfg')
-    config_path = cfg['config_secure']['path']
-    cfg.read(config_path)
-    log_path = cfg['log']['path']
-    log_file = cfg['log']['file']
-    if log_path == None or log_file == None:
-        print ('"timer.py": Failed to get log path+file from config file')
-        sys.exit()
-    else:
-        log_path = log_path + log_file
     db_config = {
-        'user': cfg['mysql']['username'],
-        'password': cfg['mysql']['password'],
-        'host': cfg['mysql']['host'],
-        'database': cfg['mysql']['database']
+        'user': Config.db_user,
+        'password': Config.db_pw,
+        'host': Config.db_host,
+        'database': Config.db_name
     }
     cnx = mysql.connector.connect(**db_config)
     cursor = cnx.cursor()
     """
-    function_name (PK)
-    timestamp
-    duration
-    note
+    "Records" as in breaking a record; new max duration.
+    The records variable is a list of dicts that matches the table columns:
+        function_name (PK)
+        timestamp
+        duration
+        note
     """
-    # TODO Use hash table for fast insertion.
-    records = []
+    records = [] # TODO Use hash table for fast insertion.
 
 
     @classmethod

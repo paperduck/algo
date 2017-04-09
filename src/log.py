@@ -1,12 +1,10 @@
-#!/usr/bin/python3
-
 """
 File:               log.py
 Python version:     3.4
 Description:        Class for writing to a log file.
 How to use:
-    Import the class from the module and call the static (class) methods.
-    The location of the log file is specified in the non-public config file.
+    Import the class from the module and call `write()`.
+    The location of the log file is specified in a config file.
 Remarks
     Sensitive information may be written to the log file, so keep it safe.
     Important stuff should be saved to the database because that makes it
@@ -15,50 +13,38 @@ Remarks
 """
 
 #*************************
-import configparser
 import datetime
 #*************************
+from config import Config
 #*************************
-
 
 class Log():
 
-    cfg = configparser.ConfigParser()
-    cfg.read('config_nonsecure.cfg')
-    config_path = cfg['config_secure']['path']
-    cfg.read(config_path)
-    log_path = cfg['log']['path']
-    log_file = cfg['log']['file']
-    if log_path == None or log_file == None:
-        print ('"logger.py": Failed to get log path+file from config file')
-        sys.exit()
-    else:
-        log_path = log_path + log_file
+    log_file = open(Config.log_path, 'w')
+    log_file.write('"log.py" __del__(): Log file opened.')
+    
+    @classmethod
+    def __del__(cls):
+        cls.log_file.close()
+        cls.write('"log.py" __del__(): Log file closed.')
+        
 
-    # clear log
     @classmethod
     def clear(cls):
-        with open(cls.log_path, 'w') as f:
-            f.write('')
-            f.close()
+        """
+        clear log
+        """
+        cls.write('')
 
-    # append to log
+
     @classmethod
     def write(cls, *args):
-        arg_list = list(args)
+        """
+        append to log
+        """
         dt = datetime.datetime.now().strftime("%c")
-        msg = '\n' + dt + '    '
-        for a in arg_list:
+        msg = '\n' + dt + ':  '
+        for a in list(args):
             msg = msg + str(a)
-        with open(cls.log_path, 'a') as f:
-            f.write(msg)
-            f.close()
-    """
-    # save info about a transaction
-    @classmethod
-    def transaction(cls, trans_id):
-        # TODO: retrieve transaction info and write it to database
-        cls.write('"log.py" in transaction(): Saving transaction info to database. ID: ', trans_id)
-    """
-
+        cls.log_file.write(msg)
 

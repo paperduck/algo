@@ -14,6 +14,7 @@ import time         # for sleep()
 #import urllib.error
 #*************************
 from broker import Broker
+from config import Config
 from db import DB
 from log import Log
 from oanda import Oanda
@@ -37,7 +38,6 @@ class Daemon():
     """
     # Initialize log.
     Log.clear()
-    Log.write( datetime.datetime.now().strftime("%c") + "\n\n" )
 
     # diagnostic info
     DB.execute('INSERT INTO startups (timestamp) VALUES (NOW())')
@@ -83,10 +83,11 @@ Account balance: {}\n\
         stdcsr.addstr(msg_base)
         stdcsr.refresh() # redraw
 
-        Log.write('"daemon.py" run(): Recovering trades...')
         # Read in existing trades
+        Log.write('"daemon.py" run(): Recovering trades...')
         cls.recover_trades()
-        if Broker.is_practice():
+
+        if Config.live_trading:
             Log.write('"daemon.py" start(): Using practice mode.')
         else:
             Log.write('"daemon.py" start(): Using live account.')

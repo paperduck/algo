@@ -14,6 +14,7 @@ from mysql.connector import errorcode, errors
 from threading import Thread
 import timeit
 #*************************
+from config import Config
 from log import Log
 from timer import Timer
 #*************************
@@ -36,22 +37,11 @@ class DB():
     worker needs to access the end item via index, which might change
     if new tasks are popped.
     """
-    cfg = configparser.ConfigParser()
-    cfg.read('config_nonsecure.cfg')
-    config_path = cfg['config_secure']['path']
-    cfg.read(config_path)
-    log_path = cfg['log']['path']
-    log_file = cfg['log']['file']
-    if log_path == None or log_file == None:
-        print ('"logger.py": Failed to get log path+file from config file')
-        sys.exit()
-    else:
-        log_path = log_path + log_file
     config = {
-        'user': cfg['mysql']['username'],
-        'password': cfg['mysql']['password'],
-        'host': cfg['mysql']['host'],
-        'database': cfg['mysql']['database']
+        'user': Config.db_user,
+        'password': Config.db_pw,
+        'host': Config.db_host,
+        'database': Config.db_name
     }
     cnx = mysql.connector.connect(**config)
     cursor = cnx.cursor()

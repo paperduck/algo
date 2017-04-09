@@ -12,36 +12,27 @@ Description:
 import configparser
 import sys
 #****************************
+from config import Config
 from log import Log
-from oanda import *
+from oanda import Oanda
 #****************************
 
 class Broker():
 
-    # read in which broker/dealer to use from the config file
-    cfg = configparser.ConfigParser()
-    cfg.read('config_nonsecure.cfg')
-    config_path = cfg['config_secure']['path']
-    cfg.read(config_path)
-    broker_name = cfg['trading']['broker']
-    if broker_name == None:
-        Log.write('"broker.py" __init__(): Failed to get broker from config file.')
-        sys.exit()
-    if broker_name == 'oanda':
-        # Could just call the class directly. But maybe having this broker
-        # variable will come in handy.
+    # Using a broker variable eliminates conditionals in the methods.
+    if Config.broker_name == 'oanda':
         broker = Oanda
     else:
-        Log.write('"broker.py" __init__(): Unknown broker name')
-        sys.exit()
+        Log.write('"broker.py": unknown broker "{}"'.format(Config.broker_name))
+        raise Exception
 
-    @classmethod
-    def is_practice(cls):
-        return cls.broker.practice
 
     # Get authorization key.
     @classmethod
     def get_auth_key(cls):
+        """ 
+        Oanda uses an authentication key for HTTP requests.
+        """
         return cls.broker.get_auth_key()
 
 
@@ -105,32 +96,8 @@ class Broker():
     @classmethod
     def get_spreads(cls, instruments, since=None):
         """
-        Remarks:    Not messing with Oanda's timestamp format for now.
-        Returns:    List of spreads for the instruments provided.
-            Sample return value:
-            [
-                {
-                    "instrument":"USD_JPY",
-                    "time":"2013-06-21T17:49:02.475381Z",
-                    "spread":3.2,
-                    "status":"halted"
-                },
-                {
-                    "instrument":"USD_CAD",
-                    "time":"2013-06-21T17:49:02.575381Z",
-                    "spread":4.4,
-                    "status":""                 // no value means it's active
-                }
-            ]
         """
-        # TODO: use broker id from database instead of string?
-        if cls.broker_name == 'oanda':
-            oanda_spreads = cls.broker.get_spreads(instruments, since)
-            return oanda_spreads
-        else:
-            Log.write('"broker.py" get_spreads(): Unknown broker name: {}'
-                .format(cls.broker_name))
-            raise NotImplementedError() 
+        return cls.broker.get_spreads(instruments, since)
 
 
     @classmethod
