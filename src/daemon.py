@@ -22,7 +22,7 @@ from opportunity import *
 from order import *
 from strategies.fifty import *
 from timer import Timer
-from trade import *
+#from trade import *
 #*************************
 
 # Limitations should be specified here, such as 
@@ -60,14 +60,6 @@ class Daemon():
 
 
     @classmethod
-    def __del__(cls):
-        """
-        """
-        #cls.stop() TODO: too late for this?
-        pass
-
-
-    @classmethod
     def run(cls, stdcsr):
         """
         """
@@ -88,9 +80,9 @@ Account balance: {}\n\
         cls.recover_trades()
 
         if Config.live_trading:
-            Log.write('"daemon.py" start(): Using practice mode.')
-        else:
             Log.write('"daemon.py" start(): Using live account.')
+        else:
+            Log.write('"daemon.py" start(): Using practice mode.')
 
         """
         Main loop:
@@ -109,7 +101,7 @@ Account balance: {}\n\
                 stdcsr.keypad(False)
                 #curses.echo()   
                 curses.endwin() # restore terminal
-                cls.stopped = True
+                cls.shutdown()
                 DB.shutdown()
             elif ch == 109: # m == monitor
                 acct = Oanda.get_account_primary()
@@ -143,36 +135,42 @@ Account balance: {}\n\
             else:
                 # Place the order.
                 order_result = Broker.place_order(best_opp.order)
-                if order_result == None:
-                    # Failed to place order.
-                    Log.write('"daemon.py" run(): Failed to place order.')
-                else:
-                    # Order was placed.
+                Log.write('"daemon.py" run(): order_result = \n{}'
+                    .format(order_result))
+                if order_result['tradeOpened'] != {}:
                     # Notify the strategy.
-                    # TODO: This notification code is specific to Oanda.
-                    if order_result['tradeOpened'] != {}:
-                        Log.write('"daemon.py" run(): order_result = \n{}'
-                            .format(order_result))
-                        best_opp.strategy.trade_opened(
-                            order_result['tradeOpened']['id']
+                    best_opp.strategy.trade_opened(
+                        trade_id=order_result['tradeOpened']['id'],
+                        instrument_id=4
+                    )
+                elif order_result['tradesClosed'] != []:
+                    for tc in order_result['tradesClosed']:
+                        # Notify the strategy.
+                        best_opp.strategy.trade_closed(
+                            trade_id=tc['id'],
+                            instrument_id=4
                         )
-                    elif order_result['tradesClosed'] != []:
-                        for tc in order_result['tradesClosed']:
-                            best_opp.strategy.trade_closed(tc['id'])
-                    elif order_result['tradeReduced'] != {}:
-                        best_opp.strategy.trade_reduced(
-                            order_result['tradeReduced']['id']
-                        )
-                    else:
-                        # catch-all for formality
-                        Log.write('"daemon.py" run(): Unknown trade result.')
-                        raise Exception
+                elif order_result['tradeReduced'] != {}:
+                    # Notify the strategy.
+                    best_opp.strategy.trade_reduced(
+                        order_result['tradeReduced']['id'],
+                        instrument_id=4
+                    )
+                else:
+                    # catch-all for formality
+                    Log.write('"daemon.py" run(): Unknown trade result.')
+                    raise Exception
             """
             Clear opportunity list.
             Opportunities should be considered to exist only in the moment,
             so there is no need to save them for later.
             """
             cls.opportunities.clear()
+        """
+        Shutdown stuff. This runs after shutdown() is called, and is the
+        last code that runs before returning to algo.py.
+        """
+        pass
 
 
     @classmethod
@@ -183,8 +181,9 @@ Account balance: {}\n\
             * set SL and TP
             * write diagnostic info to db
         """
+        Log.write('"daemon.py" shutdown(): Shutting down daemon.')
         cls.stopped = True
-
+        
 
     @classmethod
     def recover_trades(cls):
@@ -202,41 +201,83 @@ Account balance: {}\n\
         Log.write('"daemon.py" recover_trades(): Entering.')
         # Get trades from broker.
         open_trades_broker = Broker.get_trades() # instance of <Trades>
-        if open_trades_broker == None:
-            Log.write('"daemon.py" recover_trades(): Failed to get list of trades. ABORTING')
-            cls.stop()
-            #sys.exit()
 
-        # Fill in strategy info
-        open_trades_broker.fill_in_trade_extra_info()
+        # Delete any trades from the database that are no longer open.
+        # First, eliminate trades that are open.
+        db_trades = DB.execute('SELECT trade_id FROM open_trades_live')
+        Log.write('"daemon.py" recover_trades():\ndb open trades: {}\nbroker open trades: {}'
+            .format(db_trades, open_trades_broker))
+        for dbt in db_trades: # O(n^3)
+            for otb in open_trades_broker:
+                if str(dbt[0]) == str(otb.trade_id):
+                    db_trades.remove(dbt)
+        # The remaining trades are in the "open trades" db table, but 
+        # the broker is not listing them as open.
+        # They probably have closed since the daemon last ran; confirm this.
+        for dbt in db_trades:
+            if Broker.is_trade_closed(dbt[0])[0]:
+                # Trade is definitely closed; go ahead and delete from db.
+                Log.write('"daemon.py" recover_trades(): Trade {} is closed. Deleting from db.'
+                    .format(dbt[0]))
+                DB.execute('DELETE FROM open_trades_live WHERE trade_id LIKE {}'
+                    .format(dbt[0]))
+            else:
+                # Trade is in "open trades" db table, but according to the
+                # broker is not closed.
+                DB.bug('Trade w/ID ({}) is neither open nor closed.'
+                    .format(dbt[0]))
+                Log.write('"daemon.py" recover_trades(): Trade w/ID (',
+                    '{}) is neither open nor closed.'.format(dbt[0]))
+                Log.write('"daemon.py" recover_trades(): Shutting down.')
+                cls.shutdown() # TODO: doesn't do clean shutdown here
+            
+        """
+        Fill in info not provided by the broker, e.g.
+        the name of the strategy that opened the trade.
+
+        It's possible that a trade will be opened then the system is
+        unexpectedly terminated before info about the trade can be saved to
+        the database. Thus a trade passed to this
+        function may not have a corresponding trade in the database.
+        """
+        for t in open_trades_broker:
+            trade_info = DB.execute('SELECT strategy, broker, instrument_id FROM open_trades_live WHERE trade_id = {}'
+                .format(t.trade_id))
+            if len(trade_info) > 0:
+                # verify broker and instrument match, just to be safe
+                if trade_info[0][1] != t.broker_name:
+                    Log.write('"trade.py" fill_in_extra_info(): ERROR: "{}" != "{}"'
+                        .format(trade_info[0][1], t.broker_name))
+                    raise Exception
+                instrument = DB.execute('SELECT symbol FROM instruments WHERE id = {}'
+                    .format(trade_info[0][2]))
+                if instrument[0][0] != t.instrument:
+                    Log.write('"trade.py" fill_in_extra_info(): {} != {}'
+                        .format(instrument[0]['symbol'], t.instrument))
+                    raise Exception
+                # set strategy
+                t.strategy = None
+                for s in cls.strategies:
+                    if s.get_name == trade_info[0][0]:
+                        t.strategy = s # reference to class instance
 
         # Distribute trades to their respective strategy modules
-        for trade in open_trades_broker:
-            if trade.strategy != None:
+        for t in open_trades_broker:
+            if t.strategy != None:
                 # Find the strategy that made this trade and notify it.
                 for s in cls.strategies:
-                    if trade.strategy.get_name() == s.get_name(): 
+                    if t.strategy.get_name() == s.get_name(): 
                         s.recover_trade(trade)
-                        open_trades_broker.pop(trade.trade_id)
+                        open_trades_broker.remove(t.trade_id)
                         break
             else:
                 # It is not known what strategy opened this trade.
-                Log.write('"daemon.py" recover_trades(): Trade\'s strategy unknown. Checking if closed.')
-                if Broker.is_trade_closed(trade.trade_id):
-                    # The trade has closed, so I don't need to track it any
-                    # more.
-                    Log.write('"daemon.py" recover_trades(): This trade has\
-                        closed since daemon last ran:\n{}\n'\
-                        .format(t.trade_id))
-                    pass # TODO: write something to the database
-                else:
-                    # The trade is open, but I don't know which strategy
-                    # opened it. Assign it to the backup strategy.
-                    Log.write('"daemon.py" recover_trades(): Trade with ',
-                        'unknown state:\n{}\n'.format(trade))
-                    Log.write('"daemon.py" recover_trades(): Assigning trade ',
-                        'to backup strategy ({}).'.format(cls.backup_strategy.get_name()))
-                    cls.backup_strategy.recover_trade(trade)
+                # One possible reason is that the strategy that opened the
+                # trade is no longer open.
+                # Assign it to the backup strategy.
+                Log.write('"daemon.py" recover_trades(): Assigning trade ',
+                    ' ({}) to backup strategy ({}).'
+                    .format(t.trade_id, cls.backup_strategy.get_name()))
+                cls.backup_strategy.recover_trade(t)
                 
-
 

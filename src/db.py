@@ -84,6 +84,7 @@ class DB():
         except IndexError:
             # queue is empty
             return
+        Log.write('"db.py" _work_body(): Executing: \n{}'.format(job[1]))
         cls.cursor.execute(job[1])
         """
         commit() only needs to be called for transactions that modify
@@ -111,12 +112,27 @@ class DB():
     @classmethod
     def execute(cls, cmd):
         """
-        _put() adds the job to the queue and returns the job_id
-        _get() scans the result pool for that job_id, returns the result
+        Description:
+            Add a task to the queue, then wait for the result.
+            _put() adds the job to the queue and returns the job_id.
+            _get() scans the result pool for that job_id, returns the result.
+        Returns: 
+            MySQL returns record sets as a list of tuples.
         """
+        job_id = cls._put(cmd)
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            future = executor.submit(cls._put, cmd)
-            return future.result()
+            future_result = executor.submit(cls._get, job_id)
+            return future_result.result()
+
+
+    @classmethod
+    def bug(cls, bug):
+        """
+        Report a bug.
+        Parameter 'bug' is a string.
+        """
+        cls.execute('INSERT INTO bugs (timestamp, description) values (NOW(), \'{}\')'
+            .format(bug))
 
 
     @classmethod
@@ -124,7 +140,7 @@ class DB():
         """
         Job queue is tuples: (job ID, cmd string to send to database)
         """
-        job_id = cls.generate_job_id()
+        job_id = cls._generate_job_id()
         cls.jobs.append((job_id, cmd))
         return job_id
 
@@ -141,17 +157,16 @@ class DB():
             num_results = len(cls.results)
             if num_results > 0:
                 for index in range(0, num_results):
-                    print ('index = {}'.format(index))
                     if cls.results[index][0] == job_id:
-                        Log.write('"db.py" _get(): About to pop result: {} '
-                            .format(cls.results[index][1]))
+                        #Log.write('"db.py" _get(): About to pop result: {} '
+                        #    .format(cls.results[index][1]))
                         result = cls.results.pop(index)
-                        Log.write('"db.py" _get(): Returning result: {}'
-                            .format(result[1]))
+                        #Log.write('"db.py" _get(): Returning result: {}'
+                        #    .format(result[1]))
                         return result[1] # TODO: fix thread return system
     
     @classmethod
-    def generate_job_id(cls):
+    def _generate_job_id(cls):
         if cls.next_job_id >= 10000: # TODO: set max size on queues
             cls.next_job_id = 0
         cls.next_job_id = cls.next_job_id + 1

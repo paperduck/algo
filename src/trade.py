@@ -7,6 +7,8 @@ Description:        Containers for trades.
 ####################
 from collections.abc import Sequence
 ####################
+from db import DB
+####################
 
 
 class TradeClosedReason():
@@ -29,20 +31,61 @@ class Trade():
     """
     
     def __init__(self,
+        broker_name=None,       # broker ID (name string) from databse
         instrument=None,        # TODO strings OK? Generic better.
-        side=None,              # 'buy' / 'sell'
+        go_long=None,           # boolean
         stop_loss=None,         # numeric
         strategy=None,          # <Strategy>
         take_profit=None,       # numeric
-        trade_id=None     # string
+        trade_id=None           # string
     ):
+        self.broker_name    = broker_name
         self.instrument     = instrument
-        self.side           = side # 'buy' or 'sell'. TODO maybe bool self.long
+        self.go_long        = go_long
         self.stop_loss      = stop_loss
         self.strategy       = strategy
         self.take_profit    = take_profit
-        self.trade_id = trade_id
+        self.trade_id       = trade_id
    
+
+    def fill_in_extra_info(self):
+        """
+        Fill in info not provided by the broker, e.g.
+        the name of the strategy that opened the trade.
+ 
+        It's possible that a trade will be opened then the system is
+        unexpectedly terminated before info about the trade can be saved to
+        the database. Thus a trade passed to this
+        function may not have a corresponding trade in the database.
+
+        Returns: (nothing)
+        """
+        trade_info = DB.execute('SELECT strategy, broker, instrument_id FROM open_trades_live WHERE trade_id = {}'
+            .format(self.trade_id))
+        if len(trade_info) > 0:
+            # verify broker and instrument match, just to be safe
+            if trade_info[0][1] != self.broker_name:
+                Log.write('"trade.py" fill_in_extra_info(): ERROR: "{}" != "{}"'
+                    .format(trade_info[0][1], self.broker_name))
+                raise Exception
+            instrument = DB.execute('SELECT symbol FROM instruments WHERE id = {}'
+                .format(trade_info[0][2]))
+            if instrument[0][0] != self.instrument:
+                Log.write('"trade.py" fill_in_extra_info(): {} != {}'
+                    .format(instrument[0]['symbol'], self.instrument))
+                raise Exception
+            # save strategy
+            self.strategy = None
+            # TODO: good practice to access daemon's strategy list like this?
+            for s in Daemon.strategies:
+                if s.get_name == trade_info[0][0]:
+                    self.strategy = s # reference to class instance
+            # It might be possible that the trade was opened by a
+            # strategy that is not running. In that case, use the default
+            # strategy.
+            self.strategy = Daemon.backup_strategy
+            
+
 
     def __str__(self):
 
@@ -92,21 +135,11 @@ class Trades(Sequence):
         return len(self._trade_list)    
 
 
-    def fill_in_trade_extra_info(self):
-        """
-        Fill in info not provided by the broker, e.g.
-        the name of the strategy that opened the trade.
- 
-        It's possible that a trade will be opened then the system is
-        unexpectedly terminated before info about the trade can be saved to
-        the database. Thus a trade passed to this
-        function may not have a corresponding trade in the database.
-
-        Returns: Bool (0=success 1=failure)
-        """
-        # TODO
-        for t in self._trade_list:
-            pass
+    def __str__(self):
+        msg = ''
+        for s in self._trade_list:
+            msg = msg + str(s) + '\n'
+        return msg
 
 
     def __iter__(self):

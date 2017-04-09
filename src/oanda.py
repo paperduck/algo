@@ -32,6 +32,11 @@ class Oanda():
     """
     account_id_primary = 0
 
+    
+    @classmethod
+    def __str__(cls):
+        return "oanda"
+
 
     @classmethod
     def get_auth_key(cls):
@@ -51,6 +56,7 @@ class Oanda():
         Helpful function for accessing Oanda's REST API
         Returns: dict or None.
         """
+        """
         Log.write('"oanda.py" fetch(): ***** beginning ************************\\' )
         Log.write('"oanda.py" fetch(): Parameters:\n\
             in_url: {0}\n\
@@ -61,6 +67,7 @@ class Oanda():
             method: {5}\n\
             '.format(in_url, in_headers, btos(in_data), in_origin_req_host,
             in_unverifiable, in_method))
+        """
         # If headers are specified, use those.
         if in_headers == {}:
             headers = {\
@@ -68,10 +75,10 @@ class Oanda():
                 'Content-Type': 'application/x-www-form-urlencoded',\
                 'Accept-Encoding': 'gzip, deflate'
             }
-            Log.write('"oanda.py" fetch(): Using header: {}'.format(headers))
+            #Log.write('"oanda.py" fetch(): Using header: {}'.format(headers))
         else:
             headers = in_headers
-            Log.write('"oanda.py" fetch(): Using default headers: {}')
+            #Log.write('"oanda.py" fetch(): Using default headers: {}')
         # send request
         req = urllib.request.Request(in_url, in_data, headers, in_origin_req_host, in_unverifiable, in_method)
         response = None
@@ -88,11 +95,11 @@ class Oanda():
                 Log.write('"oanda.py" fetch(): Response code 415: Unsupported media type')
             elif response_code != 200:
                 Log.write('"oanda.py" fetch(): Response code was not 200.')
-            Log.write('"oanda.py" fetch(): RESPONSE CODE: ', response_code)
+            #Log.write('"oanda.py" fetch(): RESPONSE CODE: ', response_code)
             # Other stuff
-            Log.write('"oanda.py" fetch(): RESPONSE URL:\n    ', response.geturl())
+            #Log.write('"oanda.py" fetch(): RESPONSE URL:\n    ', response.geturl())
             resp_info = response.info()
-            Log.write( '"oanda.py" fetch(): RESPONSE INFO:\n', resp_info )
+            #Log.write( '"oanda.py" fetch(): RESPONSE INFO:\n', resp_info )
             # Get the response data.
             """
             response.info() is email.message_from_string(); it needs to be
@@ -111,10 +118,10 @@ class Oanda():
                         resp_data = btos( response.read() )
             else:
                 resp_data = btos(response.read())
-            Log.write('"oanda.py" fetch(): RESPONSE PAYLOAD:\n', resp_data, '\n')
+            #Log.write('"oanda.py" fetch(): RESPONSE PAYLOAD:\n', resp_data, '\n')
             # Parse the JSON from Oanda into a dict, then return it.
             resp_data_str = json.loads(resp_data)
-            Log.write('"oanda.py" fetch(): ***** ending ***************************/' )
+            #Log.write('"oanda.py" fetch(): ***** ending ***************************/' )
             return resp_data_str
         except urllib.error.HTTPError as e:
             # 404
@@ -137,6 +144,7 @@ class Oanda():
             Log.write('"oanda.py" fetch(): URLError: ', exc_type)
             Log.write('"oanda.py" fetch(): EXC INFO: ', exc_value)
             Log.write('"oanda.py" fetch(): TRACEBACK:\n', traceback.print_exc(), '\n')
+            Log.write('"oanda.py" fetch(): request:\n{}'.format(req))
             return None
         except:
             exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -159,7 +167,7 @@ class Oanda():
         else:
             Log.write('"oanda.py" get_accounts(): Failed to get accounts.')
             Log.write('"oanda.py" get_accounts(): Aborting.')
-            sys.exit()
+            raise Exception
 
     
     @classmethod
@@ -178,7 +186,7 @@ class Oanda():
                         cls.account_id_primary = str(a['accountId'])
                         return cls.account_id_primary 
             Log.write('"oanda.py" get_account_id_primary(): Failed to get accounts.')
-            sys.exit()
+            raise Exception
         else: # reduce overhead
             return cls.account_id_primary
 
@@ -212,7 +220,7 @@ class Oanda():
             return account
         else:
             Log.write('"oanda.py" get_account(): Failed to get account.')
-            sys.exit()
+            raise Exception
 
 
     @classmethod
@@ -227,7 +235,7 @@ class Oanda():
             return pos
         else:
             Log.write('"oanda.py" get_positions(): Failed to get positions.')
-            sys.exit()
+            raise Exception
 
 
     @classmethod
@@ -242,7 +250,7 @@ class Oanda():
             return len(positions['positions'])
         else:
             Log.write('"oanda.py" get_num_of_positions(): Failed to get positions.')
-            sys.exit()
+            raise Exception
 
 
     @classmethod
@@ -257,7 +265,7 @@ class Oanda():
             return account['balance']
         else:
             Log.write('"oanda.py" get_balance(): Failed to get account.')
-            sys.exit()
+            raise Exception
 
 
     @classmethod
@@ -276,7 +284,7 @@ class Oanda():
             return prices
         else:
             Log.write('"oanda.py" get_prices(): Failed to get prices.')
-            sys.exit()
+            raise Exception
 
 
     @classmethod
@@ -294,7 +302,7 @@ class Oanda():
                     return float(p['ask'])
         else:
             Log.write('"oanda.py" get_ask(): Failed to get prices.')
-            sys.exit()
+            raise Exception
 
 
     @classmethod
@@ -311,7 +319,25 @@ class Oanda():
                     return float(p['bid'])
         else:
             Log.write('"oanda.py" get_bid(): Failed to get prices.')
-            sys.exit()
+            raise Exception
+
+
+    @classmethod
+    def get_spread(cls, instrument, since=None):
+        prices = cls.get_prices(instrument, since)
+        if len(prices['prices']) != 1:
+            raise Exception
+        p = prices['prices'][0]
+        # Since Oanda doesn't always include status, add it manually.
+        if 'status' not in p:
+            p['status'] = ''
+        spread =    {
+                    "instrument": p['instrument'],
+                    "time":p['time'],
+                    "spread":price_to_pips(p['instrument'], (p['ask'] - p['bid'])),
+                    "status":p['status']
+                    }
+        return spread
 
 
     @classmethod
@@ -358,7 +384,7 @@ class Oanda():
             return spreads
         else:
             Log.write('"oanda.py" get_spreads(): Failed to get prices.')
-            sys.exit()
+            raise Exception
 
 
     @classmethod
@@ -377,8 +403,12 @@ class Oanda():
             request_args['instrument'] = in_order.instrument
         if in_order.units != None:
             request_args['units'] = in_order.units
-        if in_order.side != None:
-            request_args['side'] = in_order.side
+        if in_order.go_long != None:
+            # Oanda uses side={'buy' | 'sell'}
+            if in_order.go_long:
+                request_args['side'] = 'buy' 
+            else:
+                request_args['side'] = 'sell'
         if in_order.order_type != None:
             request_args['type'] = in_order.order_type
         if in_order.expiry != None:
@@ -406,8 +436,8 @@ class Oanda():
             in_method='POST'
             )
         if result == None:
+            DB.bug('"oanda.py" place_order(): Failed to place order (1st try).')
             Log.write('"oanda.py" place_order(): Failed to place order; one more try.')
-            
             time.sleep(1)
             result = cls.fetch(
                 in_url="{}/v1/accounts/{}/orders".format(
@@ -417,11 +447,10 @@ class Oanda():
                 in_data=data,
                 in_method='POST'
                 )
-
         if result == None:
-            Log.write('"oanda.py" place_order(): Failed to place order.')
-            Log.write('"oanda.py" place_order(): Aborting.')
-            sys.exit()
+            DB.bug('"oanda.py" place_order(): Failed to place order (2nd try).')
+            Log.write('"oanda.py" place_order(): Failed to place order. Shutting down.')
+            return None
         else:
             Log.write ('"oanda.py" place_order(): Order successfully placed.')
             return result
@@ -474,7 +503,9 @@ class Oanda():
             .format(Config.oanda_url, cls.get_account_id_primary(), args)
             )
         if trans == None:
-            sys.exit()
+            DB.bug('"oanda.py" get_transaction_history(): Failed to fetch transaction history.')
+            Log.write('"oanda.py" get_transaction_history(): Failed to fetch transaction history.')
+            return None
         else:
             return trans
 
@@ -488,6 +519,7 @@ class Oanda():
                         True=trade closed; False=not closed
                         Reason trade closed (or None)
                     )
+        TODO: Function name implies bool, but return val is tuple.
         """
         Log.write('"oanda.py" is_trade_closed(): Entering with trade ID {}'
             .format(trade_id))
@@ -501,40 +533,45 @@ class Oanda():
                 raise Exception
             else:
                 for trans in transactions['transactions']:
+                    Log.write('"oanda.py" is_trade_closed(): Searching transactions for trade_id ({}):\n{}'
+                        .format(trade_id, trans))
+                    # TODO: Check other cases as well so I can return False quickly.
                     if trans['type'] == 'MARKET_ORDER_CREATE':
                         if 'tradeReduced' in trans:
-                            if trans['tradeReduced']['id'] == trade_id:
+                            if str(trans['tradeReduced']['id']) == str(trade_id):
                                 Log.write('"oanda.py" is_trade_closed(): MARKET_ORDER_CREATE')
                                 Timer.stop(start, 'Oanda.is_trade_closed()', 'market order create')
                                 return (True, TradeClosedReason.reduced)
                         # trans['tradeOpened'] will be the original trade
                     if trans['type'] == 'TRADE_CLOSE':
-                        if trans['tradeId'] == trade_id:
+                        if str(trans['tradeId']) == str(trade_id):
                             Log.write('"oanda.py" is_trade_closed(): TRADE_CLOSE')
                             Timer.stop(start, 'Oanda.is_trade_closed()', 'trade close')
                             return (True, TradeClosedReason.manual)
                     if trans['type'] == 'MIGRATE_TRADE_CLOSE':
-                        if trans['tradeId'] == trade_id:
+                        if str(trans['tradeId']) == str(trade_id):
                             Log.write('"oanda.py" is_trade_closed(): MIGRATE_TRADE_CLOSED')
                             Timer.stop(start, 'Oanda.is_trade_closed()', 'migrate trade closed')
                             return (True, TradeClosedReason.migrated)
                     if trans['type'] == 'STOP_LOSS_FILLED':
-                        if trans['tradeId'] == trade_id:
+                        Log.write(str(trans['tradeId']), ' ?= ', str(trade_id))
+                        if str(trans['tradeId']) == str(trade_id):
+                            Log.write('match')
                             Log.write('"oanda.py" is_trade_closed(): STOP_LOSS_FILLED')
                             Timer.stop(start, 'Oanda.is_trade_closed()', 'stop loss filled')
                             return (True, TradeClosedReason.sl)
                     if trans['type'] == 'TAKE_PROFIT_FILLED':
-                        if trans['tradeId'] == trade_id:
+                        if str(trans['tradeId']) == str(trade_id):
                             Log.write('"oanda.py" is_trade_closed(): TAKE_PROFIT_FILLED')
                             Timer.stop(start, 'Oanda.is_trade_closed()', 'take profit filled')
                             return (True, TradeClosedReason.tp)
                     if trans['type'] == 'TRAILING_STOP_FILLED':
-                        if trans['tradeId'] == trade_id:
+                        if str(trans['tradeId']) == str(trade_id):
                             Log.write('"oanda.py" is_trade_closed(): TRAILING_STOP_FILLED')
                             Timer.stop(start, 'Oanda.is_trade_closed()', 'trailing stop filed')
                             return (True, TradeClosedReason.ts)
                     if trans['type'] == 'MARGIN_CLOSEOUT':
-                        if trans['tradeId'] == trade_id:
+                        if str(trans['tradeId']) == str(trade_id):
                             Log.write('"oanda.py" is_trade_closed(): MARGIN_CLOSEOUT')
                             Timer.stop(start, 'Oanda.is_trade_closed()', 'margin closeout')
                             return (True, TradeClosedReason.margin_closeout)
@@ -553,12 +590,9 @@ class Oanda():
         Returns: instance of <trades>.
         """
         Log.write('"oanda.py" get_trades(): Entering.')
-        trades_oanda = cls.fetch(\
-            '{}/v1/accounts/{}/trades/'.format(
-                Config.oanda_url,
-                str(cls.get_account_id_primary())
+        trades_oanda = cls.fetch('{}/v1/accounts/{}/trades/'
+            .format(Config.oanda_url,str(cls.get_account_id_primary()))
             )
-        )
         if trades_oanda == None:
             Log.write('"oanda.py" get_trades(): Failed to get trades from Oanda.')
             raise Exception
@@ -566,9 +600,15 @@ class Oanda():
             ts = Trades()
             for t in trades_oanda['trades']: 
                 # format into a <Trade>
+                go_long = None
+                if t['side'] == 'buy':
+                    going_long = True
+                else:
+                    going_long = False
                 ts.append(Trade(
+                    broker_name = cls.__str__(),
                     instrument = t['instrument'],
-                    side = t['side'],
+                    go_long = going_long,
                     stop_loss = t['stopLoss'],
                     strategy = None,
                     take_profit = t['takeProfit'],
@@ -591,9 +631,15 @@ class Oanda():
             )
         )
         if t != None:
+            go_long = None
+            if t['side'] == 'buy':
+                going_long = True
+            else:
+                going_long = False
             return Trade(
+                    broker_name = cls.__str__(),
                     instrument = t['instrument'],
-                    side = t['side'],
+                    go_long = going_long,
                     stop_loss = t['stopLoss'],
                     strategy = None,
                     take_profit = t['takeProfit'],
@@ -615,7 +661,7 @@ class Oanda():
             return response
         else:
             Log.write('"oanda.py" get_order_info(): Failed to get order info.')
-            sys.exit()
+            raise Exception
         
     # Modify an existing order
     # Returns: dict or None
@@ -659,7 +705,7 @@ class Oanda():
             return response
         else:
             Log.write('"oanda.py" modify_order(): Failed to modify order.')
-            sys.exit()
+            raise Exception
 
     # Modify an existing trade
     # Returns: dict or None

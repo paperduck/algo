@@ -28,6 +28,8 @@ class Fifty(Strategy):
     #Long or short? (Oanda specifically takes 'buy' or 'sell' as argument)
     #direction = 'buy'
     go_long = True
+    tp_price_diff = 0.1
+    sl_price_diff = 0.1
 
 
     @classmethod
@@ -55,29 +57,39 @@ class Fifty(Strategy):
             trade = Broker.get_trade(trade_id)
             if trade == None:
                 Log.write('"fifty.py" _babysit(): Failed to get trade info. Checking if closed.')
-                if Broker.is_trade_closed(trade_id)[0]:
+                closed = Broker.is_trade_closed(trade_id)
+                if closed[0]:
+                    # If SL hit, reverse direction.
+                    Log.write('\n\nLONG reason check: {} ?= {}'.format(closed[1], TradeClosedReason.sl))
+                    if closed[1] == TradeClosedReason.sl:
+                        if cls.go_long:
+                            cls.go_long = False
+                        else:
+                            cls.go_long = True
                     Log.write('"fifty.py" _babysit(): Trade has closed.')
                     cls._open_trades.remove(trade_id)
             else:
                 instrument = trade.instrument
                 tp = round( trade.take_profit, 2 )
                 sl = round( trade.stop_loss, 2 )
-                side = trade.side
-                if side == 'buy': # currently long
-                    cur_bid = Broker.get_bid( instrument )
+                go_long = trade.go_long
+                #spread = Broker.get_spread(instrument)['spread']
+
+                if go_long == True: # currently long
+                    cur_bid = Broker.get_bid(instrument)
                     if cur_bid != None:
-                        if tp - cur_bid < 0.02:
-                            new_sl = cur_bid - 0.02
-                            # new_tp = tp + 0.05
-                            # send modify trade request
-                            resp = Broker.modify_trade(trade_id, new_sl, new_tp, 0)
+                        if cur_bid - sl > cls.sl_price_diff:
+                            new_sl = cur_bid - cls.sl_price_diff
+                            Log.write('modify: trade_id={}, stop_loss={}'.format(trade_id, new_sl))
+                            resp = Broker.modify_trade(trade_id=trade_id, stop_loss=new_sl)
                             if resp == None:
                                 Log.write('"fifty.py" _babysit(): Modify failed. Checking if trade is closed.')
                                 closed = Broker.is_trade_closed(trade_id)
                                 if closed[0]:
                                     Log.write('"fifty.py" _babysit(): BUY trade has closed. (BUY)')
                                     cls._open_trades.remove(trade_id)
-                                    # check reason
+                                    # If SL hit, reverse direction.
+                                    Log.write('\n\nLONG reason check: {} ?= {}'.format(closed[1], TradeClosedReason.sl))
                                     if closed[1] == TradeClosedReason.sl:
                                         cls.go_long = False
                                 else:
@@ -87,31 +99,23 @@ class Fifty(Strategy):
                             else:                                       
                                 Log.write('"fifty.py" _babysit(): Modified BUY trade with ID (',\
                                      trade_id, ').')
-                        else:
-                            pass # trade fine where it is
                     else:
                         Log.write('"fifty.py" _babysit(): Failed to get bid while babysitting.')
-                        sys.exit()
+                        raise Exception
                 else: # currently short
-                    cur_ask = Broker.get_ask( instrument )
-                    if cur_ask != None:
-                        if cur_ask - tp < 0.02:
-                            new_sl = cur_ask + 0.02
-                            #new_tp = tp - 0.05
-                            # send modify trade request
-                            resp = Broker.modify_trade(
-                                trade_id=trade_id,
-                                stop_loss=new_sl,
-                                take_profit=new_tp,
-                                trailing_stop=0
-                            )
+                    cur_bid = Broker.get_bid(instrument)
+                    if cur_bid != None:
+                        if sl - cur_bid > cls.sl_price_diff:
+                            new_sl = cur_bid + cls.sl_price_diff
+                            resp = Broker.modify_trade(trade_id=trade_id, stop_loss=new_sl)
                             if resp == None:
                                 Log.write('"fifty.py" _babysit(): Modify failed. Checking if trade is closed. (SELL)')
                                 closed = Broker.is_trade_closed(trade_id)
                                 if closed[0]:
                                     Log.write('"fifty.py" in _babysit(): SELL trade has closed.')
+                                    Log.write('\n\nSHORT reason check: {} ?= {}'.format(closed[1], TradeClosedReason.sl))
                                     cls._open_trades.remove(trade_id)
-                                    # check reason
+                                    # If SL hit, reverse direction.
                                     if closed[1] == TradeClosedReason.sl:
                                         cls.go_long = True
                                 else:
@@ -120,8 +124,6 @@ class Fifty(Strategy):
                             else:
                                 Log.write('"fifty.py" _babysit(): Modified SELL trade with ID (',\
                                     trade_id, ').')
-                        else:
-                            pass # trade fine where it is
                     else:
                         Log.write('"fifty.py" _babysit(): Failed to get ask while babysitting.')
                         sys.exit()
@@ -159,24 +161,23 @@ class Fifty(Strategy):
             if spread < 3:
                 if cls.go_long: # buy
                     Log.write('"fifty.py" _scan(): Going long.') 
-                    cur_ask_raw = Broker.get_ask('USD_JPY')
-                    if cur_ask_raw != None:
-                        #cur_ask = round(cur_ask_raw, 2)
-                        sl = round(cur_ask - 0.1, 2)
-                        tp = round(cur_ask + 0.1, 2)
+                    cur_bid = Broker.get_bid('USD_JPY')
+                    if cur_bid != None:
+                        # Rounding the raw bid didn't prevent float inaccuracy
+                        # cur_bid = round(cur_bid_raw, 2)
+                        tp = round(cur_bid + cls.tp_price_diff, 2)
+                        sl = round(cur_bid - cls.sl_price_diff, 2)
                     else:
                         Log.write('"fifty.py" in _scan(): Failed to get bid.')
                         sys.exit()
                         return None 
                 else: # sell
                     Log.write('"fifty.py" _scan(): Shorting.') 
-                    cls.go_long = 'sell'
+                    cls.go_long = False
                     cur_bid = Broker.get_bid('USD_JPY')
                     if cur_bid != None:
-                        # Rounding the raw bid didn't prevent float inaccuracy
-                        # cur_bid = round(cur_bid_raw, 2)
-                        sl = round(cur_bid + 0.1, 2)
-                        tp = round(cur_bid - 0.1, 2)
+                        tp = round(cur_bid - cls.tp_price_diff, 2)
+                        sl = round(cur_bid + cls.sl_price_diff, 2)
                     else:
                         Log.write('"fifty.py" in _scan(): Failed to get ask.') 
                         sys.exit()
@@ -187,7 +188,7 @@ class Fifty(Strategy):
                 opp.order = Order(
                     instrument='USD_JPY',
                     order_type='market',
-                    side=cls.go_long,
+                    go_long=cls.go_long,
                     stop_loss=sl,
                     take_profit=tp,
                     units='100'

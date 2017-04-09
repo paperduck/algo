@@ -17,7 +17,7 @@
 
 ## Forward Testing
 - Same as live trading, except fake money is used.
-- The "practice" variable in the config file is toggled to `True`.
+- The `live_trading` variable in the config file is toggled to `True`.
 
 ## Live Trading
 - The program starts in `/src/algo.py`.

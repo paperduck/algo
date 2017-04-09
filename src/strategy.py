@@ -3,12 +3,14 @@ Python ver.   3.4
 File:         strategy.py
 Description:
     Base class for strategies defined here.
-    Backup babysitter class is defined here.
+    This should NOT be instantiated directly.
+    Derive it and make your own strategy.
 """
 
 #*************************
 import sys
 #*************************
+from config import Config
 from log import Log
 from trade import *
 #*************************
@@ -40,15 +42,14 @@ class Strategy():
 
 
     @classmethod
-    def trade_opened(cls, trade_id):
+    def trade_opened(cls, trade_id, instrument_id):
         """
         Description:
             This must be called to notify the strategy when an order that it
             suggested was placed.
-            This is separate from recover_trade() just in case I want to do
-            something different in either function later.
-        Input: 
-            trade id from broker
+            Probably only called by daemon.py since that is currently the
+            only module that has access to individual strategy modules.
+        Input:      trade id from broker
         Returns:
         """
         cls._open_trades.append(trade_id)
@@ -56,17 +57,21 @@ class Strategy():
             'opened a trade with ID "{}"'.format(cls.get_name(), trade_id)) 
         Log.write('"strategy.py" trade_opened(): cls._open_trades contains:')
         Log.write(cls._open_trades)
-        # TODO: write to db
+        # Write to db
+        DB.execute('INSERT INTO open_trades_live (trade_id, strategy, \
+            broker, instrument_id) values ("{}", "{}", "{}", {})'
+            .format(trade_id, cls.get_name(), Config.broker_name, instrument_id))
 
 
     @classmethod
-    def trade_closed(cls, trade_id):
+    def trade_closed(cls, trade_id, instrument_id):
         """
         Description:
             This must be called to notify a strategy that one of its trades
             has closed.
-        Input:
-            trade id from broker (string)
+            Probably only called by daemon.py since that is currently the
+            only module that has access to individual strategy modules.
+        Input:      trade id from broker (string)
         Returns: 
         """
         Log.write('"strategy.py" trade_closed(): Attempting to pop trade ',
@@ -95,18 +100,25 @@ class Strategy():
                 # Send trade info to strategy
                 cls._trade_closed(trade_id)
                 return True
-            # TODO: write to db
+            # Write to db
+            DB.execute('DELETE FROM open_trades_live WHERE trade_id LIKE {}'
+                .format(trade_id))
         else:
             # Not tracking any trades! Oh no.
-            Log.write('"strategy.py" trade_closed(): Trade closed but list of open trades is empty!')
-            Log.write('"strategy.py" trade_closed(): Aborting.')
-            sys.abort()
+            err_msg = '"strategy.py" trade_closed(): Trade closed but list of open trades is empty!'
+            Log.write(err_msg)
+            DB.bug(err_msg)
+            Daemon.shutdown()
 
 
     @classmethod
-    def trade_reduced(cls, trade_id):
+    def trade_reduced(cls, trade_id, instrument_id):
         """
         Description:    This must be called when a trade is reduced.
+        Parameters:
+                        trade_id        ID of trade, assigned by broker
+                        instrument_id   database: instruments.id
+        Returns:        (nothing)
         """
         # TODO: write to db
         Log.write('"strategy.py" trade_reduced(): Trade {} was reduced.'
@@ -114,6 +126,7 @@ class Strategy():
         pass
 
 
+    # TODO maybe call this function "adopt" to make it more generic
     @classmethod
     def recover_trade(cls, trade):
         """
@@ -153,44 +166,5 @@ class Strategy():
             otherwise None.
         """
         raise NotImplementedError()
-
-
-'''
-class BackupBabysitter(Strategy):
-    """
-    Class used for babysitting orphan trades.
-    An orphan trade is a trade that is not assigned to a strategy.
-    Orphan trades can result from this sequence of events:
-        - A strategy places an order that opens a trade
-        - The daemon is terminated improperly (not a clean shutdown)
-        - Information about the trade is not written to the database
-        - The daemon starts again and sees that a trade is open, but there
-            is no information about that trade in the database.
-    Class methods are used because there is no need for more than one
-        backup babysitter.
-    """
-    
-
-    @classmethod
-    def babysit(cls):
-        """
-        Same as the _babysit() function in the base Strategy class.
-        """
-        # TODO
-        for t in cls._open_trades:
-            Log.write('"strategy.py" babysit(): Working hard!')
-
-
-    @classmethod
-    def adopt(cls, trade):
-        """
-        This method is used to assign a trade to BackupBabysitter.
-        This is the same as Strategy.recover_trade().
-        However, the name is different because in this class, unlike in the
-        Strategy class, there is no need to
-        differentiate between trade_opened() and recover_trade().
-        """
-        cls._open_trades.append(trade)
-'''
 
 

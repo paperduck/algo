@@ -29,7 +29,7 @@ def timer_decorator(cls):
     # Load records from database, after the class is created.
     cls.records = cls._db_execute('SELECT * FROM function_times')
     if cls.records == None:
-        Log.write('records == None. Aborting.')
+        DB.bug('records == None. Aborting.')
         sys.exit()
     print('"timer.py" timer_decorator(): cls.records is initialized to {}'.format(cls.records))
     return cls
@@ -89,8 +89,8 @@ class Timer():
         Compare a new time to the record.
         If the new time is a record, save it.
         """
-        Log.write('"timer.py" stop(): Entering with records:\n',
-            '{}'.format(cls.records))
+        #Log.write('"timer.py" stop(): Entering with records:\n',
+        #    '{}'.format(cls.records))
         timestamp = datetime.datetime.now()
         duration = timeit.default_timer() - start
         new_max = False
@@ -101,11 +101,13 @@ class Timer():
             r_dur = r[2]
             r_note = r[3]
             if r_fun == function_name:
+                """
                 Log.write('"timer.py" stop(): Function {} has previous max duration of {}'
                     .format(
                         r_fun,
                         r_dur)
                     )
+                """
                 found = True
                 sec = int(duration)
                 if datetime.timedelta(seconds=sec,microseconds=duration-sec) > r_dur:
@@ -120,8 +122,8 @@ class Timer():
             cls.records.append((timestamp,function_name, duration, note))
         # save to database if new max duration
         if new_max:
-            Log.write('"timer.py" stop(): New max duration for ',
-                'function {} = {}s'.format(function_name, duration))
+            #Log.write('"timer.py" stop(): New max duration for ',
+            #    'function {} = {}s'.format(function_name, duration))
             db_result = cls._db_execute(
                 'INSERT INTO function_times \
                 (function_name, timestamp, duration, note) \
@@ -138,5 +140,6 @@ class Timer():
                 )
             )
         else:
-            Log.write('"timer.py" stop(): Not a new duration: {} for function {}'
-                .format(duration, function_name))
+            #Log.write('"timer.py" stop(): Not a new duration: {} for function {}'
+            #    .format(duration, function_name))
+            pass

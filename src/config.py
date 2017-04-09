@@ -28,12 +28,15 @@ class Config():
     live_trading = cfg['trading']['live_trading']
     oanda_url = None
     oanda_token = None
-    if live_trading:
+    if live_trading == 'True':
+        # TODO: put the URLs in the config file
         oanda_url = 'https://api-fxtrade.oanda.com'
         oanda_token = cfg['oanda']['token']
-    else:
+    elif live_trading == 'False':
         oanda_url =  'https://api-fxpractice.oanda.com'
         oanda_token = cfg['oanda']['token_practice']
+    else:
+        raise Exception
     log_path = cfg['log']['path']
     log_file = cfg['log']['file']
     log_path = log_path + log_file

@@ -20,10 +20,11 @@ from oanda import Oanda
 class Broker():
 
     # Using a broker variable eliminates conditionals in the methods.
+    broker = None
     if Config.broker_name == 'oanda':
         broker = Oanda
     else:
-        Log.write('"broker.py": unknown broker "{}"'.format(Config.broker_name))
+        DB.bug('"broker.py": unknown broker "{}"'.format(Config.broker_name))
         raise Exception
 
 
@@ -101,6 +102,11 @@ class Broker():
 
 
     @classmethod
+    def get_spread(cls, instrument, since=None):
+        return cls.broker.get_spread(instrument, since)
+
+
+    @classmethod
     def place_order(cls, order):
         """
         Place an order.
@@ -136,7 +142,7 @@ class Broker():
     def is_trade_closed(cls, transaction_id):
         """
         See if a trade is closed.
-        Returns: Boolean or None
+        Returns: 
         """
         return cls.broker.is_trade_closed(transaction_id)
 
@@ -150,7 +156,6 @@ class Broker():
 
         Returns: instance of <trades>
         """
-        Log.write('"broker.py" get_trades(): entering')
         return cls.broker.get_trades()
 
 
@@ -160,7 +165,6 @@ class Broker():
     """
     @classmethod
     def get_trade(cls, trade_id):
-        Log.write('"broker.py" get_trade(): entering')
         return cls.broker.get_trade(trade_id)
 
 

@@ -5,6 +5,8 @@ Description:        Class for writing to a log file.
 How to use:
     Import the class from the module and call `write()`.
     The location of the log file is specified in a config file.
+    Initialization is automatic, but the log file must be closed manually
+    by calling `shutdown()`.
 Remarks
     Sensitive information may be written to the log file, so keep it safe.
     Important stuff should be saved to the database because that makes it
@@ -19,22 +21,19 @@ from config import Config
 #*************************
 
 class Log():
-
-    log_file = open(Config.log_path, 'w')
-    log_file.write('"log.py" __del__(): Log file opened.')
-    
-    @classmethod
-    def __del__(cls):
-        cls.log_file.close()
-        cls.write('"log.py" __del__(): Log file closed.')
-        
+    """
+    The file is opened and closed every call to write() to flush the
+    data and make the file watchable.
+    """
 
     @classmethod
     def clear(cls):
         """
         clear log
         """
-        cls.write('')
+        with open(Config.log_path, 'w') as f:
+            f.write('')
+            f.close()
 
 
     @classmethod
@@ -46,5 +45,7 @@ class Log():
         msg = '\n' + dt + ':  '
         for a in list(args):
             msg = msg + str(a)
-        cls.log_file.write(msg)
+        with open(Config.log_path, 'a') as f:
+            f.write(msg)
+            f.close
 
