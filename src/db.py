@@ -25,7 +25,7 @@ def db_decorator(cls):
     Need the class to be created first.
     """
     # Start the worker thread. 
-    Thread(target=cls._work).start()
+    worker_thread = Thread(target=cls._work).start()
     return cls
 
 
@@ -49,6 +49,8 @@ class DB():
     results = [] #TODO make this a heap for fast deletion
     next_job_id = 0
     halt = False
+    worker_thread = None
+
 
 
     @classmethod
@@ -56,6 +58,7 @@ class DB():
         cls.halt = True
         while (len(cls.jobs) > 0):
             Log.write('"db.py" shutdown(): waiting for queue to empty')
+        worker_thread.join() # block until worker thread finishes
         cls.cursor.close()
         cls.cnx.close()
 
