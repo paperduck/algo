@@ -103,8 +103,12 @@ class TestDaemon(unittest.TestCase):
         DB.execute = db_execute
         
         Daemon.recover_trades()
-        # check strat has one trade
-        self.assertEqual(len(Fifty._open_trades), 1)
+        # check Fifty adopted one trade
+        for s in Daemon.strategies:
+            if s.get_name() == 'Fifty':
+                self.assertEqual(len(s._open_trades), 1)
+            else:
+                self.assertEqual(len(s._open_trades), 0)
         # check trade is the trade we think it is
         self.assertEqual(Fifty._open_trades[0].broker_name, 'oanda')
         self.assertEqual(Fifty._open_trades[0].instrument, 'USD_JPY')
@@ -112,6 +116,8 @@ class TestDaemon(unittest.TestCase):
         self.assertEqual(Fifty._open_trades[0].stop_loss, 90)
         self.assertEqual(Fifty._open_trades[0].take_profit, 100)
         self.assertEqual(Fifty._open_trades[0].trade_id, 'id666')
+        # Cleanup
+        Fifty.drop_all()
 
         """
         Scenario: Trade is in broker, not db
@@ -140,6 +146,9 @@ class TestDaemon(unittest.TestCase):
             call('SELECT strategy, broker, instrument_id FROM open_trades_live WHERE trade_id="id666"')
         ]
         DB.execute.assert_has_calls(calls)
+        # Check no trades adopted
+        for s in Daemon.strategies:
+            self.assertEqual(len(s._open_trades), 0)
  
         """
         Scenario: Trade in db, broker unsure
@@ -165,6 +174,9 @@ class TestDaemon(unittest.TestCase):
             call('DELETE FROM open_trades_live WHERE trade_id="id666"')        
         ]
         DB.execute.assert_has_calls(calls)
+        # Check no trades adopted
+        for s in Daemon.strategies:
+            self.assertEqual(len(s._open_trades), 1)
 
         """ 
         test cleanup

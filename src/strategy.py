@@ -138,6 +138,13 @@ class Strategy():
 
 
     @classmethod
+    def drop_all(cls):
+        """
+        """
+        del cls._open_trades[:]
+
+
+    @classmethod
     def refresh(cls):
         """
         The daemon should call this over and over.
