@@ -4,7 +4,7 @@ Python version: Python 3.4
 Description:    Main function.
 """
 
-#*************************
+import atexit
 import curses
 import datetime
 import json
@@ -12,7 +12,7 @@ import sys
 import time         # for sleep()
 #import urllib.request
 #import urllib.error
-#*************************
+
 from broker import Broker
 from config import Config
 from db import DB
@@ -23,7 +23,7 @@ from order import *
 from strategies.fifty import *
 from timer import Timer
 #from trade import *
-#*************************
+
 
 # Limitations should be specified here, such as 
 #   which instruments to use
@@ -92,6 +92,7 @@ Account balance: {}\n\
         """
         while not cls.stopped:
 
+            print('shit')
             # curses
             ch = stdcsr.getch() # get one char
             if ch == 113: # q == quit
@@ -102,7 +103,6 @@ Account balance: {}\n\
                 #curses.echo()   
                 curses.endwin() # restore terminal
                 cls.shutdown()
-                DB.shutdown()
             elif ch == 109: # m == monitor
                 acct = Oanda.get_account_primary()
                 msg = msg_base.format(acct['balance'])
@@ -182,6 +182,7 @@ Account balance: {}\n\
             * write diagnostic info to db
         """
         Log.write('"daemon.py" shutdown(): Shutting down daemon.')
+        DB.shutdown()  # atexit() used in db.py, but call to be safe.
         cls.stopped = True
         
 
@@ -203,33 +204,36 @@ Account balance: {}\n\
         open_trades_broker = Broker.get_trades() # instance of <Trades>
 
         # Delete any trades from the database that are no longer open.
-        # First, eliminate trades that are open.
+        # First, ignore trades that the broker has open.
         db_trades = DB.execute('SELECT trade_id FROM open_trades_live')
         Log.write('"daemon.py" recover_trades():\ndb open trades: {}\nbroker open trades: {}'
             .format(db_trades, open_trades_broker))
         for dbt in db_trades: # O(n^3)
             for otb in open_trades_broker:
                 if str(dbt[0]) == str(otb.trade_id):
+                    # same trade_id
                     db_trades.remove(dbt)
         # The remaining trades are in the "open trades" db table, but 
         # the broker is not listing them as open.
-        # They probably have closed since the daemon last ran; confirm this.
+        # They may have closed since the daemon last ran; confirm this.
+        # Another cause is that trades are automatically removed from
+        # Oanda's history after much time passes.
         for dbt in db_trades:
             if Broker.is_trade_closed(dbt[0])[0]:
-                # Trade is definitely closed; go ahead and delete from db.
+                # Trade is definitely closed; update db.
                 Log.write('"daemon.py" recover_trades(): Trade {} is closed. Deleting from db.'
                     .format(dbt[0]))
-                DB.execute('DELETE FROM open_trades_live WHERE trade_id LIKE {}'
+                DB.execute('DELETE FROM open_trades_live WHERE trade_id="{}"'
                     .format(dbt[0]))
             else:
-                # Trade is in "open trades" db table, but according to the
-                # broker is not closed.
+                # Trade is in "open trades" db table and the broker
+                # says the trade is neither open nor closed.
                 DB.bug('Trade w/ID ({}) is neither open nor closed.'
                     .format(dbt[0]))
                 Log.write('"daemon.py" recover_trades(): Trade w/ID (',
                     '{}) is neither open nor closed.'.format(dbt[0]))
-                Log.write('"daemon.py" recover_trades(): Shutting down.')
-                cls.shutdown() # TODO: doesn't do clean shutdown here
+                DB.execute('DELETE FROM open_trades_live WHERE trade_id="{}"'
+                    .format(dbt[0]))
             
         """
         Fill in info not provided by the broker, e.g.
@@ -237,29 +241,37 @@ Account balance: {}\n\
 
         It's possible that a trade will be opened then the system is
         unexpectedly terminated before info about the trade can be saved to
-        the database. Thus a trade passed to this
-        function may not have a corresponding trade in the database.
+        the database. Thus a trade may not have a corresponding trade in the database.
         """
-        for t in open_trades_broker:
-            trade_info = DB.execute('SELECT strategy, broker, instrument_id FROM open_trades_live WHERE trade_id = {}'
+        #for t in open_trades_broker:
+        for i in range(0,len(open_trades_broker)):
+            t = open_trades_broker[i]
+            trade_info = DB.execute('SELECT strategy, broker, instrument_id FROM open_trades_live WHERE trade_id="{}"'
                 .format(t.trade_id))
             if len(trade_info) > 0:
-                # verify broker and instrument match, just to be safe
+                # Verify broker's info and database info match, just to be safe.
+                # - broker name
                 if trade_info[0][1] != t.broker_name:
-                    Log.write('"trade.py" fill_in_extra_info(): ERROR: "{}" != "{}"'
+                    Log.write('"daemon.py" recover_trades(): ERROR: "{}" != "{}"'
                         .format(trade_info[0][1], t.broker_name))
                     raise Exception
-                instrument = DB.execute('SELECT symbol FROM instruments WHERE id = {}'
+                # - instrument/symbol
+                instrument = DB.execute('SELECT symbol FROM instruments WHERE id="{}"'
                     .format(trade_info[0][2]))
                 if instrument[0][0] != t.instrument:
-                    Log.write('"trade.py" fill_in_extra_info(): {} != {}'
-                        .format(instrument[0]['symbol'], t.instrument))
+                    Log.write('"daemon.py" recover_trades): {} != {}'
+                        .format(instrument[0][0], t.instrument))
                     raise Exception
                 # set strategy
                 t.strategy = None
                 for s in cls.strategies:
                     if s.get_name == trade_info[0][0]:
                         t.strategy = s # reference to class instance
+            else:
+                # Trade in broker but not db.
+                # Maybe the trade was opened manually. Ignore it.
+                # Remove from list.
+                open_trades_broker = open_trades_broker[0:i] + open_trades_broker[i+1:len(open_trades_broker)] # TODO: optimize speed
 
         # Distribute trades to their respective strategy modules
         for t in open_trades_broker:
@@ -280,4 +292,7 @@ Account balance: {}\n\
                     .format(t.trade_id, cls.backup_strategy.get_name()))
                 cls.backup_strategy.recover_trade(t)
                 
+
+# There are not destructors in Python, so use this.
+atexit.register(Daemon.shutdown)
 

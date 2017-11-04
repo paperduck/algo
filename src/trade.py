@@ -11,10 +11,10 @@ from db import DB
 ####################
 
 
+"""
+An enum.
+"""
 class TradeClosedReason():
-    """
-    An enum.
-    """
     reduced = 1
     manual = 2 # manually closed
     migrated = 3
@@ -24,18 +24,18 @@ class TradeClosedReason():
     margin_closeout = 7
 
 
+"""
+Represents one trade, either past or present.
+Future trades are "opportunities" or "orders".
+"""
 class Trade():
-    """
-    Represents one trade, either past or present.
-    Future trades are "opportunities" or "orders".
-    """
-    
-    def __init__(self,
+    def __init__(
+        self,
         broker_name=None,       # broker ID (name string) from databse
         instrument=None,        # TODO strings OK? Generic better.
         go_long=None,           # boolean
         stop_loss=None,         # numeric
-        strategy=None,          # <Strategy>
+        strategy=None,          # Strategy class
         take_profit=None,       # numeric
         trade_id=None           # string
     ):
@@ -60,6 +60,7 @@ class Trade():
 
         Returns: (nothing)
         """
+        print ('trade.fill_in_extra_info()')
         trade_info = DB.execute('SELECT strategy, broker, instrument_id FROM open_trades_live WHERE trade_id = {}'
             .format(self.trade_id))
         if len(trade_info) > 0:
@@ -88,10 +89,9 @@ class Trade():
 
 
     def __str__(self):
-
         strategy_name = "(unknown)"
         if self.strategy != None:
-            strategy_name = self.strategy.name
+            strategy_name = self.strategy.get_name()
         msg = 'Transaction ID: {}\n\
             Instrument: {}\n\
             Strategy: {}'\
@@ -137,8 +137,8 @@ class Trades(Sequence):
 
     def __str__(self):
         msg = ''
-        for s in self._trade_list:
-            msg = msg + str(s) + '\n'
+        for t in self._trade_list:
+            msg = msg + str(t) + '\n'
         return msg
 
 

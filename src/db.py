@@ -5,6 +5,7 @@ Description:        database
 """
 
 #*************************
+import atexit
 import collections
 import concurrent.futures
 import configparser
@@ -31,11 +32,15 @@ def db_decorator(cls):
 
 @db_decorator
 class DB():
+    #print ('db.DB()')
     """
     Two queues (jobs and results) because only having one queue for both
     necessitates locking the queue to prevent its size from changing; the
     worker needs to access the end item via index, which might change
     if new tasks are popped.
+    
+    @classmethod is used instead of @staticmethod because the functions need
+    to share data.
     """
     config = {
         'user': Config.db_user,
@@ -52,30 +57,55 @@ class DB():
     worker_thread = None
 
 
-
     @classmethod
     def shutdown(cls):
+        """
+        Clean up connections, threads, etc.
+        atexit() will call this, but you should call this anyway.
+        """
+        #print ('"db.py" db.shutdown()')
         cls.halt = True
-        while (len(cls.jobs) > 0):
-            Log.write('"db.py" shutdown(): waiting for queue to empty')
-        worker_thread.join() # block until worker thread finishes
-        cls.cursor.close()
-        cls.cnx.close()
+        #while (len(cls.jobs) > 0):
+        #    Log.write('"db.py" shutdown(): waiting for queue to empty')
+        if cls.worker_thread != None:
+            #print('"db.py" shutdown(): Killing worker thread...')
+            worker_thread.join() # block until worker thread finishes
+        try:
+            cls.cursor.close()
+        except:
+            pass
+        try:
+            cls.cnx.close()
+        except:
+            pass
 
 
     @classmethod
     def _work(cls):
+        #print ('db._work()')
         """
+        Main loop for worker thread.
         Do work until halted, then finish up the queue.
         """
-        while (not cls.halt):
-            cls._work_body()
-        while (len(cls.jobs) > 0):
-            cls._work_body()
+        try:
+            while (not cls.halt):
+                cls._work_body()
+        except KeyboardInterrupt:
+            #print('"db.py" _work(): KeyboardInterrupt')
+            Log.write('"db.py" _work(): ',
+                'KeyboardInterrupt. Finishing remaining jobs...')
+            while (len(cls.jobs) > 0):
+                cls._work_body()
+        else:
+            Log.write('"db.py" _work(): Halted. Finishing jobs...')
+            #print('"db.py" _work(): Halted. Finishing jobs...')
+            while (len(cls.jobs) > 0):
+                cls._work_body()
 
 
     @classmethod
     def _work_body(cls):
+        #print('db._work_body()')
         """
         Execute the command at the end of the queue.
         Store the result in the results pool.
@@ -112,24 +142,26 @@ class DB():
         Timer.stop(start, 'DB._work_body', job[1])
             
 
+    """
+    Description:
+        Add a task to the queue, then wait for the result.
+        _put() adds the job to the queue and returns the job_id.
+        _get() scans the result pool for that job_id, returns the result.
+    Returns: 
+        MySQL returns record sets as a list of tuples.
+    """
     @classmethod
     def execute(cls, cmd):
-        """
-        Description:
-            Add a task to the queue, then wait for the result.
-            _put() adds the job to the queue and returns the job_id.
-            _get() scans the result pool for that job_id, returns the result.
-        Returns: 
-            MySQL returns record sets as a list of tuples.
-        """
         job_id = cls._put(cmd)
         with concurrent.futures.ThreadPoolExecutor() as executor:
             future_result = executor.submit(cls._get, job_id)
+            #print ('\n\n', future_result.result(), '\n\n')
             return future_result.result()
 
 
     @classmethod
     def bug(cls, bug):
+        print('db.bug()')
         """
         Report a bug.
         Parameter 'bug' is a string.
@@ -140,6 +172,7 @@ class DB():
 
     @classmethod
     def _put(cls, cmd):
+        #print('db._put()')
         """
         Job queue is tuples: (job ID, cmd string to send to database)
         """
@@ -150,6 +183,7 @@ class DB():
 
     @classmethod
     def _get(cls, job_id):
+        #print('db._get()')
         """
         Scan the results pool until the result is found.
         Results pool is list of tuples: (job ID, result)
@@ -170,7 +204,11 @@ class DB():
     
     @classmethod
     def _generate_job_id(cls):
+        #print('db._generate_job_id()')
         if cls.next_job_id >= 10000: # TODO: set max size on queues
             cls.next_job_id = 0
         cls.next_job_id = cls.next_job_id + 1
         return cls.next_job_id - 1 
+
+# There are not destructors in Python, so use this.
+atexit.register(DB.shutdown)

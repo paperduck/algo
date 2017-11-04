@@ -134,7 +134,7 @@ class Strategy():
         terminated, this can be used to tell the strategy
         module about a trade that it had previously opened.
         """
-        cls._open_trades.append(trade.trade_id)
+        cls._open_trades.append(trade)
 
 
     @classmethod

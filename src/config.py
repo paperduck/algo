@@ -15,17 +15,18 @@ class Config():
     The reason is mainly so that one can be public on GitHub. 
     If you want you can combine them into one file.
     """
-
     cfg = configparser.ConfigParser()
 
     # read the public config file
-    cfg.read('config_nonsecure.cfg')
-    config_path = cfg['config_secure']['path']
+    with open('config_nonsecure.cfg', 'r') as f:
+        cfg.read_file(f)
+        f.close()
+    _private_config_path = cfg['config_secure']['path']
     broker_name = cfg['trading']['broker']
+    live_trading = cfg['trading']['live_trading']
 
     # read the private config file
-    cfg.read(config_path)
-    live_trading = cfg['trading']['live_trading']
+    cfg.read(_private_config_path)
     oanda_url = None
     oanda_token = None
     if live_trading == 'True':

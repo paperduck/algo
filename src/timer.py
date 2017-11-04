@@ -31,7 +31,7 @@ def timer_decorator(cls):
     if cls.records == None:
         DB.bug('records == None. Aborting.')
         sys.exit()
-    print('"timer.py" timer_decorator(): cls.records is initialized to {}'.format(cls.records))
+    #print('"timer.py" timer_decorator(): cls.records is initialized to {}'.format(cls.records))
     return cls
     
 

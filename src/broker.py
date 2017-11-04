@@ -19,10 +19,9 @@ from oanda import Oanda
 
 class Broker():
 
-    # Using a broker variable eliminates conditionals in the methods.
     broker = None
     if Config.broker_name == 'oanda':
-        broker = Oanda
+        broker = Oanda # point to Oanda class
     else:
         DB.bug('"broker.py": unknown broker "{}"'.format(Config.broker_name))
         raise Exception
