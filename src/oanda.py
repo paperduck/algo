@@ -20,6 +20,7 @@ import zlib
 from config import Config
 from currency_pair_conversions import *
 from data_conversions import *
+import util_date
 from log import Log
 from trade import *
 from timer import Timer
@@ -49,11 +50,14 @@ class Oanda():
         return Config.oanda_token
  
 
+    """
+    Return type: dict or none
+    Send a request to Oanda's REST API.
+    """
     @classmethod
     def fetch(cls, in_url, in_headers={}, in_data=None, in_origin_req_host=None,
         in_unverifiable=False, in_method=None):
         """
-        Helpful function for accessing Oanda's REST API
         Returns: dict or None.
         """
         """
@@ -75,10 +79,8 @@ class Oanda():
                 'Content-Type': 'application/x-www-form-urlencoded',\
                 'Accept-Encoding': 'gzip, deflate'
             }
-            #Log.write('"oanda.py" fetch(): Using header: {}'.format(headers))
         else:
             headers = in_headers
-            #Log.write('"oanda.py" fetch(): Using default headers: {}')
         # send request
         req = urllib.request.Request(in_url, in_data, headers, in_origin_req_host, in_unverifiable, in_method)
         response = None
@@ -95,11 +97,9 @@ class Oanda():
                 Log.write('"oanda.py" fetch(): Response code 415: Unsupported media type')
             elif response_code != 200:
                 Log.write('"oanda.py" fetch(): Response code was not 200.')
-            #Log.write('"oanda.py" fetch(): RESPONSE CODE: ', response_code)
             # Other stuff
             #Log.write('"oanda.py" fetch(): RESPONSE URL:\n    ', response.geturl())
-            resp_info = response.info()
-            #Log.write( '"oanda.py" fetch(): RESPONSE INFO:\n', resp_info )
+            #resp_info = response.info()
             # Get the response data.
             """
             response.info() is email.message_from_string(); it needs to be
@@ -118,22 +118,14 @@ class Oanda():
                         resp_data = btos( response.read() )
             else:
                 resp_data = btos(response.read())
-            #Log.write('"oanda.py" fetch(): RESPONSE PAYLOAD:\n', resp_data, '\n')
             # Parse the JSON from Oanda into a dict, then return it.
             resp_data_str = json.loads(resp_data)
-            #Log.write('"oanda.py" fetch(): ***** ending ***************************/' )
             return resp_data_str
         except urllib.error.HTTPError as e:
             # 404
-            Log.write('"oanda.py" fetch(): HTTPError:\n\
-                code: {}\n\
-                reason: {}\n\
-                headers:\n{}\n'
-                .format(
-                    e.code,
-                    e.reason,
-                    e.headers
-                ))
+            Log.write('"oanda.py" fetch(): HTTPError:\n' + 
+                'code: {}\nreason: {}\nheaders:\n{}\n'
+                .format(e.code, e.reason, e.headers))
             return None
         except urllib.error.URLError:
             """
@@ -508,6 +500,55 @@ class Oanda():
             return None
         else:
             return trans
+
+
+    def get_instrument_history(cls,
+        instrument,             # string for now, instrument id from database later (TODO)
+        granularity=None,       # string
+        count=None,             # optional- int - leave out if both start & end specified
+        start=None,             # optional- datetime
+        end=None,               # optional- datetime
+        candle_format=None,     # optional - string
+        include_first=None,     # optional - bool - Oanda wants 'true'/'false'
+        daily_alignment=None,   # 0 to 23 - optional
+        alignment_timezone=None,# timezone - optional
+        weekly_alignment=None   # 'Monday' etc. - optional
+    ):
+        if count != None and start != none and end != None:
+            raise Exception
+        args=instrument
+        if granularity != None:
+            args = args + 'granularity=' + granularity + '&'
+        if count != None:
+            args = args + 'count=' + count + '&'
+        if start != None:
+            args = args + 'start=' + util_date.date_to_string(start) + '&'
+        if end != None:
+            args = args + 'end=' + util_date.string_to_date(end) + '&'
+        if candle_format != None:
+            args = args + 'candle_format=' + candle_format + '&'
+        if include_first != None:
+            if include_first:
+                args = args + 'include_first=' + 'true' + '&'
+            else:
+                args = args + 'include_first=' + 'true' + '&'
+        if daily_alignment != None:
+            args = args + 'daily_alignment=' + str(daily_alignment) + '&'
+        if alignment_timezone != None:
+            args = args + 'alignment_timezone' + alignment_timezone + '&'
+        if weekly_alignment != None:
+            args = args + 'weekly_alignment=' + weekly_alignment + '&'
+
+        result = cls.fetch(
+            in_url='{}/v1/candles?{}'
+                .format(Config.oanda_url, args)
+        )
+        if result == None:
+            DB.bug('"oanda.py" get_instrument_history(): Failed to fetch.')
+            Log.write('"oanda.py" get_instrument_history(): Failed to fetch.')
+            return None
+        else:
+            return result
 
 
     @classmethod

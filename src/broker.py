@@ -13,6 +13,7 @@ import configparser
 import sys
 #****************************
 from config import Config
+from instrument import Instrument
 from log import Log
 from oanda import Oanda
 #****************************
@@ -136,6 +137,33 @@ class Broker():
         return cls.broker.get_transaction_history(maxId=maxId, minId=minId,
             count=count, instrument=instrument, ids=ids)
 
+
+    """
+    Return type: dict or none. See broker's API documentation for details.
+    Get historical prices for an instrument.
+    """
+    @classmethod
+    def get_instrument_history(cls,
+        instrument,             # <Instrument>
+        granularity=None,       # string
+        count=None,             # optional- int - leave out if both start & end specified
+        start=None,             # optional- datetime
+        end=None,               # optional- datetime
+        candle_format=None,     # optional - string - 'midpoint' or 'bidask' (default)
+        include_first=None,     # optional - bool - 'true' (default) or 'false'
+        daily_alignment=None,   # optional - 0 to 23
+        alignment_timezone=None,# optional - see broker's API documentation
+        weekly_alignment=None   # optional - 'Monday' etc.
+    ):
+        if Config.broker_name == 'Oanda':
+            return cls.broker.get_instrument_history(
+                instrument, granularity, count, start, end, candle_format,
+                include_first, daily_alignment, alignment_timezone,
+                weekly_alignment
+            )
+        else:
+            raise NotImplementedError
+        
 
     @classmethod
     def is_trade_closed(cls, transaction_id):

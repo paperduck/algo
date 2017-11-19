@@ -1,6 +1,8 @@
 """
 Run like so:
     $ python3 tests.py
+
+The daemon is assumed to only use the Fifty strategy module.
 """
 
 import sys
@@ -28,7 +30,6 @@ class TestDaemon(unittest.TestCase):
 
     _NAME = 'TestDaemon'
 
-
     def setUp(self):
         # called for every test method
         #print(self._NAME + '.setUp')
@@ -43,12 +44,6 @@ class TestDaemon(unittest.TestCase):
     
     """
     Test: Daemon.recover_trades()
-    Mocks:
-        - Broker.get_trades()
-        - DB.execute('SELECT trade_id FROM open_trades_live')
-        - DB.execute('SELECT strategy, broker, instrument_id FROM open_trades_live WHERE trade_id = {}'
-        - DB.execute('SELECT symbol FROM instruments WHERE id = {}'
-
     Scenarios:
         - No trades in broker or db
             Assertions:
@@ -176,7 +171,7 @@ class TestDaemon(unittest.TestCase):
         DB.execute.assert_has_calls(calls)
         # Check no trades adopted
         for s in Daemon.strategies:
-            self.assertEqual(len(s._open_trades), 1)
+            self.assertEqual(len(s._open_trades), 0)
 
         """ 
         test cleanup

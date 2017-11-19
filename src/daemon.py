@@ -4,6 +4,7 @@ Python version: Python 3.4
 Description:    Main function.
 """
 
+# standard libraries
 import atexit
 import curses
 import datetime
@@ -13,6 +14,14 @@ import time         # for sleep()
 #import urllib.request
 #import urllib.error
 
+# private strategy modules
+try:
+    sys.path.index('/home/user/raid/documents/algo/private_strategies')
+except ValueError:
+    sys.path.append('/home/user/raid/documents/algo/private_strategies')
+from follow_trend import FollowTrend
+
+# project modules
 from broker import Broker
 from config import Config
 from db import DB
@@ -22,7 +31,6 @@ from opportunity import *
 from order import *
 from strategies.fifty import *
 from timer import Timer
-#from trade import *
 
 
 # Limitations should be specified here, such as 
@@ -50,12 +58,14 @@ class Daemon():
 
     # Specify the backup strategy.
     backup_strategy = Fifty 
+
     # Set the strategies to use.
     # If backup_strategy is different than the other
     # strategies, be sure to add that too. If it matches one of
     # the strategies you will use, then don't add it.
     strategies = []
     strategies.append(Fifty)
+    #strategies.append(FollowTrend)
     #strategies.append(backup_strategy)
 
 
@@ -67,11 +77,15 @@ class Daemon():
         curses.echo()   # echo key presses
         stdcsr.nodelay(1) # non-blocking window
         stdcsr.clear() # clear screen
-        msg_base = '\n\
-Press q to shut down.\n\
-Press m to monitor.\n\n\
-Account balance: {}\n\
->'
+        msg_base = '\n'
+        if Config.live_trading:
+            msg_base += 'LIVE TRADING\n'
+        else:
+            msg_base += 'Simulation.\n'
+        msg_base += 'Press q to shut down.\n'
+        msg_base += 'Press m to monitor.\n\n'
+        msg_base += 'Account balance: {}\n'
+        msg_base += '>'
         stdcsr.addstr(msg_base)
         stdcsr.refresh() # redraw
 
@@ -92,7 +106,6 @@ Account balance: {}\n\
         """
         while not cls.stopped:
 
-            print('shit')
             # curses
             ch = stdcsr.getch() # get one char
             if ch == 113: # q == quit

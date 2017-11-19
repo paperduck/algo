@@ -23,21 +23,21 @@ class Config():
         f.close()
     _private_config_path = cfg['config_secure']['path']
     broker_name = cfg['trading']['broker']
-    live_trading = cfg['trading']['live_trading']
+    live_trading = False
+    if cfg['trading']['live_trading'] == 'True':
+        live_trading = True
 
     # read the private config file
     cfg.read(_private_config_path)
     oanda_url = None
     oanda_token = None
-    if live_trading == 'True':
+    if live_trading:
         # TODO: put the URLs in the config file
         oanda_url = 'https://api-fxtrade.oanda.com'
         oanda_token = cfg['oanda']['token']
-    elif live_trading == 'False':
+    else:
         oanda_url =  'https://api-fxpractice.oanda.com'
         oanda_token = cfg['oanda']['token_practice']
-    else:
-        raise Exception
     log_path = cfg['log']['path']
     log_file = cfg['log']['file']
     log_path = log_path + log_file
