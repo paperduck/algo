@@ -22,7 +22,7 @@ class Strategy():
     """
 
     #List of trade (transaction) IDs. TODO: Might use [<Trade>] in the future.
-    _open_trades = []
+    _open_trade_ids = []
 
 
     @classmethod
@@ -52,11 +52,11 @@ class Strategy():
         Input:      trade id from broker
         Returns:
         """
-        cls._open_trades.append(trade_id)
+        cls._open_trade_ids.append(trade_id)
         Log.write('"strategy.py" trade_opened(): Hooray, strategy {} ',
             'opened a trade with ID "{}"'.format(cls.get_name(), trade_id)) 
-        Log.write('"strategy.py" trade_opened(): cls._open_trades contains:')
-        Log.write(cls._open_trades)
+        Log.write('"strategy.py" trade_opened(): cls._open_trade_ids contains:')
+        Log.write(cls._open_trade_ids)
         # Write to db
         DB.execute('INSERT INTO open_trades_live (trade_id, strategy, \
             broker, instrument_id) values ("{}", "{}", "{}", {})'
@@ -77,22 +77,22 @@ class Strategy():
         Log.write('"strategy.py" trade_closed(): Attempting to pop trade ',
             'ID {}'.format(trade_id))
         # Remove the trade from the list.
-        # TODO: Put a lock on cls._open_trades to make it thread safe while
+        # TODO: Put a lock on cls._open_trade_ids to make it thread safe while
         # deleting from it.
-        num_trades = len(cls._open_trades)
+        num_trades = len(cls._open_trade_ids)
         if num_trades > 0:
             closed_trade = None
             for i in range(0, num_trades):
-                if cls._open_trades[i] == trade_id:
-                    closed_trade = cls._open_trades.pop(i)
+                if cls._open_trade_ids[i] == trade_id:
+                    closed_trade = cls._open_trade_ids.pop(i)
                     break
             # Make sure the popping went well.
             if closed_trade == None:
                 Log.write('"strategy.py" trade_closed(): Strategy ',
-                    '"{}" failed to pop trade {} from _open_trades.'
+                    '"{}" failed to pop trade {} from _open_trade_ids.'
                     .format(cls.get_name(), trade_id))
-                Log.write('"strategy.py" trade_closed(): cls._open_trades ',
-                    'contains: {}'.format(cls._open_trades))
+                Log.write('"strategy.py" trade_closed(): cls._open_trade_ids ',
+                    'contains: {}'.format(cls._open_trade_ids))
                 sys.exit()
             else:
                 Log.write('"strategy.py" trade_closed(): Trade of strategy ',
@@ -101,7 +101,7 @@ class Strategy():
                 cls._trade_closed(trade_id)
                 return True
             # Write to db
-            DB.execute('DELETE FROM open_trades_live WHERE trade_id LIKE {}'
+            DB.execute('DELETE FROM open_trade_ids_live WHERE trade_id LIKE {}'
                 .format(trade_id))
         else:
             # Not tracking any trades! Oh no.
@@ -134,14 +134,14 @@ class Strategy():
         terminated, this can be used to tell the strategy
         module about a trade that it had previously opened.
         """
-        cls._open_trades.append(trade)
+        cls._open_trade_ids.append(trade)
 
 
     @classmethod
     def drop_all(cls):
         """
         """
-        del cls._open_trades[:]
+        del cls._open_trade_ids[:]
 
 
     @classmethod

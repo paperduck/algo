@@ -13,10 +13,10 @@ class Order():
     """
 
     def __init__(self,
-        expiry=None,
-        instrument=None,
-        lower_bound=None,
-        order_type=None,
+        expiry=None,            # string
+        instrument=None,        # <Insrument>
+        lower_bound=None,       #
+        order_type=None,        #
         price=None,
         reason='',
         go_long=None,
@@ -56,7 +56,7 @@ class Order():
             upper_bound: {}\n'\
             .format(
                 self.expiry,
-                self.instrument,
+                self.instrument.get_name(),
                 self.lower_bound,
                 self.order_type,
                 self.price,

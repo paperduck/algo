@@ -1,5 +1,6 @@
 """
-Run like so:
+This is the main script to run all tests.
+Run tests like so:
     $ python3 run_tests.py
 """
 
@@ -7,18 +8,22 @@ import os
 import unittest
 from unittest import mock
 from unittest.mock import patch
+import sys
 
+# Need this to import local modules
 os.chdir('/home/user/raid/software_projects/algo/src/')
+
+
 def test_all():
 
-    import test_daemon
-    #import test_db
-    #import test_oanda
-
     suite = unittest.TestSuite()
-    suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(test_daemon))
-    #suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(test_db))
-    #suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(test_oanda))
+
+    from test_daemon import TestDaemon
+    import test_instrument
+
+    #suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(test_daemon))
+    #suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(test_instrument))
+
     runner = unittest.TextTestRunner()
     runner.run(suite)
 

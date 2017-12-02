@@ -41,8 +41,8 @@ class Log():
         """
         append to log
         """
-        dt = datetime.datetime.now().strftime("%c")
-        msg = '\n' + dt + ':  '
+        timestamp = datetime.datetime.now().strftime("%c")
+        msg = '\n' + timestamp + ':  '
         for a in list(args):
             msg = msg + str(a)
         with open(Config.log_path, 'a') as f:

@@ -12,6 +12,7 @@ Strategy Overview:
 import sys # sys.exit()                        
 #*************************************
 from broker import Broker
+from instrument import Instrument
 from log import Log
 from opportunity import Opportunity, Opportunities
 from order import Order
@@ -51,10 +52,10 @@ class Fifty(Strategy):
     def _babysit(cls):
         """
         If there is an open trade, then babysit it. Also check if it has
-        closed. "Babysit" means adjust SL, TP, expiry, units, etc.
+        closed.
         """
-        for trade_id in cls._open_trades:
-            trade = Broker.get_trade(trade_id)
+        for open_trade in cls._open_trade_ids:
+            trade = Broker.get_trade(open_trade)
             if trade == None:
                 Log.write('"fifty.py" _babysit(): Failed to get trade info. Checking if closed.')
                 closed = Broker.is_trade_closed(trade_id)
@@ -67,13 +68,12 @@ class Fifty(Strategy):
                         else:
                             cls.go_long = True
                     Log.write('"fifty.py" _babysit(): Trade has closed.')
-                    cls._open_trades.remove(trade_id)
+                    cls._open_trade_ids.remove(trade_id)
             else:
-                instrument = trade.instrument
-                tp = round( trade.take_profit, 2 )
-                sl = round( trade.stop_loss, 2 )
-                go_long = trade.go_long
-                #spread = Broker.get_spread(instrument)['spread']
+                instrument = trade.get_instrument()
+                #tp = round( trade.take_profit, 2 )
+                sl = round( trade.get_stop_loss(), 2 )
+                go_long = trade.get_go_long()
 
                 if go_long == True: # currently long
                     cur_bid = Broker.get_bid(instrument)
@@ -87,7 +87,7 @@ class Fifty(Strategy):
                                 closed = Broker.is_trade_closed(trade_id)
                                 if closed[0]:
                                     Log.write('"fifty.py" _babysit(): BUY trade has closed. (BUY)')
-                                    cls._open_trades.remove(trade_id)
+                                    cls._open_trade_ids.remove(trade_id)
                                     # If SL hit, reverse direction.
                                     Log.write('\n\nLONG reason check: {} ?= {}'.format(closed[1], TradeClosedReason.sl))
                                     if closed[1] == TradeClosedReason.sl:
@@ -114,7 +114,7 @@ class Fifty(Strategy):
                                 if closed[0]:
                                     Log.write('"fifty.py" in _babysit(): SELL trade has closed.')
                                     Log.write('\n\nSHORT reason check: {} ?= {}'.format(closed[1], TradeClosedReason.sl))
-                                    cls._open_trades.remove(trade_id)
+                                    cls._open_trade_ids.remove(trade_id)
                                     # If SL hit, reverse direction.
                                     if closed[1] == TradeClosedReason.sl:
                                         cls.go_long = True
@@ -139,13 +139,13 @@ class Fifty(Strategy):
             None on failure
         """
         # If we're babysitting a trade, don't open a new one.
-        if len(cls._open_trades) > 0:
+        if len(cls._open_trade_ids) > 0:
             return []
-        instrument = 'USD_JPY'
+        instrument = Instrument(Instrument.get_id_from_name('USD_JPY'))
         spreads = Broker.get_spreads(instrument)
         if spreads == None:
             Log.write('"fifty.py" in _scan(): Failed to get spread of {}.'
-                .format(instrument)) 
+                .format(instrument.get_name())) 
             return []
         elif len(spreads) < 1:
             Log.write('"fifty.py" in _scan(): len(spreads) == {}.'
@@ -154,14 +154,14 @@ class Fifty(Strategy):
         # This only checks for one instrument.
         elif spreads[0]['status'] == 'halted':
                 Log.write('"fifty.py" in _scan(): Instrument {} is halted.'
-                    .format(instrument)) 
+                    .format(instrument.get_name())) 
                 return []
         else:
             spread = spreads[0]['spread']
             if spread < 3:
                 if cls.go_long: # buy
                     Log.write('"fifty.py" _scan(): Going long.') 
-                    cur_bid = Broker.get_bid('USD_JPY')
+                    cur_bid = Broker.get_bid(instrument)
                     if cur_bid != None:
                         # Rounding the raw bid didn't prevent float inaccuracy
                         # cur_bid = round(cur_bid_raw, 2)
@@ -174,7 +174,7 @@ class Fifty(Strategy):
                 else: # sell
                     Log.write('"fifty.py" _scan(): Shorting.') 
                     cls.go_long = False
-                    cur_bid = Broker.get_bid('USD_JPY')
+                    cur_bid = Broker.get_bid(instrument)
                     if cur_bid != None:
                         tp = round(cur_bid - cls.tp_price_diff, 2)
                         sl = round(cur_bid + cls.sl_price_diff, 2)
@@ -186,7 +186,7 @@ class Fifty(Strategy):
                 opp.strategy = cls
                 opp.confidence = 50
                 opp.order = Order(
-                    instrument='USD_JPY',
+                    instrument=instrument,
                     order_type='market',
                     go_long=cls.go_long,
                     stop_loss=sl,

@@ -32,21 +32,40 @@ class Trade():
     def __init__(
         self,
         broker_name=None,       # broker ID (name string) from databse
-        instrument=None,        # TODO strings OK? Generic better.
+        instrument=None,        # <Instrument> instance
         go_long=None,           # boolean
         stop_loss=None,         # numeric
-        strategy=None,          # Strategy class
+        strategy=None,          # <Strategy> class reference
         take_profit=None,       # numeric
         trade_id=None           # string
     ):
-        self.broker_name    = broker_name
-        self.instrument     = instrument
-        self.go_long        = go_long
-        self.stop_loss      = stop_loss
-        self.strategy       = strategy
-        self.take_profit    = take_profit
-        self.trade_id       = trade_id
+        self._broker_name    = broker_name
+        self._instrument     = instrument
+        self._go_long        = go_long
+        self._stop_loss      = stop_loss
+        self._strategy       = strategy
+        self._take_profit    = take_profit
+        self._trade_id       = trade_id
    
+
+    """
+    getters, no setters
+    """
+    def get_broker_name(self):
+        return self._broker_name
+    def get_instrument(self):
+        return self._instrument
+    def get_go_long(self):
+        return self._go_long
+    def get_stop_loss(self):
+        return self._stop_loss
+    def get_strategy(self):
+        return self._strategy
+    def get_take_profit(self):
+        return self._take_profit
+    def get_trade_id(self):
+        return self._trade_id
+
 
     def fill_in_extra_info(self):
         """
@@ -62,42 +81,41 @@ class Trade():
         """
         print ('trade.fill_in_extra_info()')
         trade_info = DB.execute('SELECT strategy, broker, instrument_id FROM open_trades_live WHERE trade_id = {}'
-            .format(self.trade_id))
+            .format(self._trade_id))
         if len(trade_info) > 0:
             # verify broker and instrument match, just to be safe
-            if trade_info[0][1] != self.broker_name:
+            if trade_info[0][1] != self._broker_name:
                 Log.write('"trade.py" fill_in_extra_info(): ERROR: "{}" != "{}"'
-                    .format(trade_info[0][1], self.broker_name))
+                    .format(trade_info[0][1], self._broker_name))
                 raise Exception
             instrument = DB.execute('SELECT symbol FROM instruments WHERE id = {}'
                 .format(trade_info[0][2]))
-            if instrument[0][0] != self.instrument:
+            if instrument[0][0] != self._instrument:
                 Log.write('"trade.py" fill_in_extra_info(): {} != {}'
-                    .format(instrument[0]['symbol'], self.instrument))
+                    .format(instrument[0]['symbol'], self._instrument))
                 raise Exception
             # save strategy
-            self.strategy = None
+            self._strategy = None
             # TODO: good practice to access daemon's strategy list like this?
             for s in Daemon.strategies:
                 if s.get_name == trade_info[0][0]:
-                    self.strategy = s # reference to class instance
+                    self._strategy = s # reference to class instance
             # It might be possible that the trade was opened by a
             # strategy that is not running. In that case, use the default
             # strategy.
-            self.strategy = Daemon.backup_strategy
-            
+            self._strategy = Daemon.backup_strategy
 
 
     def __str__(self):
         strategy_name = "(unknown)"
-        if self.strategy != None:
-            strategy_name = self.strategy.get_name()
+        if self._strategy != None:
+            strategy_name = self._strategy.get_name()
         msg = 'Transaction ID: {}\n\
             Instrument: {}\n\
             Strategy: {}'\
             .format(
-                self.trade_id,
-                self.instrument,
+                self._trade_id,
+                self._instrument,
                 strategy_name
             )
         return msg
@@ -111,7 +129,7 @@ class Trades(Sequence):
     
     def __init__(self):
         self._trade_list = []
-        self.current_index = 0
+        self._current_index = 0
 
     def append(self, trade):
         self._trade_list.append(trade)
@@ -125,7 +143,7 @@ class Trades(Sequence):
         """
         index = 0
         for t in self._trade_list:
-            if t.trade_id == trade_id:
+            if t._trade_id == trade_id:
                 return self._trade_list.pop(index)
             index = index + 1
         return None
@@ -154,12 +172,12 @@ class Trades(Sequence):
         """
         Make this class iterable
         """
-        if self.current_index >= len(self._trade_list):
-            self.current_index = 0
+        if self._current_index >= len(self._trade_list):
+            self._current_index = 0
             raise StopIteration
         else:
-            self.current_index = self.current_index + 1
-            return self._trade_list[self.current_index - 1]
+            self._current_index = self._current_index + 1
+            return self._trade_list[self._current_index - 1]
 
 
     def __getitem__(self, key):

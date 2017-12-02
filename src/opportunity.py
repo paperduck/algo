@@ -16,38 +16,29 @@ from order import Order
 #*************************
 
 
+"""
+"""
 class Opportunity():
-    """
-    """
 
+    """
+    Description: The <Order> instance to be set by a strategy when it suggests
+    an opportunity.
+    Type: <Order>
+    """
     def __init__(self):
-        """
-        Description: The <Order> instance to be set by a strategy when it suggests
-        an opportunity.
-        Type: <Order>
-        """
         self.order = None
-        """
-        description: estimated rating of success
-        type: Int 1-100
-        """
-        self.confidence = 1
-        """
-        Description:
-            Reference to strategy class that created this opportunity.
-            <Trade> objects also hold a reference to their strategy.
-        Type: <Strategy>
-        """
-        self.strategy = None
-        """
-        A note to save to the database.
-        Type: String
-        """
-        self.reason = ''
+        # estimated rating of success
+        self.confidence = 1 #Int 1-100
+        # Reference to strategy class that created this opportunity.
+        # <Trade> objects also hold a reference to their strategy.
+        self.strategy = None #<Strategy>
+        # A note to save to the database.
+        self.reason = '' # string
 
+
+    """
+    """
     def __str__(self):
-        """
-        """
         return 'Opportunity:\norder: {}\nconfidence: {}\nstrategy: {}\nreason: {}\n\
             '.format(self.order, self.confidence, self.strategy.get_name(), self.reason)
 

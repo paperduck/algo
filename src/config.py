@@ -3,10 +3,14 @@
 Module Description:    One-stop shop for configuration settings.
 """
 
-####################
 import configparser
-####################
-####################
+import sys
+
+# Need to modify sys.path because Python doesn't have relative imports.
+try:
+    sys.path.index('/home/user/raid/software_projects/algo/src')
+except ValueError:
+    sys.path.append('/home/user/raid/software_projects/algo/src')
 
 class Config():
     """

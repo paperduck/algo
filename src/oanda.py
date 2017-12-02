@@ -10,6 +10,7 @@ Description     Python module for Oanda fxTrade REST API.
 #--------------------------
 import gzip
 import json
+import socket
 import sys
 import time
 import traceback
@@ -20,10 +21,12 @@ import zlib
 from config import Config
 from currency_pair_conversions import *
 from data_conversions import *
+from instrument import Instrument
 import util_date
 from log import Log
 from trade import *
 from timer import Timer
+import utils
 #--------------------------
 
 class Oanda():
@@ -138,6 +141,9 @@ class Oanda():
             Log.write('"oanda.py" fetch(): TRACEBACK:\n', traceback.print_exc(), '\n')
             Log.write('"oanda.py" fetch(): request:\n{}'.format(req))
             return None
+        except OSError as e:
+            Log.write('oanda.py fetch(): OSError w/message: {}'.format(e.strerror))
+            return None
         except:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             Log.write('"oanda.py" fetch(): Exception: ', exc_type)
@@ -146,40 +152,37 @@ class Oanda():
             return None
 
 
+    """
+    Get list of accounts
+    Returns: dict or None
+    """
     @classmethod
     def get_accounts(cls):
-        """
-        Get list of accounts
-        Returns: dict or None
-        """
-        Log.write('"oanda.py" get_accounts(): Entering.')
         accounts = cls.fetch(Config.oanda_url + '/v1/accounts')
         if accounts != None:
             return accounts
         else:
-            Log.write('"oanda.py" get_accounts(): Failed to get accounts.')
-            Log.write('"oanda.py" get_accounts(): Aborting.')
-            raise Exception
+            Log.write('oanda.py get_accounts(): Failed to get accounts.')
+            return None
 
     
+    """
+    Get ID of account to trade with.
+    Returns: String or None
+    """
     @classmethod
     def get_account_id_primary(cls):
-        """
-        Get ID of account to trade with.
-        Returns: String
-        """
-        #Log.write('"oanda.py" get_account_id_primary(): Entering.')
-        if cls.account_id_primary == 0: # if it hasn't been defined yet
-            #Log.write('"oanda.py" get_account_id_primary(): Entering.')
+        if cls.account_id_primary == 0: # hasn't been cached yet
             accounts = cls.get_accounts()
             if accounts != None:
                 for a in accounts['accounts']:
                     if a['accountName'] == 'Primary':
                         cls.account_id_primary = str(a['accountId'])
                         return cls.account_id_primary 
-            Log.write('"oanda.py" get_account_id_primary(): Failed to get accounts.')
-            raise Exception
-        else: # reduce overhead
+            else: 
+                Log.write('oanda.py get_account_id_primary(): Failed to get accounts.')
+                return None   
+        else: # return cached value
             return cls.account_id_primary
 
 
@@ -193,11 +196,11 @@ class Oanda():
         account = cls.fetch('{}/v1/accounts/{}'
             .format(Config.oanda_url, cls.get_account_id_primary())
             )
-        if account != None:
-            return account
-        else:
+        if account == None:
             Log.write('"oanda.py" get_account(): Failed to get account.')
-            raise Exception
+            return None
+        else:
+            return account
 
 
     @classmethod
@@ -208,11 +211,11 @@ class Oanda():
         """
         Log.write('"oanda.py" get_account(): Entering.')
         account = cls.fetch(Config.oanda_url + '/v1/accounts/' + account_id)
-        if account != None:
-            return account
-        else:
+        if account == None:
             Log.write('"oanda.py" get_account(): Failed to get account.')
-            raise Exception
+            return None
+        else:
+            return account
 
 
     @classmethod
@@ -223,11 +226,11 @@ class Oanda():
         """
         #Log.write('"oanda.py" get_positions(): Entering.')
         pos = cls.fetch(Config.oanda_url + '/v1/accounts/' + account_id + '/positions')
-        if pos != None:
-            return pos
-        else:
+        if pos == None:
             Log.write('"oanda.py" get_positions(): Failed to get positions.')
-            raise Exception
+            return None
+        else:
+            return pos
 
 
     @classmethod
@@ -238,11 +241,11 @@ class Oanda():
         """
         #Log.write('"oanda.py" get_num_of_positions(): Entering.')
         positions = cls.get_positions(account_id)
-        if positions != None:
-            return len(positions['positions'])
-        else:
+        if positions == None:
             Log.write('"oanda.py" get_num_of_positions(): Failed to get positions.')
-            raise Exception
+            return None
+        else:
+            return len(positions['positions'])
 
 
     @classmethod
@@ -253,72 +256,82 @@ class Oanda():
         """
         #Log.write('"oanda.py" get_balance(): Entering.')
         account = cls.get_account(account_id)
-        if account != None:
-            return account['balance']
-        else:
+        if account == None:
             Log.write('"oanda.py" get_balance(): Failed to get account.')
-            raise Exception
+            return None
+        else:
+            return account['balance']
 
 
+    """
+    Return type: dict or None
+    Fetch live prices for specified instruments that are available on the OANDA platform.
+    `instruments' argument must be URL encoded comma-separated, e.g. USD_JPY%2CEUR_USD
+    parameter:  type:           description:
+    instruments [<Instrument>]  
+    since       string          
+    """
     @classmethod
     def get_prices(cls, instruments, since=None):
-        """
-        Fetch live prices for specified instruments that are available on the OANDA platform.
-        Returns: dict or None
-        `instruments' argument must be URL encoded comma-separated, e.g. USD_JPY%2CEUR_USD
-        """
         #Log.write('"oanda.py" get_prices(): Entering.')
-        url_args = '?instruments=' + instruments
+        url_args = '?instruments=' + utils.instruments_to_url(instruments)
         if since != None:
             url_args += '&since=' + since
         prices = cls.fetch(Config.oanda_url + '/v1/prices' + url_args )
-        if prices != None:
-            return prices
-        else:
+        if prices == None:
             Log.write('"oanda.py" get_prices(): Failed to get prices.')
-            raise Exception
+            return None
+        else:
+            return prices
 
 
+    """
+    Return type: Decimal or None
+    Get one ask price
+    TODO: check instrument string being passed in
+    """
     @classmethod
     def get_ask(cls, instrument, since=None):
-        """
-        # Get one ask price
-        # Returns: Decimal or None
-        # TODO: check instrument string being passed in
-        """
         #Log.write('"oanda.py" get_ask(): Entering.')
-        prices = cls.get_prices(instrument, since)
-        if prices != None:
-            for p in prices['prices']:
-                if p['instrument'] == instrument:
-                    return float(p['ask'])
-        else:
+        
+        prices = cls.get_prices([instrument], since)
+        if prices == None:
             Log.write('"oanda.py" get_ask(): Failed to get prices.')
-            raise Exception
+            return None
+        else:
+            for p in prices['prices']:
+                if p['instrument'] == instrument.get_name():
+                    return float(p['ask'])
 
 
+    """
+    Return type: decimal or None
+    # Get one bid price
+    param:      type:
+    instrument  <Instrument>
+    since       string
+    """
     @classmethod
     def get_bid(cls, instrument, since=None):
-        """
-        # Get one bid price
-        # Returns: Decimal or None
-        """
         #Log.write('"oanda.py" get_bid(): Entering. Getting bid of ', instrument, '.')
-        prices = cls.get_prices(instrument, since)
-        if prices != None:
-            for p in prices['prices']:
-                if p['instrument'] == instrument:
-                    return float(p['bid'])
-        else:
+        prices = cls.get_prices([instrument], since)
+        if prices == None:
             Log.write('"oanda.py" get_bid(): Failed to get prices.')
-            raise Exception
+            return None
+        else:
+            for p in prices['prices']:
+                if p['instrument'] == instrument.get_name():
+                    return float(p['bid'])
 
 
+    """
+    Return type: Dict or None
+    """
     @classmethod
     def get_spread(cls, instrument, since=None):
-        prices = cls.get_prices(instrument, since)
+        prices = cls.get_prices([instrument], since)
         if len(prices['prices']) != 1:
-            raise Exception
+            return None
         p = prices['prices'][0]
         # Since Oanda doesn't always include status, add it manually.
         if 'status' not in p:
@@ -332,31 +345,33 @@ class Oanda():
         return spread
 
 
+    """
+    Get spread, in pips, for given currency pairs (e.g. 'USD_JPY%2CEUR_USD')
+    Sample return value:
+    [
+        {
+            "instrument":"USD_JPY",
+            "time":"2013-06-21T17:49:02.475381Z",
+            "spread":3.2,
+            "status":"halted"           // Oanda doesn't include this if
+                                        // the instrument isn't halted,
+                                        // but I will always include it.
+        },
+        {
+            "instrument":"USD_CAD",
+            "time":"2013-06-21T17:49:02.475381Z",
+            "spread":4.4,
+            "status":""
+        }
+    ]
+    """
     @classmethod
     def get_spreads(cls, instruments, since=None):
-        """
-        Get spread, in pips, for given currency pairs (e.g. 'USD_JPY%2CEUR_USD')
-        Sample return value:
-        [
-            {
-                "instrument":"USD_JPY",
-                "time":"2013-06-21T17:49:02.475381Z",
-                "spread":3.2,
-                "status":"halted"           // Oanda doesn't include this if
-                                            // the instrument isn't halted,
-                                            // but I will always include it.
-            },
-            {
-                "instrument":"USD_CAD",
-                "time":"2013-06-21T17:49:02.475381Z",
-                "spread":4.4,
-                "status":""
-            }
-        ]
-        """
-        Log.write ('"oanda.py" get_spreads(): Retrieving spreads for {}'.format(instruments))
-        prices = cls.get_prices(instruments, since)
-        if prices != None:
+        prices = cls.get_prices([instruments], since)
+        if prices == None:
+            Log.write('"oanda.py" get_spreads(): Failed to get prices.')
+            return None
+        else:
             spreads = []
             for p in prices['prices']:
                 # Since Oanda doesn't always include status, add it manually.
@@ -374,25 +389,37 @@ class Oanda():
             Log.write('"oanda.py" get_spreads(): Spreads:\n{}\n'
                 .format(spreads))
             return spreads
-        else:
-            Log.write('"oanda.py" get_spreads(): Failed to get prices.')
-            raise Exception
 
 
+    """
+    Return type: dict or none
+    Returns: information about the order (and related trade)
+    Description: Place an order.
+
+    If I place a trade that reduces another trade to closing, then I get a
+    200 Code and information about the trade that closed. I.e. I don't get
+    info about an opened trade.
+    
+    Oanda returns stuff like this:
+    - instrument name
+    - time
+    - price // trigger price of order
+    - tradeOpened
+    - id
+    - units
+    - side
+    - takeProfit
+    - stopLoss
+    - trailingStop
+    - tradeClosed
+    - tradeReduced
+    """
     @classmethod
     def place_order(cls, in_order):
-        """
-        Place an order.
-        Returns: information about the order (and related trade)
-
-        If I place a trade that reduces another trade to closing, then I get a
-        200 Code and information about the trade that closed. I.e. I don't get
-        info about an opened trade.
-        """
         Log.write ('"oanda.py" place_order(): Placing order...')
         request_args = {}
         if in_order.instrument != None:
-            request_args['instrument'] = in_order.instrument
+            request_args['instrument'] = in_order.instrument.get_name()
         if in_order.units != None:
             request_args['units'] = in_order.units
         if in_order.go_long != None:
@@ -456,15 +483,17 @@ class Oanda():
         # instrument        = one currency pair formatted like this: 'EUR_USD' 
         """
         #Log.write('"oanda.py" is_market_open(): Entering.')
-        prices = cls.get_prices( instrument )
+        prices = cls.get_prices([instrument])
         if prices['prices'][0]['status'] == 'halted':
             return False
         else:
             return True
 
 
-    # Get transaction history
-    # Returns: dict or None
+    """
+    Get transaction history
+    Returns: dict or None
+    """
     @classmethod
     def get_transaction_history(cls, maxId=None, minId=None, count=None, instrument=None, ids=None):
         #Log.write('"oanda.py" get_transaction_history(): Entering.')
@@ -485,7 +514,7 @@ class Oanda():
         if not instrument == None:
             if args != '':
                 args = args + '&'
-            args = args + 'instrument=' + str(instrument)
+            args = args + 'instrument=' + instrument.get_name()
         if not ids == None:
             if args != '':
                 args = args + '&'
@@ -502,8 +531,10 @@ class Oanda():
             return trans
 
 
+    """
+    """
     def get_instrument_history(cls,
-        instrument,             # string for now, instrument id from database later (TODO)
+        instrument,             # <Instrument>
         granularity=None,       # string
         count=None,             # optional- int - leave out if both start & end specified
         start=None,             # optional- datetime
@@ -515,8 +546,8 @@ class Oanda():
         weekly_alignment=None   # 'Monday' etc. - optional
     ):
         if count != None and start != none and end != None:
-            raise Exception
-        args=instrument
+            return None
+        args=instrument.get_name()
         if granularity != None:
             args = args + 'granularity=' + granularity + '&'
         if count != None:
@@ -551,17 +582,17 @@ class Oanda():
             return result
 
 
+    """
+    Returns:    Tuple: (
+                    True=trade closed; False=not closed
+                    Reason trade closed (or None)
+                )
+    TODO: Function name implies bool, but return val is tuple.
+    Go through all transactions that have occurred since a given order, and see if any of those
+    transactions have closed or canceled the order.
+    """
     @classmethod
     def is_trade_closed(cls, trade_id):
-        """
-        Go through all transactions that have occurred since a given order, and see if any of those
-        transactions have closed or canceled the order.
-        Returns:    Tuple: (
-                        True=trade closed; False=not closed
-                        Reason trade closed (or None)
-                    )
-        TODO: Function name implies bool, but return val is tuple.
-        """
         Log.write('"oanda.py" is_trade_closed(): Entering with trade ID {}'
             .format(trade_id))
         start = Timer.start()
@@ -571,7 +602,7 @@ class Oanda():
             transactions = cls.get_transaction_history(minId=trade_id)
             if transactions == None:
                 Log.write('"oanda.py" is_trade_closed(): Failed to get transaction history.')
-                raise Exception
+                return None
             else:
                 for trans in transactions['transactions']:
                     Log.write('"oanda.py" is_trade_closed(): Searching transactions for trade_id ({}):\n{}'
@@ -624,19 +655,19 @@ class Oanda():
         return (False, None)
 
 
+    """
+    Return type: Instance of <Trades> or None
+    Get info about all open trades
+    """
     @classmethod
     def get_trades(cls):
-        """
-        Get info about all open trades
-        Returns: instance of <trades>.
-        """
-        Log.write('"oanda.py" get_trades(): Entering.')
+        #Log.write('"oanda.py" get_trades(): Entering.')
         trades_oanda = cls.fetch('{}/v1/accounts/{}/trades/'
             .format(Config.oanda_url,str(cls.get_account_id_primary()))
             )
         if trades_oanda == None:
             Log.write('"oanda.py" get_trades(): Failed to get trades from Oanda.')
-            raise Exception
+            return None
         else:
             ts = Trades()
             for t in trades_oanda['trades']: 
@@ -648,7 +679,7 @@ class Oanda():
                     going_long = False
                 ts.append(Trade(
                     broker_name = cls.__str__(),
-                    instrument = t['instrument'],
+                    instrument = Instrument(Instrument.get_id_from_name(t['instrument'])),
                     go_long = going_long,
                     stop_loss = t['stopLoss'],
                     strategy = None,
@@ -679,7 +710,7 @@ class Oanda():
                 going_long = False
             return Trade(
                     broker_name = cls.__str__(),
-                    instrument = t['instrument'],
+                    instrument = Instrument(Instrument.get_id_from_name(t['instrument'])),
                     go_long = going_long,
                     stop_loss = t['stopLoss'],
                     strategy = None,
@@ -691,21 +722,25 @@ class Oanda():
             Log.write('"oanda.py" get_trade(): Failed to get trade info for trade with ID ', trade_id, '.')
             return None
 
-    # Get order info
-    # Returns: dict or None
+
+    """
+    Returns: dict or None
+    Get order info
+    """
     @classmethod
     def get_order_info(cls, order_id):
-        #Log.write('"oanda.py" get_order_info(): Entering.')
         response = cls.fetch(\
              Config.oanda_url + '/v1/accounts/' + str(cls.get_account_id_primary()) + '/orders/' + str(order_id) )
-        if response != None:
-            return response
-        else:
+        if response == None:
             Log.write('"oanda.py" get_order_info(): Failed to get order info.')
-            raise Exception
+            return None
+        else:
+            return response
         
-    # Modify an existing order
+    """
     # Returns: dict or None
+    # Modify an existing order
+    """
     @classmethod
     def modify_order(cls, in_order_id, in_units=0, in_price=0, in_expiry=0, in_lower_bound=0,\
         in_upper_bound=0, in_stop_loss=0, in_take_profit=0, in_trailing_stop=0):
@@ -742,14 +777,17 @@ class Oanda():
             in_data=data,
             in_method='PATCH'
         )
-        if response != None:
-            return response
-        else:
+        if response == None:
             Log.write('"oanda.py" modify_order(): Failed to modify order.')
-            raise Exception
+            return None
+        else:
+            return response
 
-    # Modify an existing trade
-    # Returns: dict or None
+
+    """
+    Modify an existing trade
+    Returns: dict or None
+    """
     @classmethod
     def modify_trade(cls, trade_id, stop_loss=0, take_profit=0, trailing_stop=0):
         #Log.write('"oanda.py" modify_trade(): Entering.')

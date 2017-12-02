@@ -21,10 +21,10 @@ except ValueError:
     sys.path.append('/home/user/raid/documents/algo/private_strategies')
 from follow_trend import FollowTrend
 
-# project modules
 from broker import Broker
 from config import Config
 from db import DB
+from instrument import Instrument
 from log import Log
 from oanda import Oanda
 from opportunity import *
@@ -44,6 +44,7 @@ from timer import Timer
 class Daemon():
     """
     """
+    
     # Initialize log.
     Log.clear()
 
@@ -68,31 +69,69 @@ class Daemon():
     #strategies.append(FollowTrend)
     #strategies.append(backup_strategy)
 
+    msg_base = '' # user interface template
 
     @classmethod
-    def run(cls, stdcsr):
-        """
-        """
+    def _curses_init(cls, stdcsr):
         # initialize curses
         curses.echo()   # echo key presses
         stdcsr.nodelay(1) # non-blocking window
         stdcsr.clear() # clear screen
-        msg_base = '\n'
+        cls.msg_base = '\n'
         if Config.live_trading:
-            msg_base += 'LIVE TRADING\n'
+            cls.msg_base += 'LIVE TRADING\n'
         else:
-            msg_base += 'Simulation.\n'
-        msg_base += 'Press q to shut down.\n'
-        msg_base += 'Press m to monitor.\n\n'
-        msg_base += 'Account balance: {}\n'
-        msg_base += '>'
-        stdcsr.addstr(msg_base)
+            cls.msg_base += 'Simulation.\n'
+        cls.msg_base += 'Press q to shut down.\n'
+        cls.msg_base += 'Press m to monitor.\n\n'
+        cls.msg_base += 'Account balance: {}\n'
+        cls.msg_base += '>'
+        stdcsr.addstr(cls.msg_base)
         stdcsr.refresh() # redraw
 
-        # Read in existing trades
-        Log.write('"daemon.py" run(): Recovering trades...')
-        cls.recover_trades()
 
+    """
+    refresh user interface
+    TODO: this waits for the REST calls to return. Too slow.
+    """
+    @classmethod
+    def _curses_refresh(cls, stdcsr):
+        ch = stdcsr.getch() # get one char
+        if ch == 113: # q == quit
+            stdcsr.addstr('\nInitiating shutdown...\n')
+            stdcsr.refresh() # redraw
+            curses.nocbreak()
+            stdcsr.keypad(False)
+            #curses.echo()   
+            curses.endwin() # restore terminal
+            cls.shutdown()
+        elif ch == 109: # m == monitor
+            account_primary = Oanda.get_account_primary()
+            if account_primary == None:
+                msg = cls.msg_base.format('error')
+                stdcsr.clear()
+                stdcsr.addstr(msg)
+                stdcsr.refresh() # redraw
+                return
+            msg = cls.msg_base.format(account_primary['balance'])
+            stdcsr.clear()
+            stdcsr.addstr(msg)
+            stdcsr.refresh() # redraw
+
+
+    """
+    """
+    @classmethod
+    def run(cls, stdcsr):
+        # initialize user interface
+        cls._curses_init(stdcsr)
+
+        # Read in existing trades
+        while not cls.stopped and cls.recover_trades() == None:
+            Log.write('"daemon.py" run(): Recovering trades...')
+            cls._curses_refresh(stdcsr)
+
+        # logging
         if Config.live_trading:
             Log.write('"daemon.py" start(): Using live account.')
         else:
@@ -105,24 +144,8 @@ class Daemon():
         3. Clear the opportunity list.
         """
         while not cls.stopped:
-
-            # curses
-            ch = stdcsr.getch() # get one char
-            if ch == 113: # q == quit
-                stdcsr.addstr('\nInitiating shutdown...\n')
-                stdcsr.refresh() # redraw
-                curses.nocbreak()
-                stdcsr.keypad(False)
-                #curses.echo()   
-                curses.endwin() # restore terminal
-                cls.shutdown()
-            elif ch == 109: # m == monitor
-                acct = Oanda.get_account_primary()
-                msg = msg_base.format(acct['balance'])
-                stdcsr.clear()
-                stdcsr.addstr(msg)
-                stdcsr.refresh() # redraw
-                
+            # refresh user interface
+            cls._curses_refresh(stdcsr)
 
             # Let each strategy suggest an order
             # TODO: Let strategies suggest multiple orders
@@ -154,20 +177,20 @@ class Daemon():
                     # Notify the strategy.
                     best_opp.strategy.trade_opened(
                         trade_id=order_result['tradeOpened']['id'],
-                        instrument_id=4
+                        instrument_id=Instrument.get_id_from_name(order_result['instrument'])
                     )
                 elif order_result['tradesClosed'] != []:
                     for tc in order_result['tradesClosed']:
                         # Notify the strategy.
                         best_opp.strategy.trade_closed(
                             trade_id=tc['id'],
-                            instrument_id=4
+                            instrument_id=Instrument.get_id_from_name(order_result['instrument'])
                         )
                 elif order_result['tradeReduced'] != {}:
                     # Notify the strategy.
                     best_opp.strategy.trade_reduced(
                         order_result['tradeReduced']['id'],
-                        instrument_id=4
+                        instrument_id=Instrument.get_id_from_name(order_result['instrument'])
                     )
                 else:
                     # catch-all for formality
@@ -183,7 +206,7 @@ class Daemon():
         Shutdown stuff. This runs after shutdown() is called, and is the
         last code that runs before returning to algo.py.
         """
-        pass
+        DB.shutdown()  # atexit() used in db.py, but call to be safe.
 
 
     @classmethod
@@ -195,37 +218,41 @@ class Daemon():
             * write diagnostic info to db
         """
         Log.write('"daemon.py" shutdown(): Shutting down daemon.')
-        DB.shutdown()  # atexit() used in db.py, but call to be safe.
         cls.stopped = True
         
 
+    """
+    Return type: None on failure, any value on success
+
+    See if there are any open trades, and resume babysitting.
+
+    If trades are opened without writing their info to the db,
+    the trade cannot be distributed back to the strategy that opened
+    it, because it is unknown what strategy placed the order.
+    This could be solved by writing to the db before placing the order,
+    synchronously. However if placing the order failed, then the database
+    record would have to be deleted, and this would be messy.
+    Instead, designate a backup strategy that adopts orphan trades.
+    """
     @classmethod
     def recover_trades(cls):
-        """
-        See if there are any open trades, and resume babysitting.
 
-        If trades are opened without writing their info to the db,
-        the trade cannot be distributed back to the strategy that opened
-        it, because it is unknown what strategy placed the order.
-        This could be solved by writing to the db before placing the order,
-        synchronously. However if placing the order failed, then the database
-        record would have to be deleted, and this would be messy.
-        Instead, designate a backup strategy that adopts orphan trades.
-        """
-        Log.write('"daemon.py" recover_trades(): Entering.')
         # Get trades from broker.
         open_trades_broker = Broker.get_trades() # instance of <Trades>
+        if open_trades_broker == None:
+            Log.write('daemon.py recover_trades(): Broker.get_trades() failed.')
+            return None 
 
         # Delete any trades from the database that are no longer open.
         # First, ignore trades that the broker has open.
         db_trades = DB.execute('SELECT trade_id FROM open_trades_live')
         Log.write('"daemon.py" recover_trades():\ndb open trades: {}\nbroker open trades: {}'
             .format(db_trades, open_trades_broker))
-        for dbt in db_trades: # O(n^3)
+        for index, dbt in enumerate(db_trades): # O(n^3)
             for otb in open_trades_broker:
-                if str(dbt[0]) == str(otb.trade_id):
+                if str(dbt[0]) == str(otb.get_trade_id()):
                     # same trade_id
-                    db_trades.remove(dbt)
+                    del db_trades[index]
         # The remaining trades are in the "open trades" db table, but 
         # the broker is not listing them as open.
         # They may have closed since the daemon last ran; confirm this.
@@ -256,29 +283,26 @@ class Daemon():
         unexpectedly terminated before info about the trade can be saved to
         the database. Thus a trade may not have a corresponding trade in the database.
         """
-        #for t in open_trades_broker:
         for i in range(0,len(open_trades_broker)):
             t = open_trades_broker[i]
-            trade_info = DB.execute('SELECT strategy, broker, instrument_id FROM open_trades_live WHERE trade_id="{}"'
-                .format(t.trade_id))
-            if len(trade_info) > 0:
+            db_trade_info = DB.execute('SELECT strategy, broker, instrument_id FROM open_trades_live WHERE trade_id="{}"'
+                .format(t.get_trade_id()))
+            if len(db_trade_info) > 0:
                 # Verify broker's info and database info match, just to be safe.
                 # - broker name
-                if trade_info[0][1] != t.broker_name:
+                if db_trade_info[0][1] != t.get_broker_name():
                     Log.write('"daemon.py" recover_trades(): ERROR: "{}" != "{}"'
-                        .format(trade_info[0][1], t.broker_name))
+                        .format(db_trade_info[0][1], t.broker_name))
                     raise Exception
                 # - instrument/symbol
-                instrument = DB.execute('SELECT symbol FROM instruments WHERE id="{}"'
-                    .format(trade_info[0][2]))
-                if instrument[0][0] != t.instrument:
+                if db_trade_info[0][2] != t.get_instrument().get_id():
                     Log.write('"daemon.py" recover_trades): {} != {}'
-                        .format(instrument[0][0], t.instrument))
+                        .format(db_trade_info[0][2], t.get_instrument()))
                     raise Exception
                 # set strategy
-                t.strategy = None
+                t.strategy = None # default?
                 for s in cls.strategies:
-                    if s.get_name == trade_info[0][0]:
+                    if s.get_name == db_trade_info[0][0]:
                         t.strategy = s # reference to class instance
             else:
                 # Trade in broker but not db.
@@ -293,7 +317,7 @@ class Daemon():
                 for s in cls.strategies:
                     if t.strategy.get_name() == s.get_name(): 
                         s.recover_trade(trade)
-                        open_trades_broker.remove(t.trade_id)
+                        open_trades_broker.remove(t.get_trade_id())
                         break
             else:
                 # It is not known what strategy opened this trade.
@@ -302,8 +326,9 @@ class Daemon():
                 # Assign it to the backup strategy.
                 Log.write('"daemon.py" recover_trades(): Assigning trade ',
                     ' ({}) to backup strategy ({}).'
-                    .format(t.trade_id, cls.backup_strategy.get_name()))
+                    .format(t.get_trade_id(), cls.backup_strategy.get_name()))
                 cls.backup_strategy.recover_trade(t)
+        return 0 # success
                 
 
 # There are not destructors in Python, so use this.

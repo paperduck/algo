@@ -24,7 +24,7 @@ class Candle():
     ):
         self.timestamp = timestamp     
         self.volume     = int(volume)   
-        self.comlete    = complete
+        self.complete    = complete
 
         self.open_bid  = float(open_bid)
         self.open_ask  = float(open_ask)

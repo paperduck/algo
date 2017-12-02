@@ -5,6 +5,7 @@ Run like so:
 The daemon is assumed to only use the Fifty strategy module.
 """
 
+# library imports
 import sys
 import unittest
 from unittest.mock import MagicMock, patch, call
@@ -16,32 +17,31 @@ try:
 except ValueError:
     sys.path.append('/home/user/raid/software_projects/algo/src')
 
-# Have to mock db.DB before daemon.py imports it.
+# Have to mock db.DB before daemon.py (etc.) imports it.
+#real_db = DB
+#real_db_execute = DB.execute
 sys.modules['db'] = MagicMock()
 from db import DB
-#DB = MagicMock(spec='db.DB')
 
+# project imports
 from daemon import Daemon
+from instrument import Instrument
 from strategies.fifty import Fifty
 from trade import TradeClosedReason, Trade, Trades
 
-#@patch(target='daemon.DB', autospec=True)
 class TestDaemon(unittest.TestCase):
 
     _NAME = 'TestDaemon'
 
+    # called for every test method
     def setUp(self):
-        # called for every test method
-        #print(self._NAME + '.setUp')
         pass
 
 
+    # called for every test method
     def tearDown(self):
-        # called for every test method
-        #print(self._NAME + '.tearDown')
         pass
 
-    
     """
     Test: Daemon.recover_trades()
     Scenarios:
@@ -76,41 +76,46 @@ class TestDaemon(unittest.TestCase):
         Daemon.recover_trades()
         # Check that no trades were adopted
         for s in Daemon.strategies:
-            self.assertEqual(s._open_trades, [])
+            self.assertEqual(s._open_trade_ids, [])
 
         """
         Scenario: Trade in broker and db
         """
-        trades = Trades()
-        trades.append(Trade(broker_name='oanda', instrument='USD_JPY', go_long=True,
-            stop_loss=90, strategy=Fifty, take_profit=100, trade_id='id666'))
-        mock_broker.get_trades = MagicMock(return_value=trades)
         def db_execute(query):
             if query == 'SELECT trade_id FROM open_trades_live':
                 return [('id666',)]
             elif query == 'SELECT strategy, broker, instrument_id FROM open_trades_live WHERE trade_id="id666"':
                 return [('Fifty', 'oanda', 4)]        
-            elif query == 'SELECT symbol FROM instruments WHERE id="4"':
+            elif query == 'SELECT oanda_name FROM instruments WHERE id=4':
                 return [('USD_JPY',)]
             else:
                 print('unexpected query: {}'.format(query))
                 raise Exception
         DB.execute = db_execute
+        trades = Trades()
+        trades.append(Trade(
+            broker_name='oanda',
+            instrument=Instrument(4),
+            go_long=True, stop_loss=90, strategy=Fifty, take_profit=100,
+            trade_id='id666'
+        ))
+        mock_broker.get_trades = MagicMock(return_value=trades)
         
         Daemon.recover_trades()
         # check Fifty adopted one trade
         for s in Daemon.strategies:
             if s.get_name() == 'Fifty':
-                self.assertEqual(len(s._open_trades), 1)
+                self.assertEqual(len(s._open_trade_ids), 1)
             else:
-                self.assertEqual(len(s._open_trades), 0)
+                self.assertEqual(len(s._open_trade_ids), 0)
         # check trade is the trade we think it is
-        self.assertEqual(Fifty._open_trades[0].broker_name, 'oanda')
-        self.assertEqual(Fifty._open_trades[0].instrument, 'USD_JPY')
-        self.assertEqual(Fifty._open_trades[0].go_long, True)
-        self.assertEqual(Fifty._open_trades[0].stop_loss, 90)
-        self.assertEqual(Fifty._open_trades[0].take_profit, 100)
-        self.assertEqual(Fifty._open_trades[0].trade_id, 'id666')
+        self.assertEqual(Fifty._open_trade_ids[0].get_broker_name(), 'oanda')
+        self.assertEqual(Fifty._open_trade_ids[0].get_instrument().get_name(), 'USD_JPY')
+        self.assertEqual(Fifty._open_trade_ids[0].get_instrument().get_id(), 4)
+        self.assertEqual(Fifty._open_trade_ids[0].get_go_long(), True)
+        self.assertEqual(Fifty._open_trade_ids[0].get_stop_loss(), 90)
+        self.assertEqual(Fifty._open_trade_ids[0].get_take_profit(), 100)
+        self.assertEqual(Fifty._open_trade_ids[0].get_trade_id(), 'id666')
         # Cleanup
         Fifty.drop_all()
 
@@ -124,13 +129,17 @@ class TestDaemon(unittest.TestCase):
                 return []
             elif query == 'SELECT strategy, broker, instrument_id FROM open_trades_live WHERE trade_id="id666"':
                 return []        
-            elif query == 'SELECT symbol FROM instruments WHERE id = 4':
+            elif query == 'SELECT oanda_name FROM instruments WHERE id=4':
                 return [('USD_JPY',)]
             else:
                 raise Exception
         DB.execute = MagicMock(side_effect=db_execute)
         trades = Trades()
-        trades.append(Trade('oanda', 'USD_JPY', True, 90, Fifty, 100, 'id666'))
+        trades.append(Trade(
+            broker_name='oanda',
+            instrument=Instrument(4),
+            go_long=True, stop_loss=90, strategy=Fifty, take_profit=100,
+            trade_id='id666'))
         mock_broker.get_trades = MagicMock(return_value=trades)
 
         Daemon.recover_trades()
@@ -143,7 +152,7 @@ class TestDaemon(unittest.TestCase):
         DB.execute.assert_has_calls(calls)
         # Check no trades adopted
         for s in Daemon.strategies:
-            self.assertEqual(len(s._open_trades), 0)
+            self.assertEqual(len(s._open_trade_ids), 0)
  
         """
         Scenario: Trade in db, broker unsure
@@ -153,7 +162,7 @@ class TestDaemon(unittest.TestCase):
                 return [('id666',)]
             elif query == 'SELECT strategy, broker, instrument_id FROM open_trades_live WHERE trade_id="id666"':
                 return [('Fifty', 'oanda', 4)]        
-            elif query == 'SELECT symbol FROM instruments WHERE id = 4':
+            elif query == 'SELECT oanda_name FROM instruments WHERE id=4':
                 return [('USD_JPY',)]
             elif query == 'DELETE FROM open_trades_live WHERE trade_id="id666"':
                 return
@@ -171,13 +180,12 @@ class TestDaemon(unittest.TestCase):
         DB.execute.assert_has_calls(calls)
         # Check no trades adopted
         for s in Daemon.strategies:
-            self.assertEqual(len(s._open_trades), 0)
+            self.assertEqual(len(s._open_trade_ids), 0)
 
         """ 
-        test cleanup
+        module cleanup
         """
         Daemon.shutdown()
 
 if __name__ == '__main__':
     unittest.main()
-
