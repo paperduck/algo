@@ -13,11 +13,14 @@ param:  type:
     d   datetime in UTC
 """
 def date_to_string(d):
-    return datetime.strftime(d, '%Y-%m-%dT%H:%M:%S.%fZ')
+    try:
+        return datetime.datetime.strftime(d, '%Y-%m-%dT%H:%M:%S.%fZ')
+    except:
+        return None
 
 
 """
-Return type: datetime
+Return type: datetime or None
 "YYYY-MM-DDTHH:MM:SS.MMMMMMZ"
 Timestamp is assumed to be a UTC time.
 Returns a datetime type.
@@ -25,6 +28,8 @@ param:  type:
     s   string
 """
 def string_to_date(s):
-    return datetime.strptime(s, '%Y-%m-%dT%H:%M:%S.%fZ')
-
+    try:
+        return datetime.datetime.strptime(s, '%Y-%m-%dT%H:%M:%S.%fZ')
+    except:
+        return None
 
