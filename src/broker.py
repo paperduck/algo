@@ -143,7 +143,8 @@ class Broker():
     Get historical prices for an instrument.
     """
     @classmethod
-    def get_instrument_history(cls,
+    def get_instrument_history(
+        cls,
         instrument,             # <Instrument>
         granularity=None,       # string
         count=None,             # optional- int - leave out if both start & end specified
@@ -155,11 +156,18 @@ class Broker():
         alignment_timezone=None,# optional - see broker's API documentation
         weekly_alignment=None   # optional - 'Monday' etc.
     ):
-        if Config.broker_name == 'Oanda':
+        if Config.broker_name == 'oanda':
             return cls.broker.get_instrument_history(
-                instrument, granularity, count, start, end, candle_format,
-                include_first, daily_alignment, alignment_timezone,
-                weekly_alignment
+                in_instrument=instrument,
+                granularity=granularity,
+                count=count,
+                start=start,
+                end=end,
+                candle_format=candle_format,
+                include_first=include_first,
+                daily_alignment=daily_alignment,
+                alignment_timezone=alignment_timezone,
+                weekly_alignment=weekly_alignment
             )
         else:
             raise NotImplementedError

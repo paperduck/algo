@@ -7,4 +7,6 @@ export PYTHONPATH=$PYTHONPATH:/home/user/raid/software_projects/algo/src/tests
 
 python3 -m unittest test_daemon
 python3 -m unittest test_instrument
+python3 -m unittest test_chart
+python3 -m unittest test_util_date
 

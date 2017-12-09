@@ -26,7 +26,7 @@ class Fifty(Strategy):
     instance of each strategy.
     """
 
-    #Long or short? (Oanda specifically takes 'buy' or 'sell' as argument)
+    #Long or short? (Oanda wants 'buy' or 'sell')
     #direction = 'buy'
     go_long = True
     tp_price_diff = 0.1
@@ -52,13 +52,13 @@ class Fifty(Strategy):
     def _babysit(cls):
         """
         If there is an open trade, then babysit it. Also check if it has
-        closed.
+        closed
         """
-        for open_trade in cls._open_trade_ids:
-            trade = Broker.get_trade(open_trade)
+        for open_trade_id in cls._open_trade_ids:
+            trade = Broker.get_trade(open_trade_id)
             if trade == None:
                 Log.write('"fifty.py" _babysit(): Failed to get trade info. Checking if closed.')
-                closed = Broker.is_trade_closed(trade_id)
+                closed = Broker.is_trade_closed(open_trade_id)
                 if closed[0]:
                     # If SL hit, reverse direction.
                     Log.write('\n\nLONG reason check: {} ?= {}'.format(closed[1], TradeClosedReason.sl))
@@ -68,7 +68,7 @@ class Fifty(Strategy):
                         else:
                             cls.go_long = True
                     Log.write('"fifty.py" _babysit(): Trade has closed.')
-                    cls._open_trade_ids.remove(trade_id)
+                    cls._open_trade_ids.remove(open_trade_id)
             else:
                 instrument = trade.get_instrument()
                 #tp = round( trade.take_profit, 2 )
@@ -80,14 +80,14 @@ class Fifty(Strategy):
                     if cur_bid != None:
                         if cur_bid - sl > cls.sl_price_diff:
                             new_sl = cur_bid - cls.sl_price_diff
-                            Log.write('modify: trade_id={}, stop_loss={}'.format(trade_id, new_sl))
-                            resp = Broker.modify_trade(trade_id=trade_id, stop_loss=new_sl)
+                            Log.write('modify: trade_id={}, stop_loss={}'.format(open_trade_id, new_sl))
+                            resp = Broker.modify_trade(trade_id=open_trade_id, stop_loss=new_sl)
                             if resp == None:
                                 Log.write('"fifty.py" _babysit(): Modify failed. Checking if trade is closed.')
-                                closed = Broker.is_trade_closed(trade_id)
+                                closed = Broker.is_trade_closed(open_trade_id)
                                 if closed[0]:
                                     Log.write('"fifty.py" _babysit(): BUY trade has closed. (BUY)')
-                                    cls._open_trade_ids.remove(trade_id)
+                                    cls._open_trade_ids.remove(open_trade_id)
                                     # If SL hit, reverse direction.
                                     Log.write('\n\nLONG reason check: {} ?= {}'.format(closed[1], TradeClosedReason.sl))
                                     if closed[1] == TradeClosedReason.sl:
@@ -98,7 +98,7 @@ class Fifty(Strategy):
                                     raise Exception
                             else:                                       
                                 Log.write('"fifty.py" _babysit(): Modified BUY trade with ID (',\
-                                     trade_id, ').')
+                                     open_trade_id, ').')
                     else:
                         Log.write('"fifty.py" _babysit(): Failed to get bid while babysitting.')
                         raise Exception
@@ -107,14 +107,14 @@ class Fifty(Strategy):
                     if cur_bid != None:
                         if sl - cur_bid > cls.sl_price_diff:
                             new_sl = cur_bid + cls.sl_price_diff
-                            resp = Broker.modify_trade(trade_id=trade_id, stop_loss=new_sl)
+                            resp = Broker.modify_trade(trade_id=open_trade_id, stop_loss=new_sl)
                             if resp == None:
                                 Log.write('"fifty.py" _babysit(): Modify failed. Checking if trade is closed. (SELL)')
-                                closed = Broker.is_trade_closed(trade_id)
+                                closed = Broker.is_trade_closed(open_trade_id)
                                 if closed[0]:
                                     Log.write('"fifty.py" in _babysit(): SELL trade has closed.')
                                     Log.write('\n\nSHORT reason check: {} ?= {}'.format(closed[1], TradeClosedReason.sl))
-                                    cls._open_trade_ids.remove(trade_id)
+                                    cls._open_trade_ids.remove(open_trade_id)
                                     # If SL hit, reverse direction.
                                     if closed[1] == TradeClosedReason.sl:
                                         cls.go_long = True
@@ -123,7 +123,7 @@ class Fifty(Strategy):
                                     sys.exit()
                             else:
                                 Log.write('"fifty.py" _babysit(): Modified SELL trade with ID (',\
-                                    trade_id, ').')
+                                    open_trade_id, ').')
                     else:
                         Log.write('"fifty.py" _babysit(): Failed to get ask while babysitting.')
                         sys.exit()

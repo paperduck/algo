@@ -20,6 +20,7 @@ from threading import Thread
 import timeit
 ####################
 from config import Config
+from db import DB
 from log import Log
 import sys
 ####################
@@ -27,7 +28,7 @@ import sys
 
 def timer_decorator(cls):
     # Load records from database, after the class is created.
-    cls.records = cls._db_execute('SELECT * FROM function_times')
+    cls.records = DB.execute('SELECT * FROM function_times')
     if cls.records == None:
         DB.bug('records == None. Aborting.')
         sys.exit()
@@ -39,18 +40,6 @@ def timer_decorator(cls):
 class Timer():
 
     """
-    The db module is not used because that would create a circular
-    dependence; the db module uses this module to time itself.
-    """
-    db_config = {
-        'user': Config.db_user,
-        'password': Config.db_pw,
-        'host': Config.db_host,
-        'database': Config.db_name
-    }
-    cnx = mysql.connector.connect(**db_config)
-    cursor = cnx.cursor()
-    """
     "Records" as in breaking a record; new max duration.
     The records variable is a list of dicts that matches the table columns:
         function_name (PK)
@@ -59,23 +48,6 @@ class Timer():
         note
     """
     records = [] # TODO Use hash table for fast insertion.
-
-
-    @classmethod
-    def _db_execute(cls, cmd):
-        def execute(cmd):
-            cls.cursor.execute(cmd)
-            try:
-                cls.cnx.commit()
-            except mysql.connector.errors.InternalError:
-                pass
-            try:
-                return cls.cursor.fetchall()
-            except mysql.connector.errors.InterfaceError:
-                return []
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            future = executor.submit(execute, cmd)
-            return future.result()
 
 
     @classmethod
@@ -124,7 +96,7 @@ class Timer():
         if new_max:
             #Log.write('"timer.py" stop(): New max duration for ',
             #    'function {} = {}s'.format(function_name, duration))
-            db_result = cls._db_execute(
+            db_result = DB.execute(
                 'INSERT INTO function_times \
                 (function_name, timestamp, duration, note) \
                 VALUES ("{0}","{1}","{2}","{3}") \

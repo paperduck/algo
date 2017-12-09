@@ -13,20 +13,8 @@ class Instrument():
     TODO: Load the instruments from database into memory for fast lookup.
     """
     def __init__(self, new_id):
-        self._id = None     # string
-        self._name = None   # string
-
-        result = None
-        if Config.broker_name == 'oanda':
-            result = DB.execute(
-                'SELECT oanda_name FROM instruments WHERE id={}'.format(new_id))
-        else:
-            raise Exception
-        if len(result) != 1:
-            Log.write('instrument.py __init__(): len(result) was {}'.format(len(result)))
-            raise Exception
         self._id = new_id      
-        self._name = result[0][0]
+        self._name = self.get_name_from_id(new_id)
 
 
     """

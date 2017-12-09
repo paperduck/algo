@@ -76,7 +76,7 @@ class TestDaemon(unittest.TestCase):
         Daemon.recover_trades()
         # Check that no trades were adopted
         for s in Daemon.strategies:
-            self.assertEqual(s._open_trade_ids, [])
+            self.assertEqual(len(s._open_trade_ids), 0)
 
         """
         Scenario: Trade in broker and db
@@ -109,13 +109,16 @@ class TestDaemon(unittest.TestCase):
             else:
                 self.assertEqual(len(s._open_trade_ids), 0)
         # check trade is the trade we think it is
-        self.assertEqual(Fifty._open_trade_ids[0].get_broker_name(), 'oanda')
-        self.assertEqual(Fifty._open_trade_ids[0].get_instrument().get_name(), 'USD_JPY')
-        self.assertEqual(Fifty._open_trade_ids[0].get_instrument().get_id(), 4)
-        self.assertEqual(Fifty._open_trade_ids[0].get_go_long(), True)
-        self.assertEqual(Fifty._open_trade_ids[0].get_stop_loss(), 90)
-        self.assertEqual(Fifty._open_trade_ids[0].get_take_profit(), 100)
-        self.assertEqual(Fifty._open_trade_ids[0].get_trade_id(), 'id666')
+        self.assertEqual(Fifty._open_trade_ids[0], 'id666')
+        '''
+        self.assertEqual(Fifty._open_trades[0].get_broker_name(), 'oanda')
+        self.assertEqual(Fifty._open_trades[0].get_instrument().get_name(), 'USD_JPY')
+        self.assertEqual(Fifty._open_trades[0].get_instrument().get_id(), 4)
+        self.assertEqual(Fifty._open_trades[0].get_go_long(), True)
+        self.assertEqual(Fifty._open_trades[0].get_stop_loss(), 90)
+        self.assertEqual(Fifty._open_trades[0].get_take_profit(), 100)
+        self.assertEqual(Fifty._open_trades[0].get_trade_id(), 'id666')
+        '''
         # Cleanup
         Fifty.drop_all()
 

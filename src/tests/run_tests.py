@@ -1,7 +1,8 @@
 """
-This is the main script to run all tests.
-Run tests like so:
-    $ python3 run_tests.py
+Don't use this.
+Some tests mock modules, which is difficult to unwind.
+Instead, use the bash script so that the Python environment completely
+shuts down between tests, thereby resetting the mocked modules.
 """
 
 import os

@@ -49,7 +49,6 @@ class Trade():
    
 
     """
-    getters, no setters
     """
     def get_broker_name(self):
         return self._broker_name
@@ -61,6 +60,8 @@ class Trade():
         return self._stop_loss
     def get_strategy(self):
         return self._strategy
+    def set_strategy(self, strategy_class): # <Strategy> class reference
+        self._strategy = strategy_class
     def get_take_profit(self):
         return self._take_profit
     def get_trade_id(self):
@@ -149,7 +150,15 @@ class Trades(Sequence):
         return None
 
 
-    def length(self):
+    """
+    Return type: void
+    Delete all trades.
+    """
+    def clear(self):
+        del self._trade_list[:]
+
+
+    def __len__(self):
         return len(self._trade_list)    
 
 

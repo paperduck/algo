@@ -176,8 +176,8 @@ class Daemon():
                 if order_result['tradeOpened'] != {}:
                     # Notify the strategy.
                     best_opp.strategy.trade_opened(
-                        trade_id=order_result['tradeOpened']['id'],
-                        instrument_id=Instrument.get_id_from_name(order_result['instrument'])
+                        trade_id=order_result['tradeOpened']['id']
+                        #instrument_id=Instrument.get_id_from_name(order_result['instrument'])
                     )
                 elif order_result['tradesClosed'] != []:
                     for tc in order_result['tradesClosed']:
@@ -284,26 +284,26 @@ class Daemon():
         the database. Thus a trade may not have a corresponding trade in the database.
         """
         for i in range(0,len(open_trades_broker)):
-            t = open_trades_broker[i]
+            broker_trade = open_trades_broker[i]
             db_trade_info = DB.execute('SELECT strategy, broker, instrument_id FROM open_trades_live WHERE trade_id="{}"'
-                .format(t.get_trade_id()))
+                .format(broker_trade.get_trade_id()))
             if len(db_trade_info) > 0:
                 # Verify broker's info and database info match, just to be safe.
                 # - broker name
-                if db_trade_info[0][1] != t.get_broker_name():
+                if db_trade_info[0][1] != broker_trade.get_broker_name():
                     Log.write('"daemon.py" recover_trades(): ERROR: "{}" != "{}"'
-                        .format(db_trade_info[0][1], t.broker_name))
+                        .format(db_trade_info[0][1], broker_trade.broker_name))
                     raise Exception
                 # - instrument/symbol
-                if db_trade_info[0][2] != t.get_instrument().get_id():
+                if db_trade_info[0][2] != broker_trade.get_instrument().get_id():
                     Log.write('"daemon.py" recover_trades): {} != {}'
-                        .format(db_trade_info[0][2], t.get_instrument()))
+                        .format(db_trade_info[0][2], broker_trade.get_instrument()))
                     raise Exception
                 # set strategy
-                t.strategy = None # default?
+                broker_trade.set_strategy(None) # TODO: use a different default?
                 for s in cls.strategies:
                     if s.get_name == db_trade_info[0][0]:
-                        t.strategy = s # reference to class instance
+                        broker_trade.set_strategy(s) # reference to class instance
             else:
                 # Trade in broker but not db.
                 # Maybe the trade was opened manually. Ignore it.
@@ -311,13 +311,13 @@ class Daemon():
                 open_trades_broker = open_trades_broker[0:i] + open_trades_broker[i+1:len(open_trades_broker)] # TODO: optimize speed
 
         # Distribute trades to their respective strategy modules
-        for t in open_trades_broker:
-            if t.strategy != None:
+        for broker_trade in open_trades_broker:
+            if broker_trade.get_strategy() != None:
                 # Find the strategy that made this trade and notify it.
                 for s in cls.strategies:
-                    if t.strategy.get_name() == s.get_name(): 
-                        s.recover_trade(trade)
-                        open_trades_broker.remove(t.get_trade_id())
+                    if broker_trade.get_strategy().get_name() == s.get_name(): 
+                        s.recover_trade(broker_trade.get_trade_id())
+                        open_trades_broker.remove(broker_trade.get_trade_id())
                         break
             else:
                 # It is not known what strategy opened this trade.
@@ -326,8 +326,8 @@ class Daemon():
                 # Assign it to the backup strategy.
                 Log.write('"daemon.py" recover_trades(): Assigning trade ',
                     ' ({}) to backup strategy ({}).'
-                    .format(t.get_trade_id(), cls.backup_strategy.get_name()))
-                cls.backup_strategy.recover_trade(t)
+                    .format(broker_trade.get_trade_id(), cls.backup_strategy.get_name()))
+                cls.backup_strategy.recover_trade(broker_trade.get_trade_id())
         return 0 # success
                 
 

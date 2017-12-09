@@ -55,7 +55,7 @@ class Oanda():
 
     """
     Return type: dict or none
-    Send a request to Oanda's REST API.
+    Sends a request to Oanda's REST API.
     """
     @classmethod
     def fetch(cls, in_url, in_headers={}, in_data=None, in_origin_req_host=None,
@@ -63,8 +63,7 @@ class Oanda():
         """
         Returns: dict or None.
         """
-        """
-        Log.write('"oanda.py" fetch(): ***** beginning ************************\\' )
+        Log.write('"oanda.py" fetch(): /*****************************\\' )
         Log.write('"oanda.py" fetch(): Parameters:\n\
             in_url: {0}\n\
             in_headers: {1}\n\
@@ -74,7 +73,7 @@ class Oanda():
             method: {5}\n\
             '.format(in_url, in_headers, btos(in_data), in_origin_req_host,
             in_unverifiable, in_method))
-        """
+        Log.write('"oanda.py" fetch(): \\*****************************/' )
         # If headers are specified, use those.
         if in_headers == {}:
             headers = {\
@@ -499,23 +498,23 @@ class Oanda():
         #Log.write('"oanda.py" get_transaction_history(): Entering.')
 
         args = ''
-        if not maxId == None:
+        if maxId != None:
             if args != '':
                 args = args + '&'
             args = args + 'maxId=' + str(maxId)
-        if not minId == None:
+        if minId != None:
             if args != '':
                 args = args + '&'
             args = args + 'minId=' + str(minId)
-        if not count == None:
+        if count != None:
             if args != '':
                 args = args + '&'
             args = args + 'count=' + str(count)
-        if not instrument == None:
+        if instrument != None:
             if args != '':
                 args = args + '&'
             args = args + 'instrument=' + instrument.get_name()
-        if not ids == None:
+        if ids != None:
             if args != '':
                 args = args + '&'
             args = args + 'ids=' & str(ids)
@@ -532,47 +531,50 @@ class Oanda():
 
 
     """
+    Return type: dict or None
     """
-    def get_instrument_history(cls,
-        instrument,             # <Instrument>
+    @classmethod
+    def get_instrument_history(
+        cls,
+        in_instrument,          # <Instrument>
         granularity=None,       # string
         count=None,             # optional- int - leave out if both start & end specified
         start=None,             # optional- datetime
         end=None,               # optional- datetime
-        candle_format=None,     # optional - string
+        candle_format=None,     # optional - string - Oanda defaults to
+                                # bid/ask (versus midpoint)
         include_first=None,     # optional - bool - Oanda wants 'true'/'false'
         daily_alignment=None,   # 0 to 23 - optional
         alignment_timezone=None,# timezone - optional
         weekly_alignment=None   # 'Monday' etc. - optional
     ):
-        if count != None and start != none and end != None:
+        if count != None and start != None and end != None:
             return None
-        args=instrument.get_name()
+        args='instrument=' + in_instrument.get_name()
         if granularity != None:
-            args = args + 'granularity=' + granularity + '&'
+            args = args + '&granularity=' + granularity
         if count != None:
-            args = args + 'count=' + count + '&'
+            args = args + '&count=' + str(count)
         if start != None:
-            args = args + 'start=' + util_date.date_to_string(start) + '&'
+            args = args + '&start=' + util_date.date_to_string(start)
         if end != None:
-            args = args + 'end=' + util_date.string_to_date(end) + '&'
+            args = args + '&end=' + util_date.string_to_date(end)
         if candle_format != None:
-            args = args + 'candle_format=' + candle_format + '&'
+            args = args + '&candle_format=' + candle_format
         if include_first != None:
             if include_first:
-                args = args + 'include_first=' + 'true' + '&'
+                args = args + '&include_first=' + 'true'
             else:
-                args = args + 'include_first=' + 'true' + '&'
+                args = args + '&include_first=' + 'true'
         if daily_alignment != None:
-            args = args + 'daily_alignment=' + str(daily_alignment) + '&'
+            args = args + '&daily_alignment=' + str(daily_alignment)
         if alignment_timezone != None:
-            args = args + 'alignment_timezone' + alignment_timezone + '&'
+            args = args + '&alignment_timezone' + alignment_timezone
         if weekly_alignment != None:
-            args = args + 'weekly_alignment=' + weekly_alignment + '&'
+            args = args + '&weekly_alignment=' + weekly_alignment
 
         result = cls.fetch(
-            in_url='{}/v1/candles?{}'
-                .format(Config.oanda_url, args)
+            in_url='{}/v1/candles?{}'.format(Config.oanda_url, args)
         )
         if result == None:
             DB.bug('"oanda.py" get_instrument_history(): Failed to fetch.')
