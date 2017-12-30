@@ -1,7 +1,3 @@
-（日本語下記）
-
----
-
 # Algorithmic Trading Daemon ("algo")
 
 ## Introduction
