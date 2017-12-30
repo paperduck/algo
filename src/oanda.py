@@ -8,6 +8,7 @@ Description     Python module for Oanda fxTrade REST API.
 """
 
 #--------------------------
+import datetime
 import gzip
 import json
 import socket
@@ -20,13 +21,13 @@ import zlib
 #--------------------------
 from config import Config
 from currency_pair_conversions import *
-from data_conversions import *
 from instrument import Instrument
 import util_date
 from log import Log
 from trade import *
 from timer import Timer
 import utils
+import util_date
 #--------------------------
 
 class Oanda():
@@ -58,8 +59,13 @@ class Oanda():
     Sends a request to Oanda's REST API.
     """
     @classmethod
-    def fetch(cls, in_url, in_headers={}, in_data=None, in_origin_req_host=None,
-        in_unverifiable=False, in_method=None):
+    def fetch(cls,
+        in_url,
+        in_headers={},
+        in_data=None,
+        in_origin_req_host=None,
+        in_unverifiable=False,
+        in_method=None):
         """
         Returns: dict or None.
         """
@@ -71,7 +77,7 @@ class Oanda():
             origin_req_host: {3}\n\
             unverifiable: {4}\n\
             method: {5}\n\
-            '.format(in_url, in_headers, btos(in_data), in_origin_req_host,
+            '.format(in_url, in_headers, utils.btos(in_data), in_origin_req_host,
             in_unverifiable, in_method))
         Log.write('"oanda.py" fetch(): \\*****************************/' )
         # If headers are specified, use those.
@@ -97,8 +103,12 @@ class Oanda():
             elif response_code == 415:
                 # unsupported media type (content-encoding)
                 Log.write('"oanda.py" fetch(): Response code 415: Unsupported media type')
+            elif response_code == 204:
+                # This happens when you request candlesticks from
+                # a time that there were none.
+                Log.write('oanda.py fetch(): Response code was 204 (empty response).')
             elif response_code != 200:
-                Log.write('"oanda.py" fetch(): Response code was not 200.')
+                Log.write('"oanda.py" fetch(): Response code was {}.'.format(str(response_code)))
             # Other stuff
             #Log.write('"oanda.py" fetch(): RESPONSE URL:\n    ', response.geturl())
             #resp_info = response.info()
@@ -107,22 +117,28 @@ class Oanda():
             response.info() is email.message_from_string(); it needs to be
             # cast to a string.
             """
-            resp_data = ''
+            resp_data = None
             # See if the response data is encoded.
             header = response.getheader('Content-Encoding')
             if header != None:
                 if header.strip().startswith('gzip'):
-                    resp_data = btos(gzip.decompress(response.read()))
+                    resp_data = utils.btos(gzip.decompress(response.read()))
                 else:
                     if header.strip().startswith('deflate'):
-                        resp_data = btos( zlib.decompress( response.read() ) )
+                        resp_data = utils.btos( zlib.decompress( response.read() ) )
                     else:
-                        resp_data = btos( response.read() )
+                        resp_data = utils.btos( response.read() )
             else:
-                resp_data = btos(response.read())
+                resp_data = utils.btos(response.read())
             # Parse the JSON from Oanda into a dict, then return it.
-            resp_data_str = json.loads(resp_data)
-            return resp_data_str
+            try:
+                resp_data_dict = json.loads(resp_data)
+                return resp_data_dict
+            except:
+                Log.write(
+                    'oanda.py fetch(): Failed to parse the following JSON:\n\n{}\n\n'
+                    .format(resp_data))
+                return None
         except urllib.error.HTTPError as e:
             # 404
             Log.write('"oanda.py" fetch(): HTTPError:\n' + 
@@ -265,14 +281,13 @@ class Oanda():
     """
     Return type: dict or None
     Fetch live prices for specified instruments that are available on the OANDA platform.
-    `instruments' argument must be URL encoded comma-separated, e.g. USD_JPY%2CEUR_USD
-    parameter:  type:           description:
-    instruments [<Instrument>]  
-    since       string          
     """
     @classmethod
-    def get_prices(cls, instruments, since=None):
-        #Log.write('"oanda.py" get_prices(): Entering.')
+    def get_prices(
+        cls,
+        instruments,    # [<Instrument>]
+        since=None      # string
+    ):
         url_args = '?instruments=' + utils.instruments_to_url(instruments)
         if since != None:
             url_args += '&since=' + since
@@ -290,9 +305,11 @@ class Oanda():
     TODO: check instrument string being passed in
     """
     @classmethod
-    def get_ask(cls, instrument, since=None):
-        #Log.write('"oanda.py" get_ask(): Entering.')
-        
+    def get_ask(
+        cls,
+        instrument, # <Instrument> instance
+        since=None  # string (see Oanda documentation)
+    ):
         prices = cls.get_prices([instrument], since)
         if prices == None:
             Log.write('"oanda.py" get_ask(): Failed to get prices.')
@@ -305,14 +322,12 @@ class Oanda():
 
     """
     Return type: decimal or None
-    # Get one bid price
-    param:      type:
-    instrument  <Instrument>
-    since       string
     """
     @classmethod
-    def get_bid(cls, instrument, since=None):
-        #Log.write('"oanda.py" get_bid(): Entering. Getting bid of ', instrument, '.')
+    def get_bid(cls,
+        instrument, # <Instrument>
+        since=None
+    ):
         prices = cls.get_prices([instrument], since)
         if prices == None:
             Log.write('"oanda.py" get_bid(): Failed to get prices.')
@@ -365,8 +380,12 @@ class Oanda():
     ]
     """
     @classmethod
-    def get_spreads(cls, instruments, since=None):
-        prices = cls.get_prices([instruments], since)
+    def get_spreads(
+        cls,
+        instruments, # [<Instrument>]
+        since=None
+    ):
+        prices = cls.get_prices(instruments, since)
         if prices == None:
             Log.write('"oanda.py" get_spreads(): Failed to get prices.')
             return None
@@ -444,7 +463,7 @@ class Oanda():
         if in_order.trailing_stop != None:
             request_args['trailingStop'] = in_order.trailing_stop
         # url-encode, then convert to bytes
-        data = stob(urllib.parse.urlencode(request_args))
+        data = utils.stob(urllib.parse.urlencode(request_args))
         result = cls.fetch(
             in_url="{}/v1/accounts/{}/orders".format(
                 Config.oanda_url,
@@ -474,19 +493,90 @@ class Oanda():
             return result
 
 
+    """
+    # Returns: Boolean
+    # Is the market open?
+    """
     @classmethod
-    def is_market_open(cls, instrument='USD_JPY'):
-        """
-        # Is the market open?
-        # Returns: Boolean
-        # instrument        = one currency pair formatted like this: 'EUR_USD' 
-        """
-        #Log.write('"oanda.py" is_market_open(): Entering.')
+    def is_market_open(
+        cls,
+        instrument  # <Instrument> instance
+    ):
         prices = cls.get_prices([instrument])
-        if prices['prices'][0]['status'] == 'halted':
-            return False
-        else:
-            return True
+        # 'status' only appears if instrument is halted
+        try:
+            if prices['prices'][0]['status'] == 'halted':
+                return False
+        except Exception:
+            pass
+        return True
+
+
+    """
+    Standard retail trading hours (no special access),
+     or depending on broker.
+    """
+    market_opens = { 
+        util_date.SUNDAY: [datetime.timedelta(hours=22)]
+    }
+    market_closes = {
+        util_date.FRIDAY: [datetime.timedelta(hours=22)] # 10PM UTC
+    }
+
+
+    """
+    Return type: datetime.timedelta
+    Return value:
+        timedelta of 0 if market is already closed,
+        otherwise timedelta until market closes
+    """
+    @classmethod
+    def get_time_until_close(cls):
+        zero = datetime.timedelta()
+        now = datetime.datetime.utcnow()
+        now_day = now.isoweekday()
+        now_delta = datetime.timedelta(
+            hours=now.hour,
+            minutes=now.minute,
+            seconds=now.second,
+            microseconds=now.microsecond
+        )
+        now_to_soonest_close = datetime.timedelta(days=8) # > 1 week
+        total_delta_to_close = zero
+        day_index = now_day
+        # Starting from today, iterate through each weekday and 
+        # see if the market will close that day.
+        for i in range(1, 8): # match python datetime.isoweekday()
+            closes = cls.market_closes.get(day_index)
+            if closes != None:
+                # there is at least one close this day
+                for c in closes:
+                    if now_delta < c and c - now_delta < now_to_soonest_close:
+                        # new soonest close
+                        now_to_soonest_close = c - now_delta
+            # If there is an open time today:
+            #   If there was a close, look for open < soonest close.
+            #   Else, market is closed
+            opens = cls.market_opens.get(day_index)
+            if opens != None:
+                if now_to_soonest_close < datetime.timedelta(days=8):
+                    for o in opens:
+                        if now_delta < o and (o - now_delta) < now_to_soonest_close:
+                            # market will open before closing
+                            return zero
+                else:
+                    # market is closed
+                    return zero
+                # no opens between now and close; return soonest close
+                total_delta_to_close += now_to_soonest_close
+                return total_delta_to_close
+            # cycle the index 
+            total_delta_to_close += datetime.timedelta(hours=24)
+            day_index += 1
+            if day_index > 7:
+                day_index = 1
+        Log.write('oanda.py get_time_until_close(): Close time not found.')
+        raise Exception
 
 
     """
@@ -549,29 +639,29 @@ class Oanda():
         weekly_alignment=None   # 'Monday' etc. - optional
     ):
         if count != None and start != None and end != None:
-            return None
+            raise Exception
         args='instrument=' + in_instrument.get_name()
         if granularity != None:
             args = args + '&granularity=' + granularity
         if count != None:
             args = args + '&count=' + str(count)
         if start != None:
-            args = args + '&start=' + util_date.date_to_string(start)
+            args = args + '&start=' + utils.url_encode(util_date.date_to_string(start))
         if end != None:
-            args = args + '&end=' + util_date.string_to_date(end)
+            args = args + '&end=' + utils.url_encode(util_date.date_to_string(end))
         if candle_format != None:
-            args = args + '&candle_format=' + candle_format
+            args = args + '&candleFormat=' + candle_format
         if include_first != None:
             if include_first:
-                args = args + '&include_first=' + 'true'
+                args = args + '&includeFirst=' + 'true'
             else:
-                args = args + '&include_first=' + 'true'
+                args = args + '&includeFirst=' + 'true'
         if daily_alignment != None:
-            args = args + '&daily_alignment=' + str(daily_alignment)
+            args = args + '&dailyAlignment=' + str(daily_alignment)
         if alignment_timezone != None:
-            args = args + '&alignment_timezone' + alignment_timezone
+            args = args + '&alignmentTimezone=' + alignment_timezone
         if weekly_alignment != None:
-            args = args + '&weekly_alignment=' + weekly_alignment
+            args = args + '&weeklyAlignment=' + weekly_alignment
 
         result = cls.fetch(
             in_url='{}/v1/candles?{}'.format(Config.oanda_url, args)
@@ -767,7 +857,7 @@ class Oanda():
             request_args['trailingStop'] = in_trailing_stop
 
         data = urllib.parse.urlencode(request_args)
-        data = stob(data) # convert string to bytes
+        data = utils.stob(data) # convert string to bytes
 
         response = cls.fetch(
             in_url= + '{}/v1/accounts/{}/orders/{}'
@@ -801,7 +891,7 @@ class Oanda():
         if trailing_stop != 0:
             request_args['trailingStop'] = trailing_stop
         data = urllib.parse.urlencode(request_args)
-        data = stob(data) # convert string to bytes
+        data = utils.stob(data) # convert string to bytes
     
         response = cls.fetch(
             in_url='{}/v1/accounts/{}/trades/{}'

@@ -118,6 +118,7 @@ class Broker():
         # (table: open_trades_live)
         return result
 
+
     @classmethod
     def is_market_open(cls):
         """
@@ -126,6 +127,13 @@ class Broker():
         Returns: Boolean
         """
         return cls.broker.is_market_open()
+
+
+    """
+    """
+    @classmethod
+    def get_time_until_close(cls):
+        return cls.broker.get_time_until_close()
 
 
     @classmethod

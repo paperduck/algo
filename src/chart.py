@@ -8,6 +8,7 @@ from candle import Candle
 from instrument import Instrument
 from log import Log
 import util_date
+import utils
 
 """
 A <Chart> is a group of sequential <Candle>s.
@@ -21,36 +22,37 @@ class Chart:
     """
     def __init__(
         self,
-        in_instrument,         # <Instrument>    
-        granularity=None,   # string - See Oanda's documentation
-        count=None,         # int - number of candles
-        start_time=None,    # datetime - UTC
-        end_time=None,      # datetime - UTC
-        candle_format=None  # string - See Oanda's documentation
+        in_instrument,              # <Instrument>    
+        granularity=None,           # string - See Oanda's documentation
+        count=None,                 # int - number of candles
+        start=None,                 # datetime - UTC
+        end=None,                   # datetime - UTC
+        candle_format=None,         # string - See Oanda's documentation
+        include_first=None,
+        daily_alignment=None,
+        alignment_timezone=None,    # string - timezone
+        weekly_alignment=None
     ):
-        # declare
         self._candles = []
-        self._instrument = None
-        self._granularity = None
-        self._start_index = None
-        self._end_index = None
         # verify instance of <Instrument> by accessing a member.
         if in_instrument.get_id() == 0:
             pass            
+        # get candles from broker
         instrument_history = Broker.get_instrument_history(
             instrument=in_instrument,
             granularity=granularity,
             count=count,
-            start=start_time,
-            end=end_time
+            start=start,
+            end=end,
+            candle_format=candle_format,
+            include_first=include_first,
+            daily_alignment=daily_alignment,
+            alignment_timezone=alignment_timezone,
+            weekly_alignment=weekly_alignment
         )
         if instrument_history == None:
-            # Raising an exception would halt the daemon completely.
-            # Abort gracefully. Returning None doesn't work here, so set
-            # everything to None and hope the calling code notices.
             Log.write('chart.py __init__(): Failed to get instrument history.')
-            self._candles = None
-            return
+            raise Exception
         else:
             candles_raw = instrument_history['candles']
             for c_r in candles_raw:
@@ -71,6 +73,11 @@ class Chart:
         self._granularity = instrument_history['granularity']
         self._start_index = 0           
         self._end_index = len(self._candles) - 1
+        self._candle_format = candle_format
+        self.include_first = include_first
+        self.daily_alignment = daily_alignment
+        self._alignment_timezone = alignment_timezone
+        self.weekly_alignment = weekly_alignment
 
 
     """

@@ -142,7 +142,7 @@ class Fifty(Strategy):
         if len(cls._open_trade_ids) > 0:
             return []
         instrument = Instrument(Instrument.get_id_from_name('USD_JPY'))
-        spreads = Broker.get_spreads(instrument)
+        spreads = Broker.get_spreads([instrument])
         if spreads == None:
             Log.write('"fifty.py" in _scan(): Failed to get spread of {}.'
                 .format(instrument.get_name())) 

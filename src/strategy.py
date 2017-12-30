@@ -11,6 +11,7 @@ Description:
 import sys
 #*************************
 from config import Config
+from db import DB
 from log import Log
 from trade import *
 #*************************
@@ -52,61 +53,59 @@ class Strategy():
         trade_id    # string
     ):
         cls._open_trade_ids.append(trade_id)
-        Log.write('"strategy.py" trade_opened(): TRADE OPENED: {} '
+        Log.write('"strategy.py" trade_opened(): strat {} opened trade ({})'
             .format(cls.get_name(), trade_id)) 
         # Write to db
         DB.execute('INSERT INTO open_trades_live (trade_id, strategy, \
-            broker, instrument_id) values ("{}", "{}", "{}", {})'
+            broker) values ("{}", "{}", "{}")'
             .format(trade_id, cls.get_name(), Config.broker_name))
 
 
+    """
+    Return type: True on success (TODO: for consitency use 0)
+    Description:
+        This must be called to notify a strategy that one of its trades
+        has closed.
+        Probably only called by daemon.py since that is currently the
+        only module that has access to individual strategy modules.
+    Input:      trade id from broker (string)
+    """
     @classmethod
-    def trade_closed(cls,
-        trade,          # <Trade>
-        instrument_id   # id from database (instruments.id)
+    def trade_closed(
+        cls,
+        trade_id   # string - trade id from broker
     ):
-        """
-        Description:
-            This must be called to notify a strategy that one of its trades
-            has closed.
-            Probably only called by daemon.py since that is currently the
-            only module that has access to individual strategy modules.
-        Input:      trade id from broker (string)
-        Returns: 
-        """
         Log.write('"strategy.py" trade_closed(): Attempting to pop trade ',
-            'ID {}'.format(trade.get_id()))
+            'ID {}'.format(trade_id))
         # Remove the trade from the list.
         # TODO: Put a lock on cls._open_trade_ids to make it thread safe while
         # deleting from it.
         num_trades = len(cls._open_trade_ids)
         if num_trades > 0:
-            closed_trade = None
+            closed_trade_id = None
             for i in range(0, num_trades):
-                if cls._open_trade_ids[i] == trade.get_id():
+                if cls._open_trade_ids[i] == trade_id:
                     closed_trade_id = cls._open_trade_ids.pop(i)
                     break
-            # Make sure the popping went well.
-            if closed_trade == None:
+            # Make sure the trade was actually popped.
+            if closed_trade_id == None:
                 Log.write('"strategy.py" trade_closed(): Strategy ',
                     '"{}" failed to pop trade {} from _open_trades.'
                     .format(cls.get_name(), closed_trade_id))
-                sys.exit()
+                raise Exception
             else:
                 Log.write('"strategy.py" trade_closed(): Trade of strategy ',
                  '"{}" has closed.'.format(cls.get_name()))
-                # Send trade info to strategy
-                cls._trade_closed(trade)
                 return True
-            # Write to db
+            # Update list of live trades in database
             DB.execute('DELETE FROM open_trades_live WHERE trade_id LIKE {}'
-                .format(trade.get_id()))
+                .format(trade_id))
         else:
             # Not tracking any trades! Oh no.
             err_msg = '"strategy.py" trade_closed(): Trade closed but list of open trades is empty!'
             Log.write(err_msg)
             DB.bug(err_msg)
-            Daemon.shutdown()
+            raise Exception
 
 
     """
@@ -153,6 +152,7 @@ class Strategy():
 
 
     """
+    Return type: void
     Babysit open trades.
     Override this in your strategy module.
     """

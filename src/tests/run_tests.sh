@@ -9,4 +9,7 @@ python3 -m unittest test_daemon
 python3 -m unittest test_instrument
 python3 -m unittest test_chart
 python3 -m unittest test_util_date
+python3 -m unittest test_strategy
+python3 -m unittest test_oanda
+
 

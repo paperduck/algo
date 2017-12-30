@@ -6,6 +6,19 @@ import datetime
 
 
 """
+Day of week enumeration.
+Matches ISO weekday numbers.
+"""
+MONDAY = 1
+TUESDAY = 2
+WEDNESDAY = 3
+THURSDAY = 4
+FRIDAY = 5
+SATURDAY = 6
+SUNDAY = 7
+
+
+"""
 Return type: string
 Returns date in this format: "YYYY-MM-DDTHH:MM:SS.MMMMMMZ"
 where the Z is an actual Z.
