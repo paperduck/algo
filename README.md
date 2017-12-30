@@ -33,34 +33,7 @@
 - `daemon.py` and the strategy modules make calls to a generic `broker.py` module, which then delegates the calls to a translator module, e.g. `oanda.py` for Oanda. Having the generic broker layer allows you to conveniently change the broker you use. If you want to use a broker for which I don't provide a translator module, then you will need to provide your own.
 - With an emphasis on scalability, this platform is intended to handle any number of strategies at any given time. The central daemon module will likely be responsible for managing margin, account balance, order size, diversification, and other considerations while the disparate strategy modules, which do not communicate with each other, independently suggest trades to the daemon.
 
-Here is a diagram of the layers. The daemon sits on top and talks to the strategies. It talks to the broker via the broker module, which tin turn translates function calls into specific API calls for the broker.
+Here is a diagram of the layers. The daemon sits on top and talks to the strategies. It talks to the broker via the `broker.py` module, which in turn translates function calls into specific API calls.
 
 ![diagram](docs/platform_diagram_2.png)
-
----
-
-# アルゴリズミックトレーディングボット（「アルゴ」）
-仕掛品。    
-
-三つ部分：（１）バックテスティング（２）フォーワードテスティング（３）③　ライブトレーディング
-
-## バックテスティング
-MySQLでの過去の価格のデーターでシミュレーションを行うつもりです。
-
-## フォーワードテスティング
-作り物のお金の以外、ライブトレーディングと同じです。
-
-## ライブトレーディング
-自動売買。実行をし方法： `$ python3 algo.py`
-
-## デザイン
-スケーラビリティとモジュール性と使い勝手は高優先です。速度は低順位です。
-
-![diagram](docs/platform_diagram_jp.png)
-
----
-
-
-
-
 
