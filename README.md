@@ -1,15 +1,15 @@
 # Algorithmic Trading Daemon ("algo")
 
 ## Introduction
-
 - This is a work in progress. As of 2017-12-30, live trading and forward testing are being coded. Backtesting is mostly non-existent. 
 - It is a command line application for Linux. The Debian operating system is being used for development.
-- Python is used for the bulk of the program currently (`/src/`). The database is MySQL (`/src/db/`). There are some shell scripts in `/src/scripts`.
+- Python is used for the bulk of the program currently (`/src/`). The database is MySQL (`/src/db/`). There are some shell scripts in `/src/scripts/`.
 - There are three pieces to this project, as with any algorithmic trading: backtesting, forward testing, and live trading.
 
 ## How to use
-- Run the bot from /src/ : `python3 main.py`
-- Run test script from /src/ : `bash tests/run_tests.sh` 
+- Run the platform from /src/ : `python3 main.py`
+- Run test scripts from /src/ : `bash tests/run_tests.sh` 
+- You will need to add information such as broker credentials to the private config file. (Details to come.)
 
 ## Backtesting
 - Backtesting will probably consist of a MySQL database with historical data. A script will iterate through the data, and you can write a strategy script to simualate your strategy. Or I might use an existing backtesting library.
@@ -20,7 +20,6 @@
 
 ## Live Trading
 - It is referred to as a "daemon" because it is intended to be self-sufficient and not require monitoring or adjustment.
-- The daemon should be run like this: `$ python3 algo.py`.
 - Each strategy gets its own module. For example, the `/src/strategies/fifty.py` module encapsulates one simple strategy.
 
 ## Platform Design: Scalability and Modularity
