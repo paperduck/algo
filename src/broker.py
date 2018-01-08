@@ -136,6 +136,13 @@ class Broker():
         return cls.broker.get_time_until_close()
 
 
+    """
+    """
+    @classmethod
+    def get_time_since_close(cls):
+        return cls.broker.get_time_since_close()
+
+
     @classmethod
     def get_transaction_history(cls, maxId=None, minId=None, count=None, instrument=None, ids=None):
         """

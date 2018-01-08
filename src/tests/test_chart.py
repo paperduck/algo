@@ -30,15 +30,16 @@ class TestChart(unittest.TestCase):
     def setUp(self):
         pass
 
+
     # called for every test method
     def tearDown(self):
-        # TODO rework DB because this is annoying
-        DB.shutdown()
+        pass
 
     
     """
     """
     def test___init__(self):
+        return ###########################################################################################
         """
         Case:     count, no start, no end
         """
@@ -80,10 +81,9 @@ class TestChart(unittest.TestCase):
         """
         COUNT = 100
         GRANULARITY = 'M1'
-
         sample_instrument = Instrument(4) # USD_JPY
 
-        # Initialize a sample chart.
+        # Initialize a sample chart with no market close gaps.
         # start = now + time until close - 1 week - chart size
         # add wiggle room before market close for skipped candles
         start = datetime.datetime.utcnow() \
@@ -246,7 +246,62 @@ class TestChart(unittest.TestCase):
         self.assertNotEqual(chart[0].open_bid, None) # Oanda's default
 
 
-
+    """
+    test: Chart.update()
+    Constraints to verify:
+        - Data is as recent as possible
+        - start index has earliest timestamp
+        - end index has latest timestamp
+        - timestamps from start to end are sequential
+    Situations:
+        - old chart (complete update)
+        - somewhat outdated chart (partially updated)
+        - new chart (no updates other than last (incomplete) candle)
+    """
+    def test_update(self):
+        """
+        old chart that gets completely updated
+        """
+        chart = Chart(
+            in_instrument=Instrument(4),
+            granularity='M1',
+            count=300,
+            end=datetime.datetime(year=2017, month=12, day=5)
+        )
+        # Update chart
+        chart.update()
+        # Verify data is most recent
+        time_since_close = Broker.get_time_since_close()
+        now = datetime.datetime.utcnow()
+        end_timestamp = chart.get_end_timestamp()       
+        if (Broker.get_time_until_close() == datetime.timedelta()):
+            # market closed now, so incorporate delay
+            self.assertTrue(abs((now - end_timestamp) - (time_since_close)) < datetime.timedelta(minutes=2))
+        else:
+            self.assertTrue(abs(now - end_timestamp) < datetime.timedelta(minutes=2))
+        # verify candle at start index has earliest timestamp.
+        earliest_timestamp = datetime.datetime.utcnow()
+        for i in range(0, chart.get_size()):
+            if chart[i].timestamp < earliest_timestamp:
+                earliest_timestamp = chart[i].timestamp
+        self.assertTrue(chart.get_start_timestamp() == earliest_timestamp)
+        # verify candle at end index has latest timestamp.
+        latest_timestamp = datetime.datetime(year=1999, month=1, day=1)
+        for i in range(0, chart.get_size()):
+            if chart[i].timestamp > latest_timestamp:
+                latest_timestamp = chart[i].timestamp
+        self.assertTrue(chart.get_end_timestamp() == latest_timestamp)
+        # Verify sequential timestamps
+        for i in range(0, chart.get_size() - 1):
+            self.assertTrue(chart[i].timestamp < chart[i + 1].timestamp)
+        """
+        Chart that gets partially updated
+        """
+        # TODO
+        """
+        Chart that gets barely updated
+        """
+        # TODO
 
 
 if __name__ == '__main__':

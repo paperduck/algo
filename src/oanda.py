@@ -105,7 +105,7 @@ class Oanda():
                 Log.write('"oanda.py" fetch(): Response code 415: Unsupported media type')
             elif response_code == 204:
                 # This happens when you request candlesticks from
-                # a time that there were none.
+                # a time at which there were none.
                 Log.write('oanda.py fetch(): Response code was 204 (empty response).')
             elif response_code != 200:
                 Log.write('"oanda.py" fetch(): Response code was {}.'.format(str(response_code)))
@@ -520,7 +520,8 @@ class Oanda():
         util_date.SUNDAY: [datetime.timedelta(hours=22)]
     }
     market_closes = {
-        util_date.FRIDAY: [datetime.timedelta(hours=22)] # 10PM UTC
+        # 10pm UTC, 7am JST
+        util_date.FRIDAY: [datetime.timedelta(hours=22)]
     }
 
 
@@ -533,6 +534,8 @@ class Oanda():
     @classmethod
     def get_time_until_close(cls):
         zero = datetime.timedelta()
+        if not cls.is_market_open(Instrument(4)): # actually check the broker first
+            return zero
         now = datetime.datetime.utcnow()
         now_day = now.isoweekday()
         now_delta = datetime.timedelta(
@@ -554,20 +557,20 @@ class Oanda():
                     if now_delta < c and c - now_delta < now_to_soonest_close:
                         # new soonest close
                         now_to_soonest_close = c - now_delta
-            # If there is an open time today:
-            #   If there was a close, look for open < soonest close.
-            #   Else, market is closed
-            opens = cls.market_opens.get(day_index)
-            if opens != None:
-                if now_to_soonest_close < datetime.timedelta(days=8):
-                    for o in opens:
-                        if now_delta < o and (o - now_delta) < now_to_soonest_close:
-                            # market will open before closing
-                            return zero
-                else:
-                    # market is closed
-                    return zero
-                # no opens between now and close; return soonest close
+                # If there is an open time today:
+                #   If there was a close, look for open < soonest close.
+                #   Else, market is closed
+                opens = cls.market_opens.get(day_index)
+                if opens != None:
+                    if now_to_soonest_close < datetime.timedelta(days=8):
+                        for o in opens:
+                            if now_delta < o and (o - now_delta) < now_to_soonest_close:
+                                # market will open before closing
+                                return zero
+                    else:
+                        # market is closed
+                        return zero
+                # return soonest close
                 total_delta_to_close += now_to_soonest_close
                 return total_delta_to_close
             # cycle the index 
@@ -578,6 +581,42 @@ class Oanda():
         Log.write('oanda.py get_time_until_close(): Close time not found.')
         raise Exception
 
+
+    """
+    Return type: datetime.timedelta
+    Return value: Time passed since last market close, regardless of 
+        current open/close status.
+    """
+    @classmethod
+    def get_time_since_close(cls):
+        # Iterate backwards through days and return the most recent time.
+        now = datetime.datetime.utcnow()
+        day_iter = now.isoweekday()
+        now_delta = datetime.timedelta(
+            hours=now.hour,
+            minutes=now.minute,
+            seconds=now.second,
+            microseconds=now.microsecond
+        )
+        zero = datetime.timedelta()
+        latest_close_to_now_delta = datetime.timedelta(days=8) # > 1 week
+        total_delta_since_close = zero
+        for d in range(1,8):
+            closes = cls.market_closes.get(day_iter)
+            if closes != None:
+                # find most recent close this day
+                for c in closes:
+                    if now_delta - c < latest_close_to_now_delta:
+                        latest_close_to_now_delta = now_delta - c
+                total_delta_since_close += latest_close_to_now_delta
+                return total_delta_since_close
+            # move to previous day
+            day_iter -= 1
+            if day_iter < 1:
+                day_iter = 7
+            total_delta_since_close += datetime.timedelta(hours=24)
+        raise Exception
+        
 
     """
     Get transaction history

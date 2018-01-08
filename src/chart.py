@@ -1,6 +1,7 @@
 
 # library imports
-import array
+#import array
+import datetime
 
 # local imports
 from broker import Broker
@@ -71,8 +72,8 @@ class Chart:
 
         self._instrument = in_instrument
         self._granularity = instrument_history['granularity']
-        self._start_index = 0           
-        self._end_index = len(self._candles) - 1
+        self._start_index = 0 # start
+        self._end_index = len(self._candles) - 1 # end
         self._candle_format = candle_format
         self.include_first = include_first
         self.daily_alignment = daily_alignment
@@ -130,7 +131,7 @@ class Chart:
     Get time difference between first and last candles.
     """
     def get_time_span(self):
-        return self.get_end_timestamp() - self.get_start_timestamp(self)
+        return self.get_end_timestamp() - self.get_start_timestamp()
 
 
     """
@@ -138,7 +139,7 @@ class Chart:
     Returns time difference between the last candlestick and now.
     """
     def get_lag(self):
-        return datetime.utcnow() - get_end_timestamp()
+        return datetime.datetime.utcnow() - self.get_end_timestamp()
 
 
     """
@@ -171,7 +172,7 @@ class Chart:
     """
     Return type: void
     Replace the candles with the most recent ones available.
-    Algorithm: (TODO)
+    Algorithm uor minimizing number of updated candles:
         Get the time difference from chart end to now.
         If the time difference is greater than the width of the chart,
             request <chart size> candles.
@@ -182,13 +183,15 @@ class Chart:
         new_history = None
         if self.get_lag() > self.get_time_span():
             # replace all candles
-            new_history = broker.get_instrument_history(
+            new_history = Broker.get_instrument_history(
                 instrument=self._instrument,
                 granularity=self._granularity,
                 count=self.get_size(), 
-                end=datetime.utcnow()
+                end=datetime.datetime.utcnow()
             )
         else:
+            # request new candles starting from end of chart
+            # TODO verify candleFormat is same as existing chart
             new_history_ = broker.get_instrument_history(
                 instrument=self._instrument,
                 granularity=self._granularity,
@@ -200,15 +203,13 @@ class Chart:
         else:
             # Got new candles. Stow them.
             new_candles = new_history['candles']
-            # iterate forwards from last candle
+            # iterate forwards from last (non-complete) candle
             for i in range(0, len(self._candles)):
                 # TODO assuming bid/ask candles
-                # increment end index and overwrite the last candle
-                self._increment_start_index() 
+                new_candle = new_candles[i]
                 self._candles[self._end_index].timestamp    = util_date.string_to_date(new_candle['time'])
                 self._candles[self._end_index].volume       = float(new_candle['volume'])
                 self._candles[self._end_index].complete     = bool(new_candle['complete'])
-                self._candles[self._end_index].chart_format = new_candle['chartFormat']
                 self._candles[self._end_index].open_bid     = float(new_candle['openBid'])
                 self._candles[self._end_index].open_ask     = float(new_candle['openAsk'])
                 self._candles[self._end_index].high_bid     = float(new_candle['highBid'])
@@ -217,6 +218,8 @@ class Chart:
                 self._candles[self._end_index].low_ask      = float(new_candle['lowAsk'])
                 self._candles[self._end_index].close_bid    = float(new_candle['closeBid'])
                 self._candles[self._end_index].close_ask    = float(new_candle['closeAsk'])
+                if i < len(self._candles) - 1:
+                    self._increment_start_index() # increments end index too
 
 
     """

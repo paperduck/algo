@@ -10,9 +10,10 @@
 ## How to use
 - Run the bot from /src/ : `python3 main.py`
 - Run test script from /src/ : `bash tests/run_tests.sh` 
+- You will need to make your own private config file.
 
 ## Backtesting
-- Backtesting will probably consist of a MySQL database with historical data. A script will iterate through the data, and you can write a strategy script to simualate your strategy. Or I might use an existing backtesting library.
+- Backtesting may consist of a MySQL database with historical data. Or it may just read in CSV files. A script will iterate through the data, and you can write a backtesting script to simualate your strategy. Or I might use an existing backtesting library.
 
 ## Forward Testing
 - Same as live trading, except fake money is used.
