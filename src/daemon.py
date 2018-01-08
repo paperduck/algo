@@ -285,7 +285,7 @@ class Daemon():
         """
         for i in range(0,len(open_trades_broker)):
             broker_trade = open_trades_broker[i]
-            db_trade_info = DB.execute('SELECT strategy, broker, instrument_id FROM open_trades_live WHERE trade_id="{}"'
+            db_trade_info = DB.execute('SELECT strategy, broker FROM open_trades_live WHERE trade_id="{}"'
                 .format(broker_trade.get_trade_id()))
             if len(db_trade_info) > 0:
                 # Verify broker's info and database info match, just to be safe.
@@ -293,11 +293,6 @@ class Daemon():
                 if db_trade_info[0][1] != broker_trade.get_broker_name():
                     Log.write('"daemon.py" recover_trades(): ERROR: "{}" != "{}"'
                         .format(db_trade_info[0][1], broker_trade.broker_name))
-                    raise Exception
-                # - instrument/symbol
-                if db_trade_info[0][2] != broker_trade.get_instrument().get_id():
-                    Log.write('"daemon.py" recover_trades): {} != {}'
-                        .format(db_trade_info[0][2], broker_trade.get_instrument()))
                     raise Exception
                 # set strategy
                 broker_trade.set_strategy(None) # TODO: use a different default?

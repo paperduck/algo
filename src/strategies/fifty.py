@@ -17,7 +17,7 @@ from log import Log
 from opportunity import Opportunity, Opportunities
 from order import Order
 from strategy import Strategy
-from trade import Trade, Trades
+from trade import Trade, Trades, TradeClosedReason
 #*************************************
 
 class Fifty(Strategy):

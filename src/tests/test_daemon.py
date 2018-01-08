@@ -84,8 +84,8 @@ class TestDaemon(unittest.TestCase):
         def db_execute(query):
             if query == 'SELECT trade_id FROM open_trades_live':
                 return [('id666',)]
-            elif query == 'SELECT strategy, broker, instrument_id FROM open_trades_live WHERE trade_id="id666"':
-                return [('Fifty', 'oanda', 4)]        
+            elif query == 'SELECT strategy, broker FROM open_trades_live WHERE trade_id="id666"':
+                return [('Fifty', 'oanda')]        
             elif query == 'SELECT oanda_name FROM instruments WHERE id=4':
                 return [('USD_JPY',)]
             else:
@@ -130,7 +130,7 @@ class TestDaemon(unittest.TestCase):
         def db_execute(query):
             if query == 'SELECT trade_id FROM open_trades_live':
                 return []
-            elif query == 'SELECT strategy, broker, instrument_id FROM open_trades_live WHERE trade_id="id666"':
+            elif query == 'SELECT strategy, broker FROM open_trades_live WHERE trade_id="id666"':
                 return []        
             elif query == 'SELECT oanda_name FROM instruments WHERE id=4':
                 return [('USD_JPY',)]
@@ -150,7 +150,7 @@ class TestDaemon(unittest.TestCase):
         # Broker trades should stay the same...
         calls = [
             call('SELECT trade_id FROM open_trades_live'),
-            call('SELECT strategy, broker, instrument_id FROM open_trades_live WHERE trade_id="id666"')
+            call('SELECT strategy, broker FROM open_trades_live WHERE trade_id="id666"')
         ]
         DB.execute.assert_has_calls(calls)
         # Check no trades adopted
@@ -163,8 +163,8 @@ class TestDaemon(unittest.TestCase):
         def db_execute(query):
             if query == 'SELECT trade_id FROM open_trades_live':
                 return [('id666',)]
-            elif query == 'SELECT strategy, broker, instrument_id FROM open_trades_live WHERE trade_id="id666"':
-                return [('Fifty', 'oanda', 4)]        
+            elif query == 'SELECT strategy, broker FROM open_trades_live WHERE trade_id="id666"':
+                return [('Fifty', 'oanda')]        
             elif query == 'SELECT oanda_name FROM instruments WHERE id=4':
                 return [('USD_JPY',)]
             elif query == 'DELETE FROM open_trades_live WHERE trade_id="id666"':

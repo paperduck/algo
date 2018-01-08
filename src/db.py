@@ -53,7 +53,10 @@ class DB():
         cls,
         cmd     # string
     ):
-        cls.cursor.execute(cmd)
+        try:
+            cls.cursor.execute(cmd)
+        except:
+            Log.write('db.py execute(): Query failed: "{}"'.format(cmd))
 
         try:
             cls.cnx.commit()
