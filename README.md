@@ -9,18 +9,21 @@
 ## How to use
 - Run the bot from /src/ : `python3 main.py`
 - Run test script from /src/ : `bash tests/run_tests.sh` 
-- You will need to make your own private config file.
+
+- You will need to make your own private config file. Put it in a secure location and specify that path in the public config  (`/src/config_nonsecure.cfg`). The key/value pairs you must include in the private config can be determined by reading `/src/config.py`.
+- You will need to create the database on your machine. There is a backup script for the purpose of recreating the structure. It is in `/src/db/db_backup.mysql`. It may or may not be up to date.
 
 ## Backtesting
-- Backtesting may consist of a MySQL database with historical data. Or it may just read in CSV files. A script will iterate through the data, and you can write a backtesting script to simualate your strategy. Or I might use an existing backtesting library.
+- Backtesting might consist of a feed class that reads in CSV files, then iterates through them. You could then write a backtesting script to simualate your strategy. Or I might use an existing backtesting library.
 
 ## Forward Testing
 - Same as live trading, except fake money is used.
-- Toggle the `live_trading` setting in the public config file to `True`.
+- For Oanda, this is as simple as toggling the `live_trading` key/value in the public config file to `False`.
 
 ## Live Trading
 - It is referred to as a "daemon" because it is intended to be self-sufficient and not require monitoring or adjustment.
 - Each strategy gets its own module. For example, the `/src/strategies/fifty.py` module encapsulates one simple strategy.
+- Toggle the public config `live_trading` key to `True`.
 
 ## Platform Design: Scalability and Modularity
 - Scalability and user-friendliness take priority over speed. This is not intended to be used for high-frequency trading and/or arbitrage.
