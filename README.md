@@ -24,7 +24,7 @@
 - Run test script from /src/ : `$ bash tests/run_tests.sh`
 - You will need to make your own private config file. Put it in a secure location and specify that path in the public config  (`/src/config_nonsecure.cfg`). The key/value pairs you must include in the private config can be determined by reading `/src/config.py`.
 - You will need to create the database on your machine. There is a backup script for the purpose of recreating the structure. It is in `/src/db/db_backup.mysql`. It may or may not be up to date.
-- Implement strategies by creating your own strategy module in `/src/strategies/`. Override the `Strategy` class in `/src/strategy.py` and implement your own logic. Decision-making logic goes into the `_scan()` method. This is called over and over; if you want to enter a trade, return an instance of `Opportunity`. Also implement `_babysit()` to keep an eye on open positions.
+- Implement strategies by creating your own strategy module in `/src/strategies/`. Inherit the `Strategy` class from `/src/strategy.py` and implement your own logic. Logic for opening positions goes into the `_scan()` method. This is called over and over; if you want to place an order, return an instance of `Opportunity`. Logic for closing positions goes into `_babysit()`.
 - The `Chart` class in `/src/chart.py` provides a convenient way to analyze candlesticks and make decisions. In the future I would like to incorporate indicators into this class.
 
 ## Platform Design: Scalability and Modularity
