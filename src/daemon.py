@@ -33,10 +33,6 @@ from strategies.fifty import *
 from timer import Timer
 
 
-# Limitations should be specified here, such as 
-#   which instruments to use
-#   number of units
-#   amount of capital to use
 # The daemon:
 #   - Manages account balance, margin, risk.
 #   - Accepts and rejects trade opportunities.
@@ -60,16 +56,32 @@ class Daemon():
     # Specify the backup strategy.
     backup_strategy = Fifty 
 
-    # Set the strategies to use.
-    # If backup_strategy is different than the other
-    # strategies, be sure to add that too. If it matches one of
-    # the strategies you will use, then don't add it.
+    """
+    Set the strategies to use.
+    If backup_strategy is different than the other strategies, be sure to
+        add that too. If it matches one of the strategies you will use, then
+        don't add it (don't need to manage it twice).
+    """
     strategies = []
     strategies.append(Fifty)
-    #strategies.append(FollowTrend)
     #strategies.append(backup_strategy)
 
     msg_base = '' # user interface template
+
+
+    @classmethod
+    def num_strategies_with_positions(cls):
+        sum = 0
+        for s in cls.strategies:
+            if s.get_number_positions() > 0:
+                sum += 1
+        return sum
+
+
+    @classmethod
+    def num_strategies_with_no_positions(cls):
+        return strategies.size() - cls.num_strategies_with_positions()
+
 
     @classmethod
     def _curses_init(cls, stdcsr):
@@ -119,10 +131,11 @@ class Daemon():
             stdcsr.refresh() # redraw
 
 
-    """
-    """
     @classmethod
     def run(cls, stdcsr):
+        """Returns: void
+        This is the main program loop.
+        """
         # initialize user interface
         cls._curses_init(stdcsr)
 
@@ -148,7 +161,6 @@ class Daemon():
             cls._curses_refresh(stdcsr)
 
             # Let each strategy suggest an order
-            # TODO: Let strategies suggest multiple orders
             for s in cls.strategies:
                 new_opp = s.refresh()
                 if new_opp == None:
@@ -169,7 +181,19 @@ class Daemon():
                 # Nothing is being suggested.
                 pass
             else:
-                # Place the order.
+                # An order was suggested by a strategy, so place the order.
+                # calculate units to order
+                SLIPPAGE_WIGGLE = 0.95
+                available_money = broker.get_margin_available() * SLIPPAGE_WIGGLE
+                instrument_price = 0
+                if best_opp.order.go_long:
+                    instrument_price = broker.get_ask(best_opp.order.instrument)
+                else:
+                    instrument_price = broker.get_bid(best_opp.order.instrument)
+                units = available_money / (cls.num_strategies_with_no_positions() * instrument_price)
+                best_opp.order.units = units
+                Log.write('daemon.py run(): Executing opportunity:\n'.format(best_opp))
+                
                 order_result = Broker.place_order(best_opp.order)
                 Log.write('"daemon.py" run(): order_result = \n{}'
                     .format(order_result))

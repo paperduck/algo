@@ -1,13 +1,8 @@
-#!/usr/bin/python 
-
 """
-File:           opportunities.py
 Python verion:  3.4
-Description:
-    The `opportunity` class represents one order.
-    The `opportunities` class is a list of opportunities.
+An <Opportunity> is a wrapper for one potential order.
+An <Opportunities> is a list of opportunities.
 """
-
 
 #*************************
 #*************************
@@ -15,20 +10,17 @@ from log import Log
 from order import Order
 #*************************
 
-
 """
+Description: The <Order> instance to be set by a strategy when it suggests
+an opportunity.
+Type: <Order>
 """
 class Opportunity():
 
-    """
-    Description: The <Order> instance to be set by a strategy when it suggests
-    an opportunity.
-    Type: <Order>
-    """
     def __init__(self):
         self.order = None
-        # estimated rating of success
-        self.confidence = 1 #Int 1-100
+        # estimate of success (int 1-100)
+        self.confidence = 1
         # Reference to strategy class that created this opportunity.
         # <Trade> objects also hold a reference to their strategy.
         self.strategy = None #<Strategy>

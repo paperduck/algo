@@ -262,6 +262,7 @@ class TestChart(unittest.TestCase):
         """
         old chart that gets completely updated
         """
+        # initial "outdated" chart
         chart = Chart(
             in_instrument=Instrument(4),
             granularity='M1',
@@ -270,15 +271,19 @@ class TestChart(unittest.TestCase):
         )
         # Update chart
         chart.update()
+
         # Verify data is most recent
         time_since_close = Broker.get_time_since_close()
         now = datetime.datetime.utcnow()
         end_timestamp = chart.get_end_timestamp()       
         if (Broker.get_time_until_close() == datetime.timedelta()):
             # market closed now, so incorporate delay
+            print( 'time since end_timestamp: {}'.format(now - end_timestamp) ) 
+            print( 'time_since_close: {}'.format(time_since_close) ) 
             self.assertTrue(abs((now - end_timestamp) - (time_since_close)) < datetime.timedelta(minutes=2))
         else:
             self.assertTrue(abs(now - end_timestamp) < datetime.timedelta(minutes=2))
+
         # verify candle at start index has earliest timestamp.
         earliest_timestamp = datetime.datetime.utcnow()
         for i in range(0, chart.get_size()):

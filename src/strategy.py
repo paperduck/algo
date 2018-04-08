@@ -32,6 +32,11 @@ class Strategy():
 
 
     @classmethod
+    def get_number_positions(cls):
+        return _open_trade_ids.size()
+
+
+    @classmethod
     def get_name(cls):
         """
         Needs to be overloaded.
@@ -134,8 +139,6 @@ class Strategy():
         cls._open_trade_ids.append(trade_id)
 
 
-    """
-    """
     @classmethod
     def drop_all(cls):
         del cls._open_trade_ids[:]

@@ -58,18 +58,19 @@ class Broker():
         return cls.broker.get_num_of_positions(account_id)
 
 
-    # Get account balance for a given account ID
-    # Returns: Decimal number
     @classmethod
     def get_balance(cls, account_id):
+        """Return type: Decimal number
+        Get account balance.
+        If account_id is not proviced, defaults to primary account.
+        """
         return cls.broker.get_balance(account_id)
 
 
     @classmethod
     def get_prices(cls, instruments, since=None):
-        """
+        """Returns: dict or None
         Fetch live prices for specified symbol(s)/instrument(s).
-        Returns: dict or None
         TODO: make this more robust. Maybe pass in a list, then have each broker-specific library
             do validation.
         """
@@ -78,26 +79,22 @@ class Broker():
 
     @classmethod
     def get_ask(cls, instrument, since=None):
-        """
+        """Returns: Decimal or None
         Get one ask price
-        Returns: Decimal or None
         """
         return cls.broker.get_ask(instrument, since)
 
 
     @classmethod
     def get_bid(cls, instrument, since=None):
-        """
-        # Get one bid price
-        # Returns: Decimal or None
+        """Returns: Decimal or None
+        Get one bid price
         """
         return cls.broker.get_bid(instrument, since)
 
 
     @classmethod
     def get_spreads(cls, instruments, since=None):
-        """
-        """
         return cls.broker.get_spreads(instruments, since)
 
 
@@ -106,13 +103,15 @@ class Broker():
         return cls.broker.get_spread(instrument, since)
 
 
+    """
+    Return type: dict or none
+    Return value: Whatever broker returns (Oanda=JSON)
+    """
     @classmethod
     def place_order(cls, order):
-        """
-        Place an order.
-        
-        Return: TODO: develop generic format for all brokers
-        """
+
+        if order.units == None:
+            raise Exception
         result = cls.broker.place_order(order)
         # TODO: If a trade is opened, write trade info to db
         # (table: open_trades_live)

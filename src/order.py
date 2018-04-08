@@ -12,20 +12,21 @@ class Order():
         future, this may need to be tweaked.
     """
 
-    def __init__(self,
-        expiry=None,            # string
+    def __init__(
+        self,
         instrument=None,        # <Insrument>
+        go_long=None,           # boolean
+        order_type=None,        # string - limit/stop/marketIfTouched/market
+        expiry=None,            # date/time as string (util_date.py)
+        price=None,             # numeric, prince per unit for limit/stop/marketIfTouched
         lower_bound=None,       #
-        order_type=None,        #
-        price=None,
-        reason='',
-        go_long=None,
-        stop_loss=None,
+        stop_loss=None,         # 
         take_profit=None,
         trailing_stop=None,
         #transaction_id=None,
-        units=None,
-        upper_bound=None
+        units=None,             # numeric
+        upper_bound=None,
+        reason=''               # optional string - for logging
     ):
         self.expiry         = expiry
         self.instrument     = instrument
@@ -39,6 +40,7 @@ class Order():
         #self.transaction_id = transaction_id
         self.units          = units
         self.upper_bound    = upper_bound
+        self.reason         = reason
 
 
     def __str__(self):
@@ -53,8 +55,8 @@ class Order():
             take_profit: {}\n\
             trailing_stop: {}\n\
             units: {}\n\
-            upper_bound: {}\n'\
-            .format(
+            upper_bound: {}\n\
+            reason: {}\n'.format(
                 self.expiry,
                 self.instrument.get_name(),
                 self.lower_bound,
@@ -64,8 +66,8 @@ class Order():
                 self.stop_loss,
                 self.take_profit,
                 self.trailing_stop,
-                #self.transaction_id,
                 self.units,
-                self.upper_bound
+                self.upper_bound,
+                self.reason
             )
 

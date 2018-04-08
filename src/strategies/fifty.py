@@ -191,7 +191,7 @@ class Fifty(Strategy):
                     go_long=cls.go_long,
                     stop_loss=sl,
                     take_profit=tp,
-                    units='100'
+                    units=None
                 )
                 Log.write('"fifty.py" _scan(): Returning opportunity with \
                     order:\n{}'.format(opp))

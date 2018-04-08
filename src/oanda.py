@@ -218,14 +218,17 @@ class Oanda():
             return account
 
 
+    """
+    Get account info for a given account ID
+    Returns: dict or None 
+    """
     @classmethod
-    def get_account(cls, account_id):
-        """
-        Get account info for a given account ID
-        Returns: dict or None 
-        """
-        Log.write('"oanda.py" get_account(): Entering.')
-        account = cls.fetch(Config.oanda_url + '/v1/accounts/' + account_id)
+    def get_account(cls, account_id=None):
+        account = None
+        if account_id == None:
+            account = cls.fetch(Config.oanda_url + '/v1/accounts/' + cls.get_account_id_primary())
+        else:
+            account = cls.fetch(Config.oanda_url + '/v1/accounts/' + account_id)
         if account == None:
             Log.write('"oanda.py" get_account(): Failed to get account.')
             return None
@@ -248,13 +251,12 @@ class Oanda():
             return pos
 
 
+    """
+    Get number of positions for a given account ID
+    Returns: Integer
+    """
     @classmethod
     def get_num_of_positions(cls, account_id):
-        """
-        Get number of positions for a given account ID
-        Returns: Integer
-        """
-        #Log.write('"oanda.py" get_num_of_positions(): Entering.')
         positions = cls.get_positions(account_id)
         if positions == None:
             Log.write('"oanda.py" get_num_of_positions(): Failed to get positions.')
@@ -264,13 +266,15 @@ class Oanda():
 
 
     @classmethod
-    def get_balance(cls, account_id):
-        """
+    def get_balance(cls, account_id=None):
+        """Return type: Decimal number
         Get account balance for a given account ID
-        Returns: Decimal number
         """
-        #Log.write('"oanda.py" get_balance(): Entering.')
-        account = cls.get_account(account_id)
+        account = None
+        if account_id == None:
+            account = cls.get_account(cls.get_account_id_primary())
+        else:
+            account = cls.get_account(account_id)
         if account == None:
             Log.write('"oanda.py" get_balance(): Failed to get account.')
             return None
