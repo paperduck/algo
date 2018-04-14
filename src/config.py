@@ -42,6 +42,7 @@ class Config():
     else:
         oanda_url =  'https://api-fxpractice.oanda.com'
         oanda_token = cfg['oanda']['token_practice']
+    account_id_oanda = cfg['oanda']['account_id_oanda']
     log_path = cfg['log']['path']
     log_file = cfg['log']['file']
     log_path = log_path + log_file

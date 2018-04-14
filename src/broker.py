@@ -37,11 +37,12 @@ class Broker():
         return cls.broker.get_auth_key()
 
 
-    # Get list of accounts
-    # Returns: dict or None
-    @classmethod
+    '''@classmethod
     def get_accounts(cls):
+        # Get list of accounts
+        # Returns: dict or None
         return cls.broker.get_accounts()
+    '''
    
  
     # Get list of open positions
