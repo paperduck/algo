@@ -60,11 +60,9 @@ class Candle():
         pass
 
 
-
     def __str__(self):
-        return '{0} open:({1}) high:({2}) low:({3}) close:({4})'.format(
-            self.timestmap, str(self.h), str(self.l), str(self.o), str(self.c)
+        return 'candle({0}) bid o:{1} h:{2} l:{3} c:{4}'.format(
+            self.timestamp, str(self.open_bid), str(self.high_bid),
+            str(self.low_bid), str(self.close_bid)
         )
-
-
 

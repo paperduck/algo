@@ -34,14 +34,14 @@ class TestDaemon(unittest.TestCase):
         print('*****************************************')
         
 
-    """
-    Constraints: # TODO: make more precise
-        - less than one week ago
-        - before now
-        - if market open now, > 2 days ago
-        - if market closed now, less than 2 days ago
-    """
     def test_get_time_since_close (self):
+        """
+        Constraints: # TODO: make more precise
+            - less than one week ago
+            - before now
+            - if market open now, > 2 days ago
+            - if market closed now, less than 2 days ago
+        """
         now = datetime.datetime.utcnow()
         zero_delta = datetime.timedelta()
         time_since_close = Oanda.get_time_since_close() # timedelta
@@ -55,9 +55,9 @@ class TestDaemon(unittest.TestCase):
             self.assertTrue(now - (now - time_since_close) > datetime.timedelta(days=2))
         else:
             self.assertTrue(now - (now - time_since_close) < datetime.timedelta(days=2))
-        print('*************************************')
-        print('time since last close: {}  *****'.format(time_since_close))
-        print('*************************************')
+        print('***********************************************\\')
+        print('time since last close: {}'.format(time_since_close))
+        print('***********************************************/')
 
 
 if __name__ == '__main__':

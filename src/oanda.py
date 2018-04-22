@@ -1,5 +1,6 @@
 """
 Custom Python wrapper for Oanda's REST-V20 API.
+This wrapper might be incomplete.
 http://developer.oanda.com/
 """
 
@@ -77,7 +78,8 @@ class Oanda():
             headers = {\
                 'Authorization': 'Bearer ' + cls.get_auth_key(),\
                 'Content-Type': 'application/json',\
-                'Accept-Encoding': 'gzip, deflate'
+                'Accept-Encoding': 'gzip, deflate',
+                'Accept-Datetime-Format': 'RFC3339'
             }
         else:
             headers = in_headers
@@ -276,11 +278,11 @@ class Oanda():
         """Return type: dict or None
         Fetch live prices for specified instruments that are available on the OANDA platform.
         """
-        url_args = '?instruments=' + utils.instruments_to_url(instruments)
+        url_args = 'instruments=' + utils.instruments_to_url(instruments)
         if since != None:
             url_args += '&since=' + since
-        prices = cls.fetch( '{}/v3/accounts/{}/pricing/{}'
-            .format(Config.oanda_url, Config.account_id_oanda, url_args) )
+        prices = cls.fetch( '{}/v3/accounts/{}/pricing?{}'
+            .format(Config.oanda_url, Config.account_id, url_args) )
         if prices == None:
             Log.write('"oanda.py" get_prices(): Failed to get prices.')
             return None
@@ -381,26 +383,12 @@ class Oanda():
     @classmethod
     def place_order(cls, in_order):
         """Return type: dict or none
-        Returns: information about the order (and related trade)
+        Return value: information about the order (and related trade)
         Description: Place an order.
 
         If I place a trade that reduces another trade to closing, then I get a
         200 Code and information about the trade that closed. I.e. I don't get
         info about an opened trade.
-        
-        Oanda returns stuff like this:
-        - instrument name
-        - time
-        - price // trigger price of order
-        - tradeOpened
-        - id
-        - units
-        - side
-        - takeProfit
-        - stopLoss
-        - trailingStop
-        - tradeClosed
-        - tradeReduced
         """
         Log.write ('"oanda.py" place_order(): Placing order...')
         request_args = {}
@@ -435,7 +423,7 @@ class Oanda():
         result = cls.fetch(
             in_url="{}/v3/accounts/{}/orders".format(
                 Config.oanda_url,
-                Config.account_id_oanda
+                Config.account_id
             ),
             in_data=data,
             in_method='POST'
@@ -447,7 +435,7 @@ class Oanda():
             result = cls.fetch(
                 in_url="{}/v3/accounts/{}/orders".format(
                     Config.oanda_url,
-                    Config.account_id_oanda
+                    Config.account_id
                 ),
                 in_data=data,
                 in_method='POST'
@@ -466,17 +454,16 @@ class Oanda():
         cls,
         instrument  # <Instrument> instance
     ):
-        """Returns: Boolean
-        Is the market open?
+        """Return type: boolean
+        Return value: true if market currently open, according to Oanda's API.
         """
         prices = cls.get_prices([instrument])
-        # 'status' only appears if instrument is halted
         try:
-            if prices['prices'][0]['status'] == 'halted':
-                return False
+            return prices['prices'][0]['tradeable']
         except Exception:
-            pass
-        return True
+            Log.write(
+                'oanda.py is_market_open(): Failed to get key \'tradeable\'. \ninstr:{}\nprices: {}'.format(instrument, prices))
+            raise Exception
 
 
     """
@@ -484,6 +471,7 @@ class Oanda():
      or depending on broker.
     """
     market_opens = { 
+        # 10pm UTC, 7am JST
         util_date.SUNDAY: [datetime.timedelta(hours=22)]
     }
     market_closes = {
@@ -584,6 +572,24 @@ class Oanda():
         
 
     @classmethod
+    def get_transactions_since_id(cls, start_id):
+        """Returns: dict or None
+        Gets transactions since start_id
+        """
+        transactions = cls.fetch(
+             in_url='{}/v3/accounts/{}/transactions/sinceid?id={}'
+            .format(Config.oanda_url, Config.account_id, start_id)
+            )
+        if transactions == None:
+            DB.bug('"oanda.py" get_transaction_since_id(): Failed to fetch transaction history.')
+            Log.write('"oanda.py" get_transaction_since_id(): Failed to fetch transaction history.')
+            return None
+        else:
+            return transactions
+        
+
+    '''
+    @classmethod
     def get_transaction_history(cls, maxId=None, minId=None, count=None, instrument=None, ids=None):
         """Returns: dict or None
         Get transaction history
@@ -613,7 +619,7 @@ class Oanda():
             args = args + 'ids=' & str(ids)
         trans = cls.fetch(
              in_url='{}/v1/accounts/{}/transactions?{}'
-            .format(Config.oanda_url, Config.account_id_oanda, args)
+            .format(Config.oanda_url, Config.account_id, args)
             )
         if trans == None:
             DB.bug('"oanda.py" get_transaction_history(): Failed to fetch transaction history.')
@@ -621,38 +627,38 @@ class Oanda():
             return None
         else:
             return trans
+    '''
 
 
     @classmethod
     def get_instrument_history(
+        cls,
+        in_instrument,      # <Instrument>
+        granularity,        # string
+        count,              # optional- int - leave out if both start & end specified
+        from_time,          # optional- datetime
+        to,                 # optional- datetime
+        price,              # optional - string
+        include_first,      # optional - bool - Oanda wants 'true'/'false'
+        daily_alignment,    # 0 to 23 - optional
+        alignment_timezone, # timezone - optional
+        weekly_alignment    # 'Monday' etc. - optional
+    ):
         """Return type: dict or None
         """
-        cls,
-        in_instrument,          # <Instrument>
-        granularity=None,       # string
-        count=None,             # optional- int - leave out if both start & end specified
-        start=None,             # optional- datetime
-        end=None,               # optional- datetime
-        candle_format=None,     # optional - string - Oanda defaults to
-                                # bid/ask (versus midpoint)
-        include_first=None,     # optional - bool - Oanda wants 'true'/'false'
-        daily_alignment=None,   # 0 to 23 - optional
-        alignment_timezone=None,# timezone - optional
-        weekly_alignment=None   # 'Monday' etc. - optional
-    ):
-        if count != None and start != None and end != None:
+        if count != None and from_time != None and to != None:
             raise Exception
-        args='instrument=' + in_instrument.get_name()
+        args=''
         if granularity != None:
             args = args + '&granularity=' + granularity
         if count != None:
             args = args + '&count=' + str(count)
-        if start != None:
-            args = args + '&start=' + utils.url_encode(util_date.date_to_string(start))
-        if end != None:
-            args = args + '&end=' + utils.url_encode(util_date.date_to_string(end))
-        if candle_format != None:
-            args = args + '&candleFormat=' + candle_format
+        if from_time != None:
+            args = args + '&from=' + utils.url_encode(util_date.date_to_string(from_time))
+        if to != None:
+            args = args + '&to=' + utils.url_encode(util_date.date_to_string(to))
+        if price != None:
+            args = args + '&price=' + price
         if include_first != None:
             if include_first:
                 args = args + '&includeFirst=' + 'true'
@@ -666,7 +672,7 @@ class Oanda():
             args = args + '&weeklyAlignment=' + weekly_alignment
 
         result = cls.fetch(
-            in_url='{}/v1/candles?{}'.format(Config.oanda_url, args)
+            in_url='{}/v3/instruments/{}/candles?{}'.format(Config.oanda_url, in_instrument.get_name(), args)
         )
         if result == None:
             DB.bug('"oanda.py" get_instrument_history(): Failed to fetch.')
@@ -750,16 +756,16 @@ class Oanda():
 
 
     @classmethod
-    def get_trades(cls):
+    def get_open_trades(cls):
         """Return type: Instance of <Trades> or None
         Get info about all open trades
         """
         #Log.write('"oanda.py" get_trades(): Entering.')
-        trades_oanda = cls.fetch('{}/v1/accounts/{}/trades/'
-            .format(Config.oanda_url,str(Config.account_id_oanda))
+        trades_oanda = cls.fetch('{}/v3/accounts/{}/openTrades/'
+            .format(Config.oanda_url,str(Config.account_id))
             )
         if trades_oanda == None:
-            Log.write('"oanda.py" get_trades(): Failed to get trades from Oanda.')
+            Log.write('"oanda.py" get_open_trades(): Failed to get trades from Oanda.')
             return None
         else:
             ts = Trades()
@@ -784,20 +790,20 @@ class Oanda():
 
     @classmethod
     def get_trade(cls, trade_id):
-        """
+        """Returns: <Trade> or None
         Get info about a particular trade.
         """
         Log.write('"oanda.py" get_trade(): Entering.')
-        t = cls.fetch(
-            '{}/v1/accounts/{}/trades/{}'.format(
+        trades = cls.fetch(
+            '{}/v3/accounts/{}/trades/{}'.format(
                 Config.oanda_url,
-                str(Config.account_id_oanda),
+                str(Config.account_id),
                 str(trade_id)
             )
         )
-        if t != None:
+        if trades != None:
             go_long = None
-            if t['side'] == 'buy':
+            if trades['side'] == 'buy':
                 going_long = True
             else:
                 going_long = False
@@ -822,84 +828,50 @@ class Oanda():
         Get order info
         """
         response = cls.fetch(\
-             Config.oanda_url + '/v1/accounts/' + str(Config.account_id_oanda) + '/orders/' + str(order_id) )
+             Config.oanda_url + '/v3/accounts/' + str(Config.account_id) + '/orders/' + str(order_id) )
         if response == None:
             Log.write('"oanda.py" get_order_info(): Failed to get order info.')
             return None
         else:
             return response
         
-    @classmethod
-    def modify_order(cls, in_order_id, in_units=0, in_price=0, in_expiry=0, in_lower_bound=0,\
-        """Returns: dict or None
-        Modify an existing order
-        """
-        in_upper_bound=0, in_stop_loss=0, in_take_profit=0, in_trailing_stop=0):
-        #Log.write('"oanda.py" modify_order(): Entering.')
-
-        request_args = {}
-        if in_units != 0:
-            request_args['units'] = in_units
-        if in_price != 0:
-            request_args['price'] = in_price
-        if in_expiry != 0:
-            request_args['expiry'] = in_expiry
-        if in_lower_bound != 0:
-            request_args['lowerBound'] = in_lower_bound
-        if in_upper_bound != 0:
-            request_args['upperBound'] = in_upper_bound
-        if in_stop_loss != 0:
-            request_args['stopLoss'] = in_stop_loss
-        if in_take_profit != 0:
-            request_args['takeProfit'] = in_take_profit
-        if in_trailing_stop != 0:
-            request_args['trailingStop'] = in_trailing_stop
-
-        data = urllib.parse.urlencode(request_args)
-        data = utils.stob(data) # convert string to bytes
-
-        response = cls.fetch(
-            in_url= + '{}/v1/accounts/{}/orders/{}'
-            .format(
-                Config.oanda_url,
-                Config.account_id_oanda,
-                str(in_order_id)
-            ),
-            in_data=data,
-            in_method='PATCH'
-        )
-        if response == None:
-            Log.write('"oanda.py" modify_order(): Failed to modify order.')
-            return None
-        else:
-            return response
-
 
     @classmethod
-    def modify_trade(cls, trade_id, stop_loss=0, take_profit=0, trailing_stop=0):
-        """Returns: dict or None
-        Modify an existing trade
+    def modify_trade(
+        cls,
+        trade_id,
+        take_profit_price=None,
+        #take_profit_time_in_force=None,
+        #take_profit_good_til_date=None,
+        #take_profit_clientExtensions=None,
+        stop_price=None,
+        trailing_stop_distance=None
+    ):
+        """Returns:
+        This is trimmed down from Oanda's v20 API.
         """
         #Log.write('"oanda.py" modify_trade(): Entering.')
-        request_args = {}
-        if stop_loss != 0:
-            request_args['stopLoss'] = stop_loss
-        if take_profit != 0:
-            request_args['takeProfit'] = take_profit
-        if trailing_stop != 0:
-            request_args['trailingStop'] = trailing_stop
-        data = urllib.parse.urlencode(request_args)
-        data = utils.stob(data) # convert string to bytes
-    
+
+        request_body = {}
+        if take_profit_price:
+            request_body['takeProfit'] = {}
+            request_body['takeProfit']['price'] = take_profit_price
+        if stop_price:
+            request_body['stopLoss'] = {}
+            request_body['stopLoss']['price'] = stop_price
+        if trailing_stop_distance:
+            request_body['trailingStopLoss'] = {}
+            request_body['trailingStopLoss']['distance'] = trailing_stop_distance
+
         response = cls.fetch(
-            in_url='{}/v1/accounts/{}/trades/{}'
+            in_url='{}/v3/accounts/{}/trades/{}/orders'
             .format(
                 Config.oanda_url,
-                Config.account_id_oanda,
+                Config.account_id,
                 str(trade_id)
             ),
-            in_data=data,
-            in_method='PATCH'
+            in_data=request_body,
+            in_method='PUT'
         )
         if response != None:
             return response

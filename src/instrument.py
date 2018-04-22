@@ -17,6 +17,10 @@ class Instrument():
         self._name = self.get_name_from_id(new_id)
 
 
+    def __str__(self):
+        return 'instrument (id: {}, name: {})'.format(self._id, self._name)
+
+
     """
     Return type: string
     """
