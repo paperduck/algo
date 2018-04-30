@@ -124,7 +124,7 @@ class Trade():
 
 class Trades(Sequence):
     """
-    List of `trade` objects.
+    List of <trade> objects.
     TODO:  This could be a heap, with the trade's ID as the key.
     """
     

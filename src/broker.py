@@ -37,11 +37,12 @@ class Broker():
         return cls.broker.get_auth_key()
 
 
-    # Get list of accounts
-    # Returns: dict or None
-    @classmethod
+    '''@classmethod
     def get_accounts(cls):
+        # Get list of accounts
+        # Returns: dict or None
         return cls.broker.get_accounts()
+    '''
    
  
     # Get list of open positions
@@ -128,15 +129,11 @@ class Broker():
         return cls.broker.is_market_open()
 
 
-    """
-    """
     @classmethod
     def get_time_until_close(cls):
         return cls.broker.get_time_until_close()
 
 
-    """
-    """
     @classmethod
     def get_time_since_close(cls):
         return cls.broker.get_time_since_close()
@@ -144,9 +141,8 @@ class Broker():
 
     @classmethod
     def get_transaction_history(cls, maxId=None, minId=None, count=None, instrument=None, ids=None):
-        """
-        # Get transaction history
-        # Returns: dict or None
+        """Returns: 
+        Get transaction history
         """
         return cls.broker.get_transaction_history(maxId=maxId, minId=minId,
             count=count, instrument=instrument, ids=ids)
@@ -162,22 +158,22 @@ class Broker():
         instrument,             # <Instrument>
         granularity=None,       # string
         count=None,             # optional- int - leave out if both start & end specified
-        start=None,             # optional- datetime
-        end=None,               # optional- datetime
-        candle_format=None,     # optional - string - 'midpoint' or 'bidask' (default)
-        include_first=None,     # optional - bool - 'true' (default) or 'false'
-        daily_alignment=None,   # optional - 0 to 23
-        alignment_timezone=None,# optional - see broker's API documentation
-        weekly_alignment=None   # optional - 'Monday' etc.
+        from_time=None,         # optional- datetime
+        to=None,                # optional- datetime
+        price='MBA',            # optional - string
+        include_first=None,     # optional - bool
+        daily_alignment=None,   # optional - numeric
+        alignment_timezone=None,# optional - 
+        weekly_alignment=None   # optional - string
     ):
         if Config.broker_name == 'oanda':
             return cls.broker.get_instrument_history(
                 in_instrument=instrument,
                 granularity=granularity,
                 count=count,
-                start=start,
-                end=end,
-                candle_format=candle_format,
+                from_time=from_time,
+                to=to,
+                price=price,
                 include_first=include_first,
                 daily_alignment=daily_alignment,
                 alignment_timezone=alignment_timezone,
@@ -189,31 +185,28 @@ class Broker():
 
     @classmethod
     def is_trade_closed(cls, transaction_id):
-        """
+        """Returns: 
         See if a trade is closed.
-        Returns: 
         """
         return cls.broker.is_trade_closed(transaction_id)
 
 
     @classmethod
-    def get_trades(cls):
-        """
-        Get info about all open trades from the broker.
+    def get_open_trades(cls):
+        """ Return type: <Trades>
+        Returns info about all open trades from the broker.
         To get "local" info about the trades, use
         trade.fill_in_trade_extra_info().
-
-        Returns: instance of <trades>
         """
-        return cls.broker.get_trades()
+        return cls.broker.get_open_trades()
 
 
-    """
-    Get info about a particular trade
-    Returns: instance of <trade>
-    """
     @classmethod
     def get_trade(cls, trade_id):
+        """
+        Get info about a particular trade
+        Returns: instance of <Trade>
+        """
         return cls.broker.get_trade(trade_id)
 
 

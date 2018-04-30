@@ -28,9 +28,9 @@ class Chart:
         count=None,                 # int - number of candles
         start=None,                 # datetime - UTC
         end=None,                   # datetime - UTC
-        candle_format=None,         # string - See Oanda's documentation
-        include_first=None,
-        daily_alignment=None,
+        price='MBA',                # string
+        include_first=None,         # bool
+        daily_alignment=None,       # int
         alignment_timezone=None,    # string - timezone
         weekly_alignment=None
     ):
@@ -43,9 +43,9 @@ class Chart:
             instrument=in_instrument,
             granularity=granularity,
             count=count,
-            start=start,
-            end=end,
-            candle_format=candle_format,
+            from_time=start,
+            to=end,
+            price=price,
             include_first=include_first,
             daily_alignment=daily_alignment,
             alignment_timezone=alignment_timezone,
@@ -61,46 +61,52 @@ class Chart:
                     timestamp=util_date.string_to_date(c_r['time']),
                     volume=float(c_r['volume']),
                     complete=bool(c_r['complete']),
-                    open_bid=float(c_r['openBid']),
-                    open_ask=float(c_r['openAsk']),
-                    high_bid=float(c_r['highBid']),
-                    high_ask=float(c_r['highAsk']),
-                    low_bid=float(c_r['lowBid']),
-                    low_ask=float(c_r['lowAsk'])
+                    open_bid=float(c_r['bid']['o']),
+                    high_bid=float(c_r['bid']['h']),
+                    low_bid=float(c_r['bid']['l']),
+                    close_bid=float(c_r['bid']['c']),
+                    open_ask=float(c_r['ask']['o']),
+                    high_ask=float(c_r['ask']['h']),
+                    low_ask=float(c_r['ask']['l']),
+                    close_ask=float(c_r['ask']['c'])
                 )
                 self._candles.append(new_candle)
 
         self._instrument = in_instrument
         self._granularity = instrument_history['granularity']
         self._start_index = 0 # start
-        self._end_index = len(self._candles) - 1 # end
-        self._candle_format = candle_format
+        self._price = price
         self.include_first = include_first
         self.daily_alignment = daily_alignment
         self._alignment_timezone = alignment_timezone
         self.weekly_alignment = weekly_alignment
 
 
-    """
-    """
     def __str__(self):
         return "Chart"
 
 
-    """
-    Return type: int
-    Returns: Number of candles in chart.
-    https://wiki.python.org/moin/TimeComplexity
-    len(<list>) in Python is O(1), so no need to store size.
-    """
+    def _get_end_index(self):
+        if self._start_index > 0:
+            return self._start_index - 1
+        elif self._start_index == 0:
+            return self.get_size() - 1
+        else:
+            raise Exception
+
+
     def get_size(self):
+        """Return type: int
+        Returns: Number of candles in chart.
+        https://wiki.python.org/moin/TimeComplexity
+        len(<list>) in Python is O(1), so no need to store size.
+        """
         return len(self._candles)
 
 
-    """
-    Return type: <Instrument> instance
-    """
     def get_instrument(self):
+        """Return type: <Instrument> instance
+        """
         return self._instrument
 
 
@@ -118,32 +124,27 @@ class Chart:
         return self._candles[self._start_index].timestamp
 
 
-    """
-    Return type: datetime
-    Return the time and date of the last candlestick.
-    """
     def get_end_timestamp(self):
-        return self._candles[self._end_index].timestamp
+        """Return type: datetime
+        Return the time and date of the last candlestick.
+        """
+        return self._candles[self._get_end_index()].timestamp
 
 
-    """
-    Return type: datetime.timedelta
-    Get time difference between first and last candles.
-    """
     def get_time_span(self):
+        """Return type: datetime.timedelta
+        Get time difference between first and last candles.
+        """
         return self.get_end_timestamp() - self.get_start_timestamp()
 
 
-    """
-    Return type: datetime.timedelta
-    Returns time difference between the last candlestick and now.
-    """
     def get_lag(self):
+        """Return type: datetime.timedelta
+        Returns time difference between the last candlestick and now.
+        """
         return datetime.datetime.utcnow() - self.get_end_timestamp()
 
 
-    """
-    """
     def _increment_start_index(self):
         if self._start_index < self.get_size() - 1:
             self._start_index += 1
@@ -151,35 +152,27 @@ class Chart:
             self._start_index = 0
         else:
             raise Exception
-        if self._end_index < self.get_size() - 1:
-            self._end_index += 1
-        elif self._end_index == self.get_size() - 1:
-            self._end_index = 0
-        else:
-            raise Exception
 
 
-    """
-    Return type: None on failure, 0 on success
-    Basically re-initialize the chart.
-    Use this for storing candles from a particular point in time.
-    Use update() to get the latest candles.
-    """
     def set(self, start_time):
+        """Return type: None on failure, 0 on success
+        Basically re-initialize the chart.
+        Use this for storing candles from a particular point in time.
+        Use update() to get the latest candles.
+        """
         raise NotImplementedError
 
 
-    """
-    Return type: void
-    Replace the candles with the most recent ones available.
-    Algorithm uor minimizing number of updated candles:
-        Get the time difference from chart end to now.
-        If the time difference is greater than the width of the chart,
-            request <chart size> candles.
-        else,
-            request candles from end of chart to now.
-    """
     def update(self):
+        """Returns: void
+        Replace the candles with the most recent ones available.
+        Algorithm for minimizing number of updated candles:
+            Get the time difference from chart end to now.
+            If the time difference is greater than the width of the chart,
+                request <chart size> candles.
+            else,
+                request candles from end of chart to now.
+        """
         new_history = None
         if self.get_lag() > self.get_time_span():
             # replace all candles
@@ -187,7 +180,7 @@ class Chart:
                 instrument=self._instrument,
                 granularity=self._granularity,
                 count=self.get_size(), 
-                end=datetime.datetime.utcnow()
+                to=datetime.datetime.utcnow()
             )
         else:
             # request new candles starting from end of chart
@@ -195,7 +188,7 @@ class Chart:
             new_history_ = broker.get_instrument_history(
                 instrument=self._instrument,
                 granularity=self._granularity,
-                start=self.get_end_timestamp
+                from_time=self.get_end_timestamp
             )
         if new_history == None:
             Log.write('chart.py update(): Failed to get new candles.')
@@ -203,21 +196,26 @@ class Chart:
         else:
             # Got new candles. Stow them.
             new_candles = new_history['candles']
-            # iterate forwards from last (non-complete) candle
+            # Iterate forwards from last candle. The last candle is probably
+            # non-complete, so overwrite it. This thereby fills in the missing
+            # gap between (end of chart) and (now). If the gap is smaller 
+            # than the size of the chart, only the beginning of the chart is
+            # overwritten. If the gap is bigger than the chart, all candles
+            # get overwritten. 
             for i in range(0, len(self._candles)):
                 # TODO assuming bid/ask candles
                 new_candle = new_candles[i]
-                self._candles[self._end_index].timestamp    = util_date.string_to_date(new_candle['time'])
-                self._candles[self._end_index].volume       = float(new_candle['volume'])
-                self._candles[self._end_index].complete     = bool(new_candle['complete'])
-                self._candles[self._end_index].open_bid     = float(new_candle['openBid'])
-                self._candles[self._end_index].open_ask     = float(new_candle['openAsk'])
-                self._candles[self._end_index].high_bid     = float(new_candle['highBid'])
-                self._candles[self._end_index].high_ask     = float(new_candle['highBid'])
-                self._candles[self._end_index].low_bid      = float(new_candle['lowBid'])
-                self._candles[self._end_index].low_ask      = float(new_candle['lowAsk'])
-                self._candles[self._end_index].close_bid    = float(new_candle['closeBid'])
-                self._candles[self._end_index].close_ask    = float(new_candle['closeAsk'])
+                self._candles[self._get_end_index()].timestamp    = util_date.string_to_date(new_candle['time'])
+                self._candles[self._get_end_index()].volume       = float(new_candle['volume'])
+                self._candles[self._get_end_index()].complete     = bool(new_candle['complete'])
+                self._candles[self._get_end_index()].open_bid     = float(new_candle['bid']['o'])
+                self._candles[self._get_end_index()].open_ask     = float(new_candle['ask']['o'])
+                self._candles[self._get_end_index()].high_bid     = float(new_candle['bid']['h'])
+                self._candles[self._get_end_index()].high_ask     = float(new_candle['ask']['h'])
+                self._candles[self._get_end_index()].low_bid      = float(new_candle['bid']['l'])
+                self._candles[self._get_end_index()].low_ask      = float(new_candle['ask']['l'])
+                self._candles[self._get_end_index()].close_bid    = float(new_candle['bid']['c'])
+                self._candles[self._get_end_index()].close_ask    = float(new_candle['ask']['c'])
                 if i < len(self._candles) - 1:
                     self._increment_start_index() # increments end index too
 
