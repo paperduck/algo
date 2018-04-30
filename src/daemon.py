@@ -171,6 +171,8 @@ class Daemon():
             else:
                 # Place the order.
                 order_result = Broker.place_order(best_opp.order)
+                Log.write(best_opp)
+                Log.write(order_result)
                 Log.write('"daemon.py" run(): order_result = \n{}'
                     .format(order_result))
                 if order_result['tradeOpened'] != {}:
@@ -221,49 +223,44 @@ class Daemon():
         cls.stopped = True
         
 
-    """
-    Return type: None on failure, any value on success
-
-    See if there are any open trades, and resume babysitting.
-
-    If trades are opened without writing their info to the db,
-    the trade cannot be distributed back to the strategy that opened
-    it, because it is unknown what strategy placed the order.
-    This could be solved by writing to the db before placing the order,
-    synchronously. However if placing the order failed, then the database
-    record would have to be deleted, and this would be messy.
-    Instead, designate a backup strategy that adopts orphan trades.
-    """
     @classmethod
     def recover_trades(cls):
+        """Returns: None on failure, any value on success
+        See if there are any open trades, and resume babysitting.
+        -
+        If trades are opened without writing their info to the db,
+        the trade cannot be distributed back to the strategy that opened
+        it, because it is unknown what strategy placed the order.
+        This could be solved by writing to the db before placing the order,
+        synchronously. However if placing the order failed, then the database
+        record would have to be deleted, and this would be messy.
+        Instead, designate a backup strategy that adopts orphan trades.
+        """
 
         # Get trades from broker.
-        open_trades_broker = Broker.get_trades() # instance of <Trades>
+        open_trades_broker = Broker.get_open_trades() # instance of <Trades>
         if open_trades_broker == None:
-            Log.write('daemon.py recover_trades(): Broker.get_trades() failed.')
+            Log.write('daemon.py recover_trades(): Broker.get_open_trades() failed.')
             return None 
 
         # Delete any trades from the database that are no longer open.
-        # First, ignore trades that the broker has open.
+        #   First, ignore trades that the broker has open.
         db_trades = DB.execute('SELECT trade_id FROM open_trades_live')
         Log.write('"daemon.py" recover_trades():\ndb open trades: {}\nbroker open trades: {}'
             .format(db_trades, open_trades_broker))
         for index, dbt in enumerate(db_trades): # O(n^3)
             for otb in open_trades_broker:
-                if str(dbt[0]) == str(otb.get_trade_id()):
-                    # same trade_id
+                if str(dbt[0]) == str(otb.get_trade_id()): # compare trade_id
                     del db_trades[index]
-        # The remaining trades are in the "open trades" db table, but 
-        # the broker is not listing them as open.
-        # They may have closed since the daemon last ran; confirm this.
-        # Another cause is that trades are automatically removed from
-        # Oanda's history after much time passes.
+        #   The remaining trades are in the "open trades" db table, but 
+        #   the broker is not listing them as open.
+        #   They may have closed since the daemon last ran; confirm this.
+        #   Another cause is that trades are automatically removed from
+        #   Oanda's history after much time passes.
         for dbt in db_trades:
             if Broker.is_trade_closed(dbt[0])[0]:
                 # Trade is definitely closed; update db.
                 Log.write('"daemon.py" recover_trades(): Trade {} is closed. Deleting from db.'
-                    .format(dbt[0]))
-                DB.execute('DELETE FROM open_trades_live WHERE trade_id="{}"'
                     .format(dbt[0]))
             else:
                 # Trade is in "open trades" db table and the broker
@@ -272,8 +269,8 @@ class Daemon():
                     .format(dbt[0]))
                 Log.write('"daemon.py" recover_trades(): Trade w/ID (',
                     '{}) is neither open nor closed.'.format(dbt[0]))
-                DB.execute('DELETE FROM open_trades_live WHERE trade_id="{}"'
-                    .format(dbt[0]))
+            DB.execute('DELETE FROM open_trades_live WHERE trade_id="{}"'
+                .format(dbt[0]))
             
         """
         Fill in info not provided by the broker, e.g.

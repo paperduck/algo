@@ -186,31 +186,28 @@ class Broker():
 
     @classmethod
     def is_trade_closed(cls, transaction_id):
-        """
+        """Returns: 
         See if a trade is closed.
-        Returns: 
         """
         return cls.broker.is_trade_closed(transaction_id)
 
 
     @classmethod
-    def get_trades(cls):
-        """
-        Get info about all open trades from the broker.
+    def get_open_trades(cls):
+        """ Return type: <Trades>
+        Returns info about all open trades from the broker.
         To get "local" info about the trades, use
         trade.fill_in_trade_extra_info().
-
-        Returns: instance of <trades>
         """
-        return cls.broker.get_trades()
+        return cls.broker.get_open_trades()
 
 
-    """
-    Get info about a particular trade
-    Returns: instance of <trade>
-    """
     @classmethod
     def get_trade(cls, trade_id):
+        """
+        Get info about a particular trade
+        Returns: instance of <Trade>
+        """
         return cls.broker.get_trade(trade_id)
 
 

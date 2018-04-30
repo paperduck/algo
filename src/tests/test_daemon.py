@@ -79,7 +79,7 @@ class TestDaemon(unittest.TestCase):
             self.assertEqual(len(s._open_trade_ids), 0)
 
         """
-        Scenario: Trade in broker and db
+        Scenario: Open trade in broker and db
         """
         def db_execute(query):
             if query == 'SELECT trade_id FROM open_trades_live':
@@ -88,6 +88,8 @@ class TestDaemon(unittest.TestCase):
                 return [('Fifty', 'oanda')]        
             elif query == 'SELECT oanda_name FROM instruments WHERE id=4':
                 return [('USD_JPY',)]
+            elif query == 'DELETE FROM open_trades_live WHERE trade_id="id666"':
+                return
             else:
                 print('unexpected query: {}'.format(query))
                 raise Exception
@@ -99,8 +101,8 @@ class TestDaemon(unittest.TestCase):
             go_long=True, stop_loss=90, strategy=Fifty, take_profit=100,
             trade_id='id666'
         ))
-        mock_broker.get_trades = MagicMock(return_value=trades)
-        
+        mock_broker.get_open_trades = MagicMock(return_value=trades)
+        mock_broker.is_trade_closed = MagicMock(return_value=(False, None))
         Daemon.recover_trades()
         # check Fifty adopted one trade
         for s in Daemon.strategies:
@@ -143,7 +145,7 @@ class TestDaemon(unittest.TestCase):
             instrument=Instrument(4),
             go_long=True, stop_loss=90, strategy=Fifty, take_profit=100,
             trade_id='id666'))
-        mock_broker.get_trades = MagicMock(return_value=trades)
+        mock_broker.get_open_trades = MagicMock(return_value=trades)
 
         Daemon.recover_trades()
         # db should stay the same (no inserts or deletions)
@@ -172,7 +174,7 @@ class TestDaemon(unittest.TestCase):
             else:
                 raise Exception
         DB.execute = MagicMock(side_effect=db_execute)
-        mock_broker.get_trades = MagicMock(return_value=Trades())
+        mock_broker.get_open_trades = MagicMock(return_value=Trades())
         
         Daemon.recover_trades()
         # Check trade deleted from db

@@ -42,8 +42,8 @@ class Oanda():
 
     @classmethod
     def get_auth_key(cls):
-        """
-        Get authorization key.
+        """Return type: string
+           Return value: authentication token
         Oanda was returning a '400 Bad Request' error 4 out of 5 times
         until I removed the trailing '\n' from the string
         returned by f.readline().
@@ -297,17 +297,21 @@ class Oanda():
         since=None  # string (see Oanda documentation)
     ):
         """Return type: Decimal or None
-        Get one ask price
-        TODO: check instrument string being passed in
+        Get lowest ask price.
         """
         prices = cls.get_prices([instrument], since)
         if prices == None:
             Log.write('"oanda.py" get_ask(): Failed to get prices.')
             return None
         else:
-            for p in prices['prices']:
-                if p['instrument'] == instrument.get_name():
-                    return float(p['ask'])
+            try:
+                for p in prices['prices']:
+                    if p['instrument'] == instrument.get_name():
+                        return float(p['asks'][0]['price']) 
+            except Excpetion:
+                Log.write('oanda.py get_ask(): Failed to extract ask from price data. Price data:\n{}'
+                    .format(prices))
+                raise Exception
 
 
     @classmethod
@@ -316,32 +320,35 @@ class Oanda():
         since=None
     ):
         """Return type: decimal or None
+        Get highest bid price.
         """
         prices = cls.get_prices([instrument], since)
         if prices == None:
             Log.write('"oanda.py" get_bid(): Failed to get prices.')
             return None
         else:
-            for p in prices['prices']:
-                if p['instrument'] == instrument.get_name():
-                    return float(p['bid'])
+            try:
+                for p in prices['prices']:
+                    if p['instrument'] == instrument.get_name():
+                        return float(p['bids'][0]['price'])
+            except Exception:
+                Log.write('oanda.py get_bid(): Failed to extract bid from price data. Price data:\n{}'
+                    .format(prices))
+                raise Exception
 
 
     @classmethod
     def get_spread(cls, instrument, since=None):
-        """Return type: Dict or None
+        """Return type: Dict of spread data or None
         """
         prices = cls.get_prices([instrument], since)
         if len(prices['prices']) != 1:
             return None
         p = prices['prices'][0]
-        # Since Oanda doesn't always include status, add it manually.
-        if 'status' not in p:
-            p['status'] = ''
         spread =    {
                     "instrument": p['instrument'],
                     "time":p['time'],
-                    "spread":price_to_pips(p['instrument'], (p['ask'] - p['bid'])),
+                    "spread":price_to_pips(p['instrument'], (float(p['asks'][0]['price']) - float(p['bids'][0]['price']))),
                     "status":p['status']
                     }
         return spread
@@ -363,15 +370,11 @@ class Oanda():
         else:
             spreads = []
             for p in prices['prices']:
-                # Since Oanda doesn't always include status, add it manually.
-                if 'status' not in p:
-                    p['status'] = ''
-                #spreads[p['instrument']] = price_to_pips( p['instrument'], (p['ask'] - p['bid']) )
                 spreads.append(
                     {
                         "instrument":p['instrument'],
                         "time":p['time'],
-                        "spread":price_to_pips(p['instrument'], (p['ask'] - p['bid'])),
+                        "spread":price_to_pips(p['instrument'], (float(p['asks'][0]['price']) - float(p['bids'][0]['price']))),
                         "status":p['status']
                     }
                 )
@@ -459,10 +462,10 @@ class Oanda():
         """
         prices = cls.get_prices([instrument])
         try:
-            return prices['prices'][0]['tradeable']
+            return prices['prices'][0]['status'] == 'tradeable'
         except Exception:
             Log.write(
-                'oanda.py is_market_open(): Failed to get key \'tradeable\'. \ninstr:{}\nprices: {}'.format(instrument, prices))
+                'oanda.py is_market_open(): Failed to get key \'status\'. \ninstr:{}\nprices: {}'.format(instrument, prices))
             raise Exception
 
 
@@ -687,7 +690,7 @@ class Oanda():
         """Returns:
             Tuple: (
                 True=trade closed; False=not closed
-                Reason trade closed (or None)
+                <TradeClosedReason> or None
             )
         TODO: Function name implies bool, but return val is tuple.
         Go through all transactions that have occurred since a given order, and see if any of those
@@ -760,7 +763,7 @@ class Oanda():
         """Return type: Instance of <Trades> or None
         Get info about all open trades
         """
-        #Log.write('"oanda.py" get_trades(): Entering.')
+        #Log.write('"oanda.py" get_open_trades(): Entering.')
         trades_oanda = cls.fetch('{}/v3/accounts/{}/openTrades/'
             .format(Config.oanda_url,str(Config.account_id))
             )
