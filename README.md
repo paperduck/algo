@@ -4,6 +4,8 @@
 
 This project is a modular platform for running multiple algorithmic trading strategies concurrently.
 
+As of 2018-05-12, the platform is functional but not "production quality". Backtesting is non-existent. 
+
 You can develop your own strategy module and run it with this platform. Developing a module is very straightforward; copy a strategy from `/src/strategies/` and implement your own logic in `_babysit()` and `_scan()`.
 
 You can use this platform with any broker API. There are two steps to integrate your broker's API:
@@ -13,8 +15,7 @@ You can use this platform with any broker API. There are two steps to integrate 
 
 ## Technical introduction
 
-- As of 2018-05-12, the platform is functional but not "production quality". Backtesting is non-existent. 
-- It is a command line application for Linux. The Debian operating system is being used for development.
+- This is a command line application for Linux. The Debian operating system is being used for development.
 - Python 3.6 is used for the bulk of the program currently (`/src/`). The database is MySQL (`/src/db/`). There are some shell scripts in `/src/scripts/`.
 - There are three pieces to this project, as with any algorithmic trading: backtesting, forward testing, and live trading.
 
@@ -58,7 +59,11 @@ Toggle the `live_trading` setting in the public config file to `True`.
 - `daemon.py` and the strategy modules make calls to a generic `broker.py` module, which then delegates the calls to a wrapper module, e.g. `oanda.py` wraps Oanda's API. Having the generic broker layer allows you to conveniently change the broker you use.
 - Things like money management and risk management happen in `daemon.py`. The strategy modules are intended to be "dumb" and only observe prices and make trades.
 
-Here is a diagram of the layers. The daemon sits on top and listens to the strategies. It talks to the broker via the `broker.py` module, which in turn translates function calls into specific API calls.
+Here is a diagram of the layers.
+
+- The daemon listens to the strategies and allocates money to them.
+- The daemon does not talk to the broker's API directly. Rather, it uses the generic `broker.py` module.
+- The broker module calls the broker-specific wrapper that is being used, e.g. `Oanda.py`.
 
 ![diagram](docs/platform_diagram_2.png)
 
