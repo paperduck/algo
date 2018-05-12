@@ -1,34 +1,64 @@
 # Algorithmic Trading Daemon ("algo")
 
-## Introduction
-- This is a work in progress. As of 2017-12-30, live trading and forward testing are being coded. Backtesting is mostly non-existent. 
+## What is this?
+
+This project is a modular platform for running multiple algorithmic trading strategies concurrently.
+
+You can develop your own strategy module and run it with this platform. Developing a module is very straightforward; copy a strategy from `/src/strategies/` and implement your own logic in `_babysit()` and `_scan()`.
+
+You can use this platform with any broker API. There are two steps to integrate your broker's API:
+
+1. Supply a wrapper module that calls your API and can be called by this platform. Your broker may already provide one. `Oanda.py` exists for Oanda's v20 REST API.
+2. Tweak the generic methods in `broker.py` to call your wrapper and correctly pass return values back to the platform.
+
+## Technical introduction
+
+- As of 2018-05-12, the platform is functional but not "production quality". Backtesting is non-existent. 
 - It is a command line application for Linux. The Debian operating system is being used for development.
-- Python is used for the bulk of the program currently (`/src/`). The database is MySQL (`/src/db/`). There are some shell scripts in `/src/scripts/`.
+- Python 3.6 is used for the bulk of the program currently (`/src/`). The database is MySQL (`/src/db/`). There are some shell scripts in `/src/scripts/`.
 - There are three pieces to this project, as with any algorithmic trading: backtesting, forward testing, and live trading.
 
 ## How to use
-- Run the bot from /src/ : `python3 main.py`
-- Run test script from /src/ : `bash tests/run_tests.sh` 
-- You will need to make your own private config file.
+
+Before you being using the platform, you will need to do some configuration.
+
+- You will need to make your own private config file. See `Config.py` for details.
+- You will need to create the MySQL database on your machine. There is a backup script for the purpose of recreating the database. It is in `/src/db/db_backup.mysql`. It may or may not be up to date.
+- Tweak `daemon.py` to use the strategies you created.
+
+Run the platform:
+
+`$ cd src`  
+`$ python3 main.py`
+
+Run unit tests:
+
+`$ cd src`  
+`$ bash tests/run_tests.sh` 
 
 ## Backtesting
-- Backtesting may consist of a MySQL database with historical data. Or it may just read in CSV files. A script will iterate through the data, and you can write a backtesting script to simualate your strategy. Or I might use an existing backtesting library.
+
+No backtesting is in place currently.
 
 ## Forward Testing
-- Same as live trading, except fake money is used.
-- Toggle the `live_trading` setting in the public config file to `True`.
+
+Toggle the `live_trading` setting in the public config file to `False`.
+
+If False, the Oanda module will use its Practice Mode with fake money.
+
 
 ## Live Trading
-- It is referred to as a "daemon" because it is intended to be self-sufficient and not require monitoring or adjustment.
-- Each strategy gets its own module. For example, the `/src/strategies/fifty.py` module encapsulates one simple strategy.
+
+Toggle the `live_trading` setting in the public config file to `True`.
 
 ## Platform Design: Scalability and Modularity
-- Scalability and user-friendliness take priority over speed. This is not intended to be used for high-frequency trading and/or arbitrage.
-- The strategy modules can be used (or not used) arbitrarily. Just modify the startup portion of `daemon.py` to include your module in the list of strategies. Currently you can only choose strategies when the platform is not running, but it would be neat to have strategies be "hot-swappable" in the future.
-- `daemon.py` and the strategy modules make calls to a generic `broker.py` module, which then delegates the calls to a translator module, e.g. `oanda.py` for Oanda. Having the generic broker layer allows you to conveniently change the broker you use. If you want to use a broker for which I don't provide a translator module, then you will need to provide your own.
-- With an emphasis on scalability, this platform is intended to handle any number of strategies at any given time. The central daemon module will likely be responsible for managing margin, account balance, order size, diversification, and other considerations while the disparate strategy modules, which do not communicate with each other, independently suggest trades to the daemon.
 
-Here is a diagram of the layers. The daemon sits on top and talks to the strategies. It talks to the broker via the `broker.py` module, which in turn translates function calls into specific API calls.
+- Scalability and user-friendliness take priority over speed. This is not intended to be used for high-frequency trading and/or arbitrage. The `chart.py` module, for example, will have some methods to do technical analysis.
+- The strategy modules can be used (or not used) arbitrarily. Just modify the startup portion of `daemon.py` to include your module in the list of strategies.
+- `daemon.py` and the strategy modules make calls to a generic `broker.py` module, which then delegates the calls to a wrapper module, e.g. `oanda.py` wraps Oanda's API. Having the generic broker layer allows you to conveniently change the broker you use.
+- Things like money management and risk management happen in `daemon.py`. The strategy modules are intended to be "dumb" and only observe prices and make trades.
+
+Here is a diagram of the layers. The daemon sits on top and listens to the strategies. It talks to the broker via the `broker.py` module, which in turn translates function calls into specific API calls.
 
 ![diagram](docs/platform_diagram_2.png)
 
