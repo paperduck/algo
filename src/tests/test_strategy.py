@@ -68,8 +68,7 @@ class TestStrategy(unittest.TestCase):
         DB.execute("DELETE FROM open_trades_live WHERE trade_id in ('1', '666', 'mx.!@#$%^&*()_+=-/|')")
 
 
-    """
-    """
+    """ Strategy.trade_closed() was deprecated
     def test_trade_closed(self):
 
         # try to delete from empty list
@@ -88,17 +87,9 @@ class TestStrategy(unittest.TestCase):
         self.assertEqual(SampleStrategy._open_trade_ids, ['1'])
         SampleStrategy.trade_closed('1')
         self.assertEqual(SampleStrategy._open_trade_ids, [])
-
-
-
     """
-    """
-    def test_trade_reduced(self):
-        pass
 
 
-    """
-    """
     def test_recover_trades(self):
         pass
 

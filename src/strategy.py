@@ -114,19 +114,21 @@ class Strategy():
     '''
 
 
-    """
-    Return value: void
-    Description:    This must be called when a trade is reduced.
-    """
+    ''' deprecated 
     @classmethod
     def trade_reduced(cls,
         trade,          # <Trade>
         instrument_id   # database ID (instruments.id)
     ):
+        """
+        Return value: void
+        Description:    This must be called when a trade is reduced.
+        """
         # TODO: write to db
         Log.write('"strategy.py" trade_reduced(): Trade {} was reduced.'
             .format(cls.get_name()))
         pass
+    '''
 
 
     # TODO maybe call this function "adopt" to make it more generic
