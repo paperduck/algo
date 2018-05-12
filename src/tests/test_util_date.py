@@ -23,19 +23,18 @@ class TestInstrument(unittest.TestCase):
     def setUp(self):
         pass
 
+
     # called for every test method
     def tearDown(self):
         pass
 
-    
-    """
-    """
+
     def test_string_to_date(self):
         # normal numbers
-        sample_string = '2014-07-02T04:14:59.123456Z'
         target_date = datetime.datetime(
             year=2014, month=7, day=2, hour=4,
             minute=14, second=59, microsecond=123456) 
+        sample_string = '2014-07-02T04:14:59.123456789Z'
         result_date = util_date.string_to_date(sample_string)
         self.assertEqual(target_date, result_date)
         
@@ -55,14 +54,13 @@ class TestInstrument(unittest.TestCase):
         result_date = util_date.string_to_date(sample_string)
         self.assertEqual(target_date, result_date)
 
-    """
-    """
+
     def test_date_to_string(self):
         # normal numbers
         sample_date = datetime.datetime(
             year=2014, month=7, day=2, hour=4,
             minute=14, second=59, microsecond=123456) 
-        target_string = '2014-07-02T04:14:59.123456Z'
+        target_string = '2014-07-02T04:14:59.123456000Z'
         result_string = util_date.date_to_string(sample_date)
         self.assertEqual(target_string, result_string)
 
@@ -70,7 +68,7 @@ class TestInstrument(unittest.TestCase):
         sample_date = datetime.datetime(
             year=1950, month=1, day=1, hour=0,
             minute=0, second=0, microsecond=0) 
-        target_string = '1950-01-01T00:00:00.000000Z'
+        target_string = '1950-01-01T00:00:00.000000000Z'
         result_string = util_date.date_to_string(sample_date)
         self.assertEqual(target_string, result_string)
 
@@ -78,12 +76,10 @@ class TestInstrument(unittest.TestCase):
         sample_date = datetime.datetime(
             year=datetime.MAXYEAR, month=12, day=31, hour=23,
             minute=59, second=59, microsecond=999999) 
-        target_string = '9999-12-31T23:59:59.999999Z'
+        target_string = '9999-12-31T23:59:59.999999000Z'
         result_string = util_date.date_to_string(sample_date)
         self.assertEqual(target_string, result_string)
 
 
-
 if __name__ == '__main__':
     unittest.main()
-

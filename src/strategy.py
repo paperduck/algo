@@ -32,6 +32,11 @@ class Strategy():
 
 
     @classmethod
+    def get_number_positions(cls):
+        return len( cls._open_trade_ids )
+
+
+    @classmethod
     def get_name(cls):
         """
         Needs to be overloaded.
@@ -61,20 +66,20 @@ class Strategy():
             .format(trade_id, cls.get_name(), Config.broker_name))
 
 
-    """
-    Return type: True on success (TODO: for consitency use 0)
-    Description:
-        This must be called to notify a strategy that one of its trades
-        has closed.
-        Probably only called by daemon.py since that is currently the
-        only module that has access to individual strategy modules.
-    Input:      trade id from broker (string)
-    """
+    ''' DEPRECATED: the strategy's babysit method periodically checks if a trade is closed.
     @classmethod
     def trade_closed(
         cls,
         trade_id   # string - trade id from broker
     ):
+        """
+        Return type: True on success
+        Description:
+            This must be called to notify a strategy that one of its trades
+            has closed.
+            Probably only called by daemon.py since that is currently the
+            only module that has access to individual strategy modules.
+        """
         Log.write('"strategy.py" trade_closed(): Attempting to pop trade ',
             'ID {}'.format(trade_id))
         # Remove the trade from the list.
@@ -106,21 +111,24 @@ class Strategy():
             Log.write(err_msg)
             DB.bug(err_msg)
             raise Exception
+    '''
 
 
-    """
-    Return value: void
-    Description:    This must be called when a trade is reduced.
-    """
+    ''' deprecated 
     @classmethod
     def trade_reduced(cls,
         trade,          # <Trade>
         instrument_id   # database ID (instruments.id)
     ):
+        """
+        Return value: void
+        Description:    This must be called when a trade is reduced.
+        """
         # TODO: write to db
         Log.write('"strategy.py" trade_reduced(): Trade {} was reduced.'
             .format(cls.get_name()))
         pass
+    '''
 
 
     # TODO maybe call this function "adopt" to make it more generic
@@ -134,8 +142,6 @@ class Strategy():
         cls._open_trade_ids.append(trade_id)
 
 
-    """
-    """
     @classmethod
     def drop_all(cls):
         del cls._open_trade_ids[:]
