@@ -33,14 +33,14 @@ from strategies.fifty import *
 from timer import Timer
 
 
-# The daemon:
-#   - Manages account balance, margin, risk.
-#   - Accepts and rejects trade opportunities.
-#   - Forcefully close trades as needed (e.g. during shutdown)
 class Daemon():
     """
+    The daemon:
+      - Manages account balance, margin, risk.
+      - Accepts and rejects trade opportunities.
+      - Forcefully close trades as needed (e.g. during shutdown)
     """
-    
+
     # Initialize log.
     Log.clear()
 
@@ -80,7 +80,7 @@ class Daemon():
 
     @classmethod
     def num_strategies_with_no_positions(cls):
-        return strategies.size() - cls.num_strategies_with_positions()
+        return len(cls.strategies) - cls.num_strategies_with_positions()
 
 
     @classmethod
@@ -118,14 +118,9 @@ class Daemon():
             curses.endwin() # restore terminal
             cls.shutdown()
         elif ch == 109: # m == monitor
-            account_primary = Oanda.get_account_primary()
-            if account_primary == None:
-                msg = cls.msg_base.format('error')
-                stdcsr.clear()
-                stdcsr.addstr(msg)
-                stdcsr.refresh() # redraw
-                return
-            msg = cls.msg_base.format(account_primary['balance'])
+            account_id = Config.account_id
+            balance = Broker.get_balance(account_id)
+            msg = cls.msg_base.format(balance)
             stdcsr.clear()
             stdcsr.addstr(msg)
             stdcsr.refresh() # redraw
@@ -164,12 +159,12 @@ class Daemon():
             for s in cls.strategies:
                 new_opp = s.refresh()
                 if new_opp == None:
-                    Log.write('"daemon.py" run(): refresh() failed for {}.'
+                    Log.write('daemon.py run(): refresh() failed for {}.'
                         .format(s.get_name()))
+                    raise Exception
                 elif new_opp == []:
-                    # Strategy has nothing to offer at the moment.
-                    Log.write('"daemon.py" run(): {} has nothing to offer '
-                        'now.'.format(s.get_name()))
+                    Log.write('daemon.py run(): {} has nothing to offer now.'
+                        .format(s.get_name()))
                     pass
                 else:
                     cls.opportunities.push(new_opp)
@@ -182,46 +177,70 @@ class Daemon():
                 pass
             else:
                 # An order was suggested by a strategy, so place the order.
-                # calculate units to order
+                #   Don't use all the money available.
                 SLIPPAGE_WIGGLE = 0.95
-                available_money = broker.get_margin_available() * SLIPPAGE_WIGGLE
+                ###available_money = Broker.get_margin_available(Config.account_id) * SLIPPAGE_WIGGLE
+                available_money = 100 # USD - testing
+                #   Get the current price of one unit.
                 instrument_price = 0
-                if best_opp.order.go_long:
-                    instrument_price = broker.get_ask(best_opp.order.instrument)
+                go_long = best_opp.order.units > 0
+                if go_long:
+                    instrument_price = Broker.get_ask(best_opp.order.instrument)
                 else:
-                    instrument_price = broker.get_bid(best_opp.order.instrument)
-                units = available_money / (cls.num_strategies_with_no_positions() * instrument_price)
+                    instrument_price = Broker.get_bid(best_opp.order.instrument)
+                #   How much leverage available:
+                margin_rate = Broker.get_margin_rate(best_opp.order.instrument) 
+                #   TODO: A bit awkward, but overwrite the existing value that was used to 
+                #   determine long/short.
+                units = available_money
+                units /= cls.num_strategies_with_no_positions() # save money for other strategies
+                units /= margin_rate
+                units = int(units) # floor
+                if units <= 0: # verify
+                    Log.write('daemon.py run(): units <= 0')
+                    raise Exception # abort
+                if not go_long: # negative means short
+                    units = -units
                 best_opp.order.units = units
-                Log.write('daemon.py run(): Executing opportunity:\n'.format(best_opp))
-                
+                Log.write('daemon.py run(): Executing opportunity:\n{}'.format(best_opp))
                 order_result = Broker.place_order(best_opp.order)
-                Log.write(best_opp)
-                Log.write(order_result)
-                Log.write('"daemon.py" run(): order_result = \n{}'
-                    .format(order_result))
-                if order_result['tradeOpened'] != {}:
-                    # Notify the strategy.
-                    best_opp.strategy.trade_opened(
-                        trade_id=order_result['tradeOpened']['id']
-                        #instrument_id=Instrument.get_id_from_name(order_result['instrument'])
-                    )
-                elif order_result['tradesClosed'] != []:
-                    for tc in order_result['tradesClosed']:
-                        # Notify the strategy.
-                        best_opp.strategy.trade_closed(
-                            trade_id=tc['id'],
+                # Notify the strategies.
+                if 'orderFillTransaction' in order_result:
+                    try:
+                        opened_trade_id = order_result['orderFillTransaction']['tradeOpened']['tradeID']
+                        best_opp.strategy.trade_opened(trade_id=opened_trade_id)
+                    except:
+                        Log.write(
+                            'daemon.py run(): Failed to extract opened trade from order result:\n{}'
+                            .format(order_result) )
+                        raise Exception
+                elif 'tradesClosed' in order_result:
+                    try:
+                        for trade in order_result['orderFillTransaction']['tradesClosed']:
+                            best_opp.strategy.trade_closed(trade_id=trade['tradeID'])
+                    except:
+                        Log.write(
+                            'daemon.py run(): Failed to extract closed trades from order result:\n{}'
+                            .format(order_result) )
+                        raise Exception
+                elif 'tradeReduced' in order_result:
+                    try:
+                        closed_trade_id = order_result['orderFillTransaction']['tradeReduced']['tradeID']
+                        best_opp.strategy.trade_reduced(
+                            closed_trade_id,
                             instrument_id=Instrument.get_id_from_name(order_result['instrument'])
                         )
-                elif order_result['tradeReduced'] != {}:
-                    # Notify the strategy.
-                    best_opp.strategy.trade_reduced(
-                        order_result['tradeReduced']['id'],
-                        instrument_id=Instrument.get_id_from_name(order_result['instrument'])
-                    )
+                    except:
+                        Log.write(
+                            'daemon.py run(): Failed to extract reduced trades from order result:\n{}'
+                            .format(order_result) )
+                        raise Exception
                 else:
-                    # catch-all for formality
-                    Log.write('"daemon.py" run(): Unknown trade result.')
+                    Log.write(
+                        '"daemon.py" run(): Unrecognized order result:\n{}'
+                        .format(order_result) )
                     raise Exception
+
             """
             Clear opportunity list.
             Opportunities should be considered to exist only in the moment,
@@ -274,7 +293,7 @@ class Daemon():
             .format(db_trades, open_trades_broker))
         for index, dbt in enumerate(db_trades): # O(n^3)
             for otb in open_trades_broker:
-                if str(dbt[0]) == str(otb.get_trade_id()): # compare trade_id
+                if str(dbt[0]) == str(otb.trade_id): # compare trade_id
                     del db_trades[index]
         #   The remaining trades are in the "open trades" db table, but 
         #   the broker is not listing them as open.
@@ -306,20 +325,22 @@ class Daemon():
         """
         for i in range(0,len(open_trades_broker)):
             broker_trade = open_trades_broker[i]
-            db_trade_info = DB.execute('SELECT strategy, broker FROM open_trades_live WHERE trade_id="{}"'
-                .format(broker_trade.get_trade_id()))
+            db_trade_info = DB.execute(
+                'SELECT strategy, broker FROM open_trades_live WHERE trade_id="{}"'
+                .format(broker_trade.trade_id)
+            )
             if len(db_trade_info) > 0:
                 # Verify broker's info and database info match, just to be safe.
                 # - broker name
-                if db_trade_info[0][1] != broker_trade.get_broker_name():
+                if db_trade_info[0][1] != broker_trade.broker_name:
                     Log.write('"daemon.py" recover_trades(): ERROR: "{}" != "{}"'
                         .format(db_trade_info[0][1], broker_trade.broker_name))
                     raise Exception
                 # set strategy
-                broker_trade.set_strategy(None) # TODO: use a different default?
+                broker_trade.strategy = None # TODO: use a different default?
                 for s in cls.strategies:
                     if s.get_name == db_trade_info[0][0]:
-                        broker_trade.set_strategy(s) # reference to class instance
+                        broker_trade.strategy = s # reference to class instance
             else:
                 # Trade in broker but not db.
                 # Maybe the trade was opened manually. Ignore it.
@@ -328,12 +349,12 @@ class Daemon():
 
         # Distribute trades to their respective strategy modules
         for broker_trade in open_trades_broker:
-            if broker_trade.get_strategy() != None:
+            if broker_trade.strategy != None:
                 # Find the strategy that made this trade and notify it.
                 for s in cls.strategies:
-                    if broker_trade.get_strategy().get_name() == s.get_name(): 
-                        s.recover_trade(broker_trade.get_trade_id())
-                        open_trades_broker.remove(broker_trade.get_trade_id())
+                    if broker_trade.strategy.get_name() == s.get_name(): 
+                        s.recover_trade(broker_trade.trade_id)
+                        open_trades_broker.remove(broker_trade.trade_id)
                         break
             else:
                 # It is not known what strategy opened this trade.
@@ -342,8 +363,8 @@ class Daemon():
                 # Assign it to the backup strategy.
                 Log.write('"daemon.py" recover_trades(): Assigning trade ',
                     ' ({}) to backup strategy ({}).'
-                    .format(broker_trade.get_trade_id(), cls.backup_strategy.get_name()))
-                cls.backup_strategy.recover_trade(broker_trade.get_trade_id())
+                    .format(broker_trade.trade_id, cls.backup_strategy.get_name()))
+                cls.backup_strategy.recover_trade(broker_trade.trade_id)
         return 0 # success
                 
 

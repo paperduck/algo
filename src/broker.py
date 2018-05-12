@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# -*- coding: utf-7 -*-
 
 """
 File            broker_api.py
@@ -37,13 +37,20 @@ class Broker():
         return cls.broker.get_auth_key()
 
 
-    '''@classmethod
+    @classmethod
     def get_accounts(cls):
-        # Get list of accounts
-        # Returns: dict or None
         return cls.broker.get_accounts()
-    '''
+
+
+    @classmethod
+    def get_margin_available(cls, account_id):
+        return cls.broker.get_margin_available(account_id)
    
+
+    @classmethod
+    def get_margin_rate(cls, instrument):
+        return cls.broker.get_margin_rate(instrument)
+
  
     # Get list of open positions
     # Returns: dict or None 
@@ -100,17 +107,11 @@ class Broker():
 
 
     @classmethod
-    def get_spread(cls, instrument, since=None):
-        return cls.broker.get_spread(instrument, since)
-
-
-    """
-    Return type: dict or none
-    Return value: Whatever broker returns (Oanda=JSON)
-    """
-    @classmethod
     def place_order(cls, order):
-
+        """
+        Return type: dict or none
+        Return value: Whatever broker returns (Oanda=JSON)
+        """
         if order.units == None:
             raise Exception
         result = cls.broker.place_order(order)
@@ -218,7 +219,7 @@ class Broker():
 
  
     @classmethod
-    def modify_order(cls, order_id, units=0, price=0, expiry=0,
+    def modify_order(cls, order_id, units=0, price=0,
         lower_bound=0, upper_bound=0, stop_loss=0,
         take_profit=0, trailing_stop=0):
         """
@@ -229,16 +230,21 @@ class Broker():
 
 
     @classmethod
-    def modify_trade(cls, trade_id, stop_loss=0, take_profit=0, trailing_stop=0):
+    def modify_trade(cls,
+        trade_id, # unique identifier of trade to modify
+        stop_loss_price=0,
+        take_profit_price=0,
+        trailing_stop_loss_distance=0 # in price units
+    ):
         """
         # Modify an existing trade
         # Returns: dict or None
         """
         return cls.broker.modify_trade(
             trade_id = trade_id,
-            stop_loss = stop_loss,
-            take_profit = take_profit,
-            trailing_stop = trailing_stop
+            stop_loss_price = stop_loss_price,
+            take_profit_price = take_profit_price,
+            trailing_stop_loss_distance = trailing_stop_loss_distance
         )
 
 

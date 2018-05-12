@@ -96,9 +96,12 @@ class TestDaemon(unittest.TestCase):
         DB.execute = db_execute
         trades = Trades()
         trades.append(Trade(
+            units=1,
             broker_name='oanda',
             instrument=Instrument(4),
-            go_long=True, stop_loss=90, strategy=Fifty, take_profit=100,
+            stop_loss=90,
+            strategy=Fifty,
+            take_profit=100,
             trade_id='id666'
         ))
         mock_broker.get_open_trades = MagicMock(return_value=trades)
@@ -116,7 +119,6 @@ class TestDaemon(unittest.TestCase):
         self.assertEqual(Fifty._open_trades[0].get_broker_name(), 'oanda')
         self.assertEqual(Fifty._open_trades[0].get_instrument().get_name(), 'USD_JPY')
         self.assertEqual(Fifty._open_trades[0].get_instrument().get_id(), 4)
-        self.assertEqual(Fifty._open_trades[0].get_go_long(), True)
         self.assertEqual(Fifty._open_trades[0].get_stop_loss(), 90)
         self.assertEqual(Fifty._open_trades[0].get_take_profit(), 100)
         self.assertEqual(Fifty._open_trades[0].get_trade_id(), 'id666')
@@ -141,9 +143,12 @@ class TestDaemon(unittest.TestCase):
         DB.execute = MagicMock(side_effect=db_execute)
         trades = Trades()
         trades.append(Trade(
+            units=1,
             broker_name='oanda',
             instrument=Instrument(4),
-            go_long=True, stop_loss=90, strategy=Fifty, take_profit=100,
+            stop_loss=90,
+            strategy=Fifty,
+            take_profit=100,
             trade_id='id666'))
         mock_broker.get_open_trades = MagicMock(return_value=trades)
 

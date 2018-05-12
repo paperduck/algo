@@ -33,7 +33,7 @@ class Strategy():
 
     @classmethod
     def get_number_positions(cls):
-        return _open_trade_ids.size()
+        return len( cls._open_trade_ids )
 
 
     @classmethod
@@ -66,20 +66,20 @@ class Strategy():
             .format(trade_id, cls.get_name(), Config.broker_name))
 
 
-    """
-    Return type: True on success (TODO: for consitency use 0)
-    Description:
-        This must be called to notify a strategy that one of its trades
-        has closed.
-        Probably only called by daemon.py since that is currently the
-        only module that has access to individual strategy modules.
-    Input:      trade id from broker (string)
-    """
+    ''' DEPRECATED: the strategy's babysit method periodically checks if a trade is closed.
     @classmethod
     def trade_closed(
         cls,
         trade_id   # string - trade id from broker
     ):
+        """
+        Return type: True on success
+        Description:
+            This must be called to notify a strategy that one of its trades
+            has closed.
+            Probably only called by daemon.py since that is currently the
+            only module that has access to individual strategy modules.
+        """
         Log.write('"strategy.py" trade_closed(): Attempting to pop trade ',
             'ID {}'.format(trade_id))
         # Remove the trade from the list.
@@ -111,6 +111,7 @@ class Strategy():
             Log.write(err_msg)
             DB.bug(err_msg)
             raise Exception
+    '''
 
 
     """
