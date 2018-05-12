@@ -35,13 +35,16 @@ class Config():
     cfg.read(_private_config_path)
     oanda_url = None
     oanda_token = None
+    account_id = None
     if live_trading:
         # TODO: put the URLs in the config file
         oanda_url = 'https://api-fxtrade.oanda.com'
         oanda_token = cfg['oanda']['token']
+        account_id = cfg['oanda']['account_id_live']
     else:
         oanda_url =  'https://api-fxpractice.oanda.com'
         oanda_token = cfg['oanda']['token_practice']
+        account_id = cfg['oanda']['account_id_practice']
     log_path = cfg['log']['path']
     log_file = cfg['log']['file']
     log_path = log_path + log_file

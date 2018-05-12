@@ -11,62 +11,49 @@ from db import DB
 ####################
 
 
-"""
-An enum.
-"""
 class TradeClosedReason():
-    reduced = 1
-    manual = 2 # manually closed
-    migrated = 3
-    sl = 4 # stop loss
-    tp = 5 # take profit
-    ts = 6 # trailing stop
-    margin_closeout = 7
+    """
+    An enum.
+    """
+
+    LIMIT_ORDER = 1
+    STOP_ORDER = 2
+    MARKET_IF_TOUCHED_ORDER = 3
+    TAKE_PROFIT_ORDER = 4
+    STOP_LOSS_ORDER = 5
+    TRAILING_STOP_LOSS_ORDER = 6
+    MARKET_ORDER = 7
+    MARKET_ORDER_TRADE_CLOSE = 8
+    MARKET_ORDER_POSITION_CLOSEOUT = 9
+    MARKET_ORDER_MARGIN_CLOSEOUT = 10
+    MARKET_ORDER_DELAYED_TRADE_CLOSE = 11
+    LINKED_TRADE_CLOSED = 12
 
 
-"""
-Represents one trade, either past or present.
-Future trades are "opportunities" or "orders".
-"""
 class Trade():
+    """
+    Represents one trade, either past or present.
+    Future trades are "opportunities" or "orders".
+    """
+
     def __init__(
         self,
+        units=None,             # units; negative for short
         broker_name=None,       # broker ID (name string) from databse
         instrument=None,        # <Instrument> instance
-        go_long=None,           # boolean
         stop_loss=None,         # numeric
         strategy=None,          # <Strategy> class reference
         take_profit=None,       # numeric
         trade_id=None           # string
     ):
-        self._broker_name    = broker_name
-        self._instrument     = instrument
-        self._go_long        = go_long
-        self._stop_loss      = stop_loss
-        self._strategy       = strategy
-        self._take_profit    = take_profit
-        self._trade_id       = trade_id
+        self.units          = units
+        self.broker_name    = broker_name
+        self.instrument     = instrument
+        self.stop_loss      = stop_loss
+        self.strategy       = strategy
+        self.take_profit    = take_profit
+        self.trade_id       = trade_id
    
-
-    """
-    """
-    def get_broker_name(self):
-        return self._broker_name
-    def get_instrument(self):
-        return self._instrument
-    def get_go_long(self):
-        return self._go_long
-    def get_stop_loss(self):
-        return self._stop_loss
-    def get_strategy(self):
-        return self._strategy
-    def set_strategy(self, strategy_class): # <Strategy> class reference
-        self._strategy = strategy_class
-    def get_take_profit(self):
-        return self._take_profit
-    def get_trade_id(self):
-        return self._trade_id
-
 
     def fill_in_extra_info(self):
         """
@@ -82,58 +69,60 @@ class Trade():
         """
         print ('trade.fill_in_extra_info()')
         trade_info = DB.execute('SELECT strategy, broker, instrument_id FROM open_trades_live WHERE trade_id = {}'
-            .format(self._trade_id))
+            .format(self.trade_id))
         if len(trade_info) > 0:
             # verify broker and instrument match, just to be safe
-            if trade_info[0][1] != self._broker_name:
+            if trade_info[0][1] != self.broker_name:
                 Log.write('"trade.py" fill_in_extra_info(): ERROR: "{}" != "{}"'
-                    .format(trade_info[0][1], self._broker_name))
+                    .format(trade_info[0][1], self.broker_name))
                 raise Exception
             instrument = DB.execute('SELECT symbol FROM instruments WHERE id = {}'
                 .format(trade_info[0][2]))
-            if instrument[0][0] != self._instrument:
+            if instrument[0][0] != self.instrument:
                 Log.write('"trade.py" fill_in_extra_info(): {} != {}'
-                    .format(instrument[0]['symbol'], self._instrument))
+                    .format(instrument[0]['symbol'], self.instrument))
                 raise Exception
             # save strategy
-            self._strategy = None
+            self.strategy = None
             # TODO: good practice to access daemon's strategy list like this?
             for s in Daemon.strategies:
                 if s.get_name == trade_info[0][0]:
-                    self._strategy = s # reference to class instance
+                    self.strategy = s # reference to class instance
             # It might be possible that the trade was opened by a
             # strategy that is not running. In that case, use the default
             # strategy.
-            self._strategy = Daemon.backup_strategy
+            self.strategy = Daemon.backup_strategy
 
 
     def __str__(self):
         strategy_name = "(unknown)"
-        if self._strategy != None:
-            strategy_name = self._strategy.get_name()
-        msg = 'Transaction ID: {}\n\
-            Instrument: {}\n\
-            Strategy: {}'\
+        if self.strategy != None:
+            strategy_name = self.strategy.get_name()
+        msg = 'ID: {},  Units: {},  Broker: {},  Instrument: {},  Strategy: {},  SL: {},  TP: {}'\
             .format(
-                self._trade_id,
-                self._instrument,
-                strategy_name
+                self.trade_id,
+                self.units, 
+                self.broker_name,
+                self.instrument,
+                strategy_name,
+                self.stop_loss,
+                self.take_profit
             )
         return msg
 
 
 class Trades(Sequence):
     """
-    List of `trade` objects.
+    List of <trade> objects.
     TODO:  This could be a heap, with the trade's ID as the key.
     """
     
     def __init__(self):
-        self._trade_list = []
-        self._current_index = 0
+        self.trade_list = []
+        self.current_index = 0
 
     def append(self, trade):
-        self._trade_list.append(trade)
+        self.trade_list.append(trade)
 
 
     def pop(self, trade_id):
@@ -143,9 +132,9 @@ class Trades(Sequence):
         Returns: Removed trade object on success; None on failure.
         """
         index = 0
-        for t in self._trade_list:
+        for t in self.trade_list:
             if t._trade_id == trade_id:
-                return self._trade_list.pop(index)
+                return self.trade_list.pop(index)
             index = index + 1
         return None
 
@@ -155,16 +144,16 @@ class Trades(Sequence):
     Delete all trades.
     """
     def clear(self):
-        del self._trade_list[:]
+        del self.trade_list[:]
 
 
     def __len__(self):
-        return len(self._trade_list)    
+        return len(self.trade_list)    
 
 
     def __str__(self):
         msg = ''
-        for t in self._trade_list:
+        for t in self.trade_list:
             msg = msg + str(t) + '\n'
         return msg
 
@@ -181,24 +170,24 @@ class Trades(Sequence):
         """
         Make this class iterable
         """
-        if self._current_index >= len(self._trade_list):
-            self._current_index = 0
+        if self.current_index >= len(self.trade_list):
+            self.current_index = 0
             raise StopIteration
         else:
-            self._current_index = self._current_index + 1
-            return self._trade_list[self._current_index - 1]
+            self.current_index = self.current_index + 1
+            return self.trade_list[self.current_index - 1]
 
 
     def __getitem__(self, key):
         """
         Expose index operator.
         """
-        return self._trade_list[key]
+        return self.trade_list[key]
     
 
     def __len__(self):
         """
         Expose len() function.
         """
-        return len(self._trade_list)
+        return len(self.trade_list)
 
