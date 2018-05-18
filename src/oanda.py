@@ -63,20 +63,11 @@ class Oanda():
         in_unverifiable=False, # bool
         in_method='GET' # string
     ):
-        """Return type: dict or none
-        Sends a request to Oanda's REST API.
+        """Return type: dict on success, None on failure.
+        Sends a request to Oanda's API.
         """
-        Log.write('"oanda.py" fetch(): /*****************************\\' )
-        Log.write('"oanda.py" fetch():\n\
-            {5}:{0}\n\
-            in_headers: {1}\n\
-            in_data: {2}     origin_req_host: {3}     unverifiable: {4}\
-            '.format(
-                in_url, in_headers, utils.btos(in_data),
-                in_origin_req_host, in_unverifiable, in_method)
-            )
-        Log.write('"oanda.py" fetch(): \\*****************************/' )
         # If headers are specified, use those.
+        headers = None
         if in_headers == {}:
             headers = {\
                 'Authorization': 'Bearer ' + cls.get_auth_key(),\
@@ -87,6 +78,16 @@ class Oanda():
             }
         else:
             headers = in_headers
+        Log.write('"oanda.py" fetch(): /*****************************\\' )
+        Log.write('"oanda.py" fetch():\n\
+            {}:{}\n\
+            in_data: {}     origin_req_host: {}     unverifiable: {}\n\
+            headers: {}\
+            '.format(
+                in_url, utils.btos(in_data), in_origin_req_host,
+                in_unverifiable, in_method, headers)
+            )
+        Log.write('"oanda.py" fetch(): \\*****************************/' )
         # send request
         req = urllib.request.Request(in_url, in_data, headers, in_origin_req_host, in_unverifiable, in_method)
         # The Oanda REST API returns 404 error if you try to get trade info for a closed trade,
@@ -109,6 +110,7 @@ class Oanda():
                 return result[1]
             else:
                 e = result[1]
+                """
                 Log.write(
                     '"oanda.py" fetch(): Error response from broker:\n\
                     code: {}\n\
@@ -117,57 +119,78 @@ class Oanda():
                     info:{}'
                     .format(e.code, e.reason, e.headers, str(e.info()) )
                 )
-        except urllib.error.URLError:
+                """
+                Log.write('oanda.py fetch(): Error while retrying HTTPError:\n{}'.format(str(e)))
+                return None
+        except urllib.error.URLError as e:
+            """
             # https://docs.python.org/3.4/library/traceback.html
             exc_type, exc_value, exc_traceback = sys.exc_info()
             Log.write('"oanda.py" fetch(): URLError: ', exc_type)
             Log.write('"oanda.py" fetch(): EXC INFO: ', exc_value)
             Log.write('"oanda.py" fetch(): TRACEBACK:\n', traceback.print_exc(), '\n')
             Log.write('"oanda.py" fetch(): request:\n{}'.format(req))
+            """
+            Log.write('oanda.py fetch(): URLError = \n{}'.format(str(e)))
             return None
         except OSError as e:
-            Log.write('oanda.py fetch(): OSError w/message: {}'.format(e.strerror))
-            return None
+            # not much else to do but keep trying
+            result = (False, e)
+            while not result[0] and isinstance(result[1], OSError):
+                Log.write('oanda.py fetch(): OSError = " {}\nResending..."'.format(str(e)))
+                time.sleep(2)
+                result = cls.send_http_request( req )
+            if result[0]: # success
+                return result[1]
+            else:
+                e = result[1]
+                Log.write('oanda.py fetch(): Exception while retrying OSError:\n{}'.format(str(e)))
+                print(str(e))
+                return None
         except:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             Log.write('"oanda.py" fetch(): Exception: ', exc_type)
             Log.write('"oanda.py" fetch(): EXC INFO: ', exc_value)
             Log.write('"oanda.py" fetch(): TRACEBACK:\n', traceback.print_exc(), '\n')
             return None
+        else:
+            # Success. Get the response data.
+            """ "response.info() is email.message_from_string(); it needs to be
+            cast to a string."
+            """
+            resp_data = cls.read_response(response)
+            # Parse the JSON from Oanda into a dict and return it.
+            try:
+                return json.loads(resp_data)
+            except:
+                Log.write(
+                    'oanda.py fetch(): Failed to parse the following JSON:\n{}'
+                    .format(resp_data) )
+                raise Exception
 
-        # Other stuff
-        #Log.write('"oanda.py" fetch(): RESPONSE URL:\n    ', response.geturl())
-        #resp_info = response.info()
-        # Get the response data.
-        """ "response.info() is email.message_from_string(); it needs to be
-        cast to a string."
+
+    @classmethod
+    def read_response(cls, response):
+        """Returns: response data as dict
+        This is a helper function for fetch().
         """
-        resp_data = {'xxxx':'yyy'}
-        # Check how the response data is encoded.
         header = response.getheader('Content-Encoding')
         if header != None:
+            # Check how the response data is encoded.
             if header.strip().startswith('gzip'):
-                Log.write('oanda.py fetch(): gzip payload')
-                resp_data = utils.btos(gzip.decompress(response.read()))
+                Log.write('oanda.py read_response(): gzip payload')
+                return utils.btos(gzip.decompress(response.read()))
             else:
                 if header.strip().startswith('deflate'):
-                    Log.write('oanda.py fetch(): zlib payload')
-                    resp_data = utils.btos( zlib.decompress( response.read() ) )
+                    Log.write('oanda.py read_response(): zlib payload')
+                    return utils.btos( zlib.decompress( response.read() ) )
                 else:
-                    Log.write('oanda.py fetch(): Unknown header.')
-                    resp_data = utils.btos( response.read() )
+                    Log.write('oanda.py read_response(): Unknown header.')
+                    return utils.btos( response.read() )
         else:
-            Log.write('oanda.py fetch(): No header.')
-            resp_data = utils.btos(response.read())
-        # Parse the JSON from Oanda into a dict and return it.
-        try:
-            return json.loads(resp_data)
-        except:
-            Log.write(
-                'oanda.py fetch(): Failed to parse the following JSON:\n{}'
-                .format(resp_data) )
-            raise Exception
-
+            Log.write('oanda.py read_response(): No header.')
+            return utils.btos(response.read())
+        
 
     @classmethod
     def send_http_request(
@@ -586,20 +609,24 @@ class Oanda():
             microseconds=now.microsecond
         )
         zero = datetime.timedelta()
-        latest_close_to_now_delta = datetime.timedelta(days=8) # > 1 week
-        total_delta_since_close = zero
-        for d in range(1,8):
+        total_delta_since_close = zero # default starting value
+        for d in range(1,9): # eight days; market may close later today
             closes = cls.market_closes.get(day_iter)
             if closes != None:
-                # find most recent close this day
+                # There are closes this day.
+                latest_close_to_now_delta = datetime.timedelta(days=1) # default starting value
                 for c in closes:
                     if now_delta - c < latest_close_to_now_delta:
-                        latest_close_to_now_delta = now_delta - c
-                total_delta_since_close += latest_close_to_now_delta
-                return total_delta_since_close
-            # move to previous day
-            day_iter -= 1
-            if day_iter < 1:
+                        # make sure it's not a time later today
+                        if d > 1 or now_delta > c:
+                            # new potential most recent close
+                            latest_close_to_now_delta = now_delta - c
+                # Only return if a close earlier than now was found
+                if latest_close_to_now_delta < datetime.timedelta(days=1):
+                    total_delta_since_close += latest_close_to_now_delta
+                    return total_delta_since_close
+            day_iter -= 1 # move to previous day
+            if day_iter < 1: # cycle
                 day_iter = 7
             total_delta_since_close += datetime.timedelta(hours=24)
         raise Exception

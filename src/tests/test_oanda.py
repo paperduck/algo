@@ -32,6 +32,8 @@ class TestDaemon(unittest.TestCase):
         result = None
         result = Oanda.fetch( '{}/v3/accounts'.format(Config.oanda_url) )
         self.assertTrue(result) # not None
+        result = Oanda.fetch( '{}/v3/xxxxxx'.format(Config.oanda_url) )
+        self.assertEqual(result, None) # None
 
 
     def test_get_prices(self):
@@ -48,9 +50,9 @@ class TestDaemon(unittest.TestCase):
             self.assertTrue(result != zero_delta)
         else:
             self.assertTrue(result == zero_delta)
-        print('*****************************************')
-        print('time until market close: {}    *****'.format(result))
-        print('*****************************************')
+        print('*****************************************\\')
+        print('time until market close: {}'.format(result))
+        print('*****************************************/')
         
 
     def test_get_time_since_close (self):
@@ -64,6 +66,9 @@ class TestDaemon(unittest.TestCase):
         now = datetime.datetime.utcnow()
         zero_delta = datetime.timedelta()
         time_since_close = Oanda.get_time_since_close() # timedelta
+        print('***********************************************\\')
+        print('time since last close: {}'.format(time_since_close))
+        print('***********************************************/')
         # check < 1 week
         self.assertTrue(now - (now - time_since_close) < datetime.timedelta(days=7))
         # Check before now
@@ -71,13 +76,9 @@ class TestDaemon(unittest.TestCase):
         # Check weekend (2 days)
         market_open = Oanda.is_market_open(Instrument(4)) # USD/JPY market
         if market_open:
-            print('1 {}'.format( time_since_close ))
             self.assertTrue( time_since_close > datetime.timedelta(days=2))
         else:
             self.assertTrue( time_since_close < datetime.timedelta(days=2))
-        print('***********************************************\\')
-        print('time since last close: {}'.format(time_since_close))
-        print('***********************************************/')
 
 
 if __name__ == '__main__':
