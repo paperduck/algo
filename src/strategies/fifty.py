@@ -133,6 +133,7 @@ class Fifty(Strategy):
 
     @classmethod
     def _scan(cls):
+        Log.write('fifty.py scan()')
         """
         Look for opportunities to enter a trade.
         Returns:

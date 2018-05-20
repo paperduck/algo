@@ -96,6 +96,7 @@ class Oanda():
         try:
             response = urllib.request.urlopen(req)
         except urllib.error.HTTPError as e:
+            Log.write('oanda.py fetch(): HTTPError')
             # 204: No candlesticks during requested time.
             # 400, 404,
             # 415: unsupported media type (content-encoding)
@@ -123,6 +124,19 @@ class Oanda():
                 Log.write('oanda.py fetch(): Error while retrying HTTPError:\n{}'.format(str(e)))
                 return None
         except urllib.error.URLError as e:
+            Log.write('oanda.py fetch(): URLError')
+            result = (False, e)
+            while not result[0] and isinstance(result[1], urllib.error.URLError):
+                Log.write('oanda.py fetch(): URLError: {}\nResending...'.format(str(e)))
+                time.sleep(2)
+                result = cls.send_http_request( req )
+            if result[0]: # success
+                return result[1]
+            else:
+                e = result[1]
+                Log.write('oanda.py fetch(): Exception while retrying URLError:\n{}'.format(str(e)))
+                print(str(e))
+                return None
             """
             # https://docs.python.org/3.4/library/traceback.html
             exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -131,9 +145,8 @@ class Oanda():
             Log.write('"oanda.py" fetch(): TRACEBACK:\n', traceback.print_exc(), '\n')
             Log.write('"oanda.py" fetch(): request:\n{}'.format(req))
             """
-            Log.write('oanda.py fetch(): URLError = \n{}'.format(str(e)))
-            return None
         except OSError as e:
+            Log.write('oanda.py fetch(): OSError')
             # not much else to do but keep trying
             result = (False, e)
             while not result[0] and isinstance(result[1], OSError):
@@ -174,6 +187,7 @@ class Oanda():
         """Returns: response data as dict
         This is a helper function for fetch().
         """
+        Log.write('oanda.py read_response()')
         header = response.getheader('Content-Encoding')
         if header != None:
             # Check how the response data is encoded.
@@ -200,6 +214,7 @@ class Oanda():
         """Returns tuple: (success(bool), true->data/false->error_object)
         This is a helper function for fetch().
         """
+        Log.write('oanda.py send_http_request()')
         response = None
         try:
             response = urllib.request.urlopen(request)
@@ -343,6 +358,7 @@ class Oanda():
         """Return type: dict or None
         Fetch live prices for specified instruments that are available on the OANDA platform.
         """
+        Log.write('oanda.py get_prices()')
         url_args = 'instruments=' + utils.instruments_to_url(instruments)
         if since != None:
             url_args += '&since=' + since
@@ -364,6 +380,7 @@ class Oanda():
         """Return type: Decimal or None
         Get lowest ask price.
         """
+        Log.write('oanda.py get_ask()')
         prices = cls.get_prices([instrument], since)
         if prices == None:
             Log.write('"oanda.py" get_ask(): Failed to get prices.')
@@ -387,6 +404,7 @@ class Oanda():
         """Return type: decimal or None
         Get highest bid price.
         """
+        Log.write('oanda.py get_bid()')
         prices = cls.get_prices([instrument], since)
         if prices == None:
             Log.write('"oanda.py" get_bid(): Failed to get prices.')
@@ -411,6 +429,7 @@ class Oanda():
         """Returns: list
         Get spread, in pips, for given currency pairs (e.g. 'USD_JPY%2CEUR_USD')
         """
+        Log.write('oanda.py get_spreads()')
         prices = cls.get_prices(instruments, since)
         Log.write('prices:    \n{}'.format(prices))
         if prices == None:
@@ -514,6 +533,7 @@ class Oanda():
         """Return type: boolean
         Return value: true if market currently open, according to Oanda's API.
         """
+        Log.write('oanda.py is_market_open()')
         prices = cls.get_prices([instrument])
         try:
             return prices['prices'][0]['status'] == 'tradeable'

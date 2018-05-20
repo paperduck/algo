@@ -17,10 +17,12 @@ except ValueError:
 
 # local imports
 from broker import Broker
+from candle import Candle
 from chart import Chart
 #from config import Config
 from db import DB
 from instrument import Instrument
+import util_date
 
 class TestChart(unittest.TestCase):
 
@@ -290,6 +292,39 @@ class TestChart(unittest.TestCase):
         """
         # TODO
 
+
+    def test_pearson(self):
+        """
+        case: empty chart
+        """
+        c = Chart( Instrument(4) )
+        self.assertRaises(Exception, c.pearson, 0, c.get_size() )
+
+        """
+        case: one candle
+        """
+        # TODO
+
+        """
+        case: straight line
+        """
+        c = Chart(
+            in_instrument=Instrument(4),
+            count=0
+        )
+        fake_candles = []
+        fake_timestamp = datetime.utcnow()
+        fake_price = 100.1234
+        for i in range(0,10):
+            fake_candles.append( Candle(
+                timestamp=fake_timestamp + timedelta(seconds=i),   
+                high_ask=fake_price + i,
+                low_bid=(fake_price + i / 2)
+            ) )
+        c._candles = fake_candles
+        pearson = c.pearson( 0, c.get_size() - 1, 'high_low_avg' )
+        self.assertEqual( pearson, 1 )
+    
 
 if __name__ == '__main__':
     unittest.main()

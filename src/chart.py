@@ -2,6 +2,7 @@
 # library imports
 #import array
 import datetime
+from scipy import stats
 
 # local imports
 from broker import Broker
@@ -220,64 +221,93 @@ class Chart:
                     self._increment_start_index() # increments end index too
 
 
-    """
-    Return type: <Candle>
-    This makes the class accessable using the [] operator.
-    """
     def __getitem__(
         self,
         key     # int
     ):
+        """Return type: <Candle>
+        Makes the class accessable using the [] operator.
+        Note that the internal candle array uses a shifted index.
+        """
         if key < 0 or key >= len(self._candles):
             raise Exception
         return self._candles[(key + self._start_index) % len(self._candles)]
 
 
-    """
-    Makes the class settable via the [] operator.
-    There is probably no reason to implement this.
-    """
     def __setitem__(self, key, value):
+        """
+        Makes the class settable via the [] operator.
+        There is probably no reason to implement this.
+        """
         raise NotImplementedError
 
 
-    """
-    Return type: float
-    end         int     End index of slice. Defaults to chart end.
-    """
     def standard_deviation(self,
         start=None, # candle index - default to first
         end=None    # candle index - default to last
     ):
+        """
+        Return type: float
+        end         int     End index of slice. Defaults to chart end.
+        """
         raise NotImplementedError
 
 
-    """
-    Return type: probably float in a certain range
-    """
-    def linearity(
+    def pearson(
         self,
-        start=None,     # candle index - default to first
-        end=None        # candle index - default to last
+        start,  # candle index; 0 for first candle
+        end,    # candle index; size-1 for last candle
+        method='high_low_avg' # high_low_avg | open | high | low | close
     ):
-        # pearson coefficient
-        raise NotImplementedError
+        """Return type: float
+        Calculates Pearson correlation coefficient of the specified subgroup
+        of candles in the chart.
+        """
+        Log.write('chart.py pearson(): method = {}'.format(method) )
+        Log.write('chart.py pearson(): candle coutn = {}'.format(self.get_size()) )
+
+        # input validation
+        if self.get_size() < 2:
+            Log.write('chart.py pearson(): Called on chart with {} candles.'
+                .format(self.get_size()))
+            raise Exception
+
+        if method == 'high_low_avg':
+            # Create 2 datasets to pass into Pearson.
+            x_set = []
+            y_set = []
+            for i in range(start, end+1):
+                # Clarify timezone is UTC before calling timestamp()
+                x_set.append( self[i].timestamp.replace(tzinfo=datetime.timezone.utc).timestamp() )
+                avg = None
+                if hasattr(self[i], 'high_mid'): # and self[i].low_mid
+                    avg = (self[i].high_mid + self[i].low_mid) / 2
+                else:
+                    avg = (self[i].high_ask + self[i].low_bid) / 2
+                y_set.append( avg )
+            Log.write(
+                'chart.py pearson(): Calling stats.pearsonr with x_set = \n{}\n and y_set = \n{}\n'
+                .format(x_set, y_set) )
+            result = stats.pearsonr( x_set, y_set )
+            return result[0]
+        else:
+            raise NotImplementedError
 
 
-    """
-    """
     def slope(self, something):
+        """Return type: float
+        """
         # "simple linear regression" or just two point slope
         raise NotImplementedError
 
 
-    """
-    not really sure
-    """    
     def noise(self,
         start=None,     # candle index - default to first
         end=None        # candle index - default to last
     ):
+        """
+        not really sure
+        """    
         raise NotImplementedError
     
 

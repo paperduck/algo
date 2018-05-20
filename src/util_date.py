@@ -2,7 +2,7 @@
 Date utilities
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from log import Log
 
 
@@ -18,6 +18,28 @@ FRIDAY = 5
 SATURDAY = 6
 SUNDAY = 7
 
+
+''' problems with float limitations
+def datetime_to_numeric(dt):
+    """Return type: float
+    Datetime to UTC numeric representation in this format:
+    YYYYMMDDHHMMSS.<milliseconds...>
+    """
+    dt_utc = dt.replace(tzinfo=timezone.utc)
+    print('\n dt_utc = {} \n'.format(dt_utc) )
+    try:
+        dt_string = dt_utc.strftime( '%Y%m%d%H%M%S.%f' ) 
+        print('\n dt_string = {} \n'.format(dt_string) )
+    except:
+        Log.write('util_date.py datetime_to_numeric(): Failed to convert to string')
+        raise Exception
+    try:
+        print('\n float(dt_string) = {} \n'.format( float(dt_string) ) )
+        return float(dt_string)
+    except:
+        Log.write('util_date.py datetime_to_numeric(): Failed to convert to numeric')
+        raise Exception
+'''
 
 def date_to_string(d):
     """Returns: string

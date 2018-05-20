@@ -26,9 +26,9 @@ class Candle():
         close_ask=None,     # float
         close_mid=None      # float
     ):
-        self.timestamp = timestamp     
-        self.volume     = int(volume)   
-        self.complete    = complete
+        self.timestamp  = timestamp     
+        self.volume     = volume   
+        self.complete   = complete
 
         if open_bid != None:
             self.open_bid  = float(open_bid)
