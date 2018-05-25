@@ -277,7 +277,8 @@ class Chart:
             x_set = []
             y_set = []
             for i in range(start, end+1):
-                # Clarify timezone is UTC before calling timestamp()
+                # Convert timestamp to numeric value.
+                # Clarify timezone is UTC before calling timestamp().
                 x_set.append( self[i].timestamp.replace(tzinfo=datetime.timezone.utc).timestamp() )
                 avg = None
                 if hasattr(self[i], 'high_mid'): # and self[i].low_mid

@@ -4,6 +4,7 @@ Test the chart.py module.
 
 # library imports
 from datetime import datetime, timedelta
+import random
 import sys
 import unittest
 from unittest.mock import MagicMock, patch, call
@@ -306,12 +307,9 @@ class TestChart(unittest.TestCase):
         # TODO
 
         """
-        case: straight line
+        case: straight line, positive slope
         """
-        c = Chart(
-            in_instrument=Instrument(4),
-            count=0
-        )
+        c = Chart(in_instrument=Instrument(4), count=0)
         fake_candles = []
         fake_timestamp = datetime.utcnow()
         fake_price = 100.1234
@@ -323,7 +321,75 @@ class TestChart(unittest.TestCase):
             ) )
         c._candles = fake_candles
         pearson = c.pearson( 0, c.get_size() - 1, 'high_low_avg' )
-        self.assertEqual( pearson, 1 )
+        # Allow some play for float arithmetic
+        self.assertTrue( pearson > 0.99999 and pearson <= 1 )
+
+        """
+        case: straight line, negative slope
+        """
+        c = Chart( in_instrument=Instrument(4), count=0 )
+        fake_candles = []
+        fake_timestamp = datetime.utcnow()
+        fake_price = 100.1234
+        for i in range(0,10):
+            fake_candles.append( Candle(
+                timestamp=fake_timestamp - timedelta(seconds=i),   
+                high_ask=fake_price + i,
+                low_bid=(fake_price + i / 2)
+            ) )
+        c._candles = fake_candles
+        pearson = c.pearson( 0, c.get_size() - 1, 'high_low_avg' )
+        # Allow some play for float arithmetic
+        self.assertTrue( pearson < -0.99999 and pearson >= -1 )
+
+        """
+        case: V shape
+        """
+        c = Chart( in_instrument=Instrument(4), count=0 )
+        fake_candles = []
+        fake_timestamp = datetime.utcnow()
+        fake_price = 100.1234
+        seconds_elapsed = 0
+        for i in range(9,-1,-1):
+            fake_candles.append( Candle(
+                timestamp=fake_timestamp + timedelta(seconds=seconds_elapsed),
+                high_ask=fake_price + i,
+                low_bid=(fake_price + i / 2)
+            ) )
+            seconds_elapsed += 1
+        for i in range(0,10):
+            fake_candles.append( Candle(
+                timestamp=fake_timestamp + timedelta(seconds=seconds_elapsed),
+                high_ask=fake_price + i,
+                low_bid=(fake_price + i / 2)
+            ) )
+            seconds_elapsed += 1
+        c._candles = fake_candles
+        pearson = c.pearson( 0, c.get_size() - 1, 'high_low_avg' )
+        # Allow some play for float arithmetic
+        self.assertTrue( pearson > -0.000001 and pearson < 0.000001 )
+
+        """
+        case: random
+        """
+        c = Chart( in_instrument=Instrument(4), count=0 )
+        fake_candles = []
+        fake_timestamp = datetime.utcnow()
+        fake_price = 100
+        seconds_elapsed = 0
+        for i in range(0,10000):
+            offset = random.randrange(1, fake_price)
+            fake_candles.append( Candle(
+                timestamp=fake_timestamp + timedelta(seconds=seconds_elapsed),
+                high_ask=fake_price + offset,
+                low_bid=(fake_price + offset / 2)
+            ) )
+            seconds_elapsed += 1
+        c._candles = fake_candles
+        pearson = c.pearson( 0, c.get_size() - 1, 'high_low_avg' )
+        # Allow some play for float rounding
+        print('pearson of random chart: {}'.format(pearson) )
+        self.assertTrue( pearson > -0.02 and pearson < 0.02 )
     
 
 if __name__ == '__main__':
