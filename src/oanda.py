@@ -31,9 +31,6 @@ class Oanda():
     """
     Class methods are used because only one instance is ever needed and unlike
     static methods, the methods need to share data.
-    
-    Oanda returns 503 HTTPError ("Service Unavailable") during maintenance
-    downtime.
     """
     account_id_primary = 0
 
@@ -90,83 +87,22 @@ class Oanda():
         Log.write('"oanda.py" fetch(): \\*****************************/' )
         # send request
         req = urllib.request.Request(in_url, in_data, headers, in_origin_req_host, in_unverifiable, in_method)
-        # The Oanda REST API returns 404 error if you try to get trade info for a closed trade,
-        #   so don't freak out if that happens.
-        response = None
-        try:
-            response = urllib.request.urlopen(req)
-        except urllib.error.HTTPError as e:
-            # 204: No candlesticks during requested time.
-            # 400, 404,
-            # 415: unsupported media type (content-encoding)
-            # 503: Service Unavailable (e.g. scheduled maintenance)
-            result = (False, e)
-            while str(result[1].code) == '503':
-                Log.write('oanda.py fetch(): 503 HTTPError. Resending request...')
-                time.sleep(2)
-                # resend
-                result = cls.send_http_request( req )
-            if result[0]: # success
-                return result[1]
-            else:
-                e = result[1]
-                """
-                Log.write(
-                    '"oanda.py" fetch(): Error response from broker:\n\
-                    code: {}\n\
-                    reason: {}\n\
-                    headers:\n{}\n\
-                    info:{}'
-                    .format(e.code, e.reason, e.headers, str(e.info()) )
-                )
-                """
-                Log.write('oanda.py fetch(): Error while retrying HTTPError:\n{}'.format(str(e)))
-                return None
-        except urllib.error.URLError as e:
-            """
-            # https://docs.python.org/3.4/library/traceback.html
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            Log.write('"oanda.py" fetch(): URLError: ', exc_type)
-            Log.write('"oanda.py" fetch(): EXC INFO: ', exc_value)
-            Log.write('"oanda.py" fetch(): TRACEBACK:\n', traceback.print_exc(), '\n')
-            Log.write('"oanda.py" fetch(): request:\n{}'.format(req))
-            """
-            Log.write('oanda.py fetch(): URLError = \n{}'.format(str(e)))
-            return None
-        except OSError as e:
-            # not much else to do but keep trying
-            result = (False, e)
-            while not result[0] and isinstance(result[1], OSError):
-                Log.write('oanda.py fetch(): OSError = " {}\nResending..."'.format(str(e)))
-                time.sleep(2)
-                result = cls.send_http_request( req )
-            if result[0]: # success
-                return result[1]
-            else:
-                e = result[1]
-                Log.write('oanda.py fetch(): Exception while retrying OSError:\n{}'.format(str(e)))
-                print(str(e))
-                return None
-        except:
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            Log.write('"oanda.py" fetch(): Exception: ', exc_type)
-            Log.write('"oanda.py" fetch(): EXC INFO: ', exc_value)
-            Log.write('"oanda.py" fetch(): TRACEBACK:\n', traceback.print_exc(), '\n')
-            return None
-        else:
+        #response = urllib.request.urlopen(req)
+        response = cls.send_http_request(req)
+        while not response[0] and response[2]:
+            # Failure. Wait and try again.  
+            time.sleep(1)
+            Log.write('oanda.py fetch(): Resending request...')
+            response = cls.send_http_request(req)
+        if response[0]:
             # Success. Get the response data.
             """ "response.info() is email.message_from_string(); it needs to be
             cast to a string."
             """
-            resp_data = cls.read_response(response)
-            # Parse the JSON from Oanda into a dict and return it.
-            try:
-                return json.loads(resp_data)
-            except:
-                Log.write(
-                    'oanda.py fetch(): Failed to parse the following JSON:\n{}'
-                    .format(resp_data) )
-                raise Exception
+            return response[1]
+        else:
+            # Gave up trying.
+            return None
 
 
     @classmethod
@@ -197,15 +133,55 @@ class Oanda():
         cls,
         request, # request object
     ):
-        """Returns tuple: (success(bool), true->data/false->error_object)
+        """Returns tuple:
+        (
+            bool:   was success
+            object: success     -> data(probably dict)
+                    not success -> error_object
+            bool:   should retry
+        )
         This is a helper function for fetch().
         """
-        response = None
         try:
             response = urllib.request.urlopen(request)
         except urllib.error.HTTPError as e:
-            return ( False, str(e) )
+            # e.code():
+            # 204: No candlesticks during requested time.
+            # 400: 
+            # 404: Tried to get trade info for a closed trade.
+            # 415: unsupported media type (content-encoding)
+            # 503: Service Unavailable (e.g. scheduled maintenance)
+            Log.write('oanda.py send_http_request(): HTTPError:\n{}'.format(str(e)))
+            if e.code in ['503']:
+                return (False, e, True)
+            else:
+                return (False, e, False)
+        except urllib.error.URLError as e:
+            # https://docs.python.org/3.4/library/traceback.html
+            Log.write('oanda.py send_http_request(): URLError:\n{}'.format(str(e)))
+            return (False, e, False)
+        except ConnectionError as e:
+            Log.write('oanda.py send_http_request(): ConnectionError:\n{}'.format(str(e)))
+            return (False, e, True)
+        except OSError as e:
+            # Not sure why this happens. Usually when market is closed.
+            Log.write('oanda.py send_http_request(): OSError:\n{}'.format(str(e)))
+            return (False, e, True)
+        except Exception as e:
+            # some other error type
+            Log.write('oanda.py send_http_request(): some other error:\n{}'.format(str(e)))
+            """
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            Log.write('oanda.py send_http_request(): Exception: ', exc_type)
+            Log.write('oanda.py send_http_request(): EXC INFO: ', exc_value)
+            Log.write('oanda.py send_http_request(): TRACEBACK:\n', traceback.print_exc(), '\n')
+            """
+            return (False, e, True)
         else:
+            # no exceptions == success
+            Log.write(
+                'oanda.py fetch(): successful response.info(): {}'
+                .format(response.info()) )
             header = response.getheader('Content-Encoding')
             if header != None:
                 if header.strip().startswith('gzip'):
@@ -220,6 +196,9 @@ class Oanda():
             try:
                 return ( True, json.loads(resp_data) )
             except:
+                Log.write(
+                    'oanda.py send_http_request(): Failed to parse JSON:\n{}'
+                    .format( resp_data ) )
                 raise Exception
 
 
