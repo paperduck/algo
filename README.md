@@ -1,4 +1,4 @@
-# Algorithmic Trading Daemon ("algo")
+# Algorithmic Trading Platform
 
 ## What is this?
 
@@ -39,7 +39,7 @@ Run unit tests:
 
 ## Backtesting
 
-No backtesting is in place currently.
+See the backtesting directory.
 
 ## Forward Testing
 

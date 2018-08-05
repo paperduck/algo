@@ -1,7 +1,8 @@
-# run from /src/ like this:
+# Run from /src/ like this:
 #   $ bash tests/run_tests.sh
-# Do not run it from within /tests/. 
-# This is for the sake of the config_nonsecure.cfg path in config.py.
+#   Do not run it from within /tests/. 
+#   This is so the config_nonsecure.cfg path in config.py can be imported 
+#   by the tests.
 
 export PYTHONPATH=/home/user/raid/software_projects/algo/src
 export PYTHONPATH=$PYTHONPATH:/home/user/raid/software_projects/algo/src/tests

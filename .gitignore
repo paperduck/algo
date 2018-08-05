@@ -12,7 +12,11 @@ priv*
 __pycache__
 # backupfiles
 *.bak
+# CSV files
+csv/
 
+__init__.py
+__main__.py
 
 # Compiled Object files
 *.slo

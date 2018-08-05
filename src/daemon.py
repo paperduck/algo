@@ -14,12 +14,12 @@ import time         # for sleep()
 #import urllib.request
 #import urllib.error
 
-# private strategy modules
+"""# private strategy modules
 try:
     sys.path.index('/home/user/raid/documents/algo/private_strategies')
 except ValueError:
     sys.path.append('/home/user/raid/documents/algo/private_strategies')
-from follow_trend import FollowTrend
+from blah import blah """
 
 from broker import Broker
 from config import Config
@@ -59,8 +59,7 @@ class Daemon():
     """
     Set the strategies to use.
     If backup_strategy is different than the other strategies, be sure to
-        add that too. If it matches one of the strategies you will use, then
-        don't add it (don't need to manage it twice).
+        add that too. Otherwise you don't need to add it again.
     """
     strategies = []
     strategies.append(Fifty)

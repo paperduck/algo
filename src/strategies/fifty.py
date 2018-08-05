@@ -1,15 +1,7 @@
 """
-File:               fifty.py
-Python version:     3.4
-Module Description: "50/50 Chance" strategy module.
-Strategy Overview:
-    The chances of the price going up or down are, on average, 50/50.
-
+Strategy Overview: price goes up or down; 50/50 chance.
 """
 
-
-#*************************************
-#*************************************
 from broker import Broker
 from instrument import Instrument
 from log import Log
@@ -17,14 +9,8 @@ from opportunity import Opportunity, Opportunities
 from order import Order
 from strategy import Strategy
 from trade import Trade, Trades, TradeClosedReason
-#*************************************
 
 class Fifty(Strategy):
-    """
-    Class methods are used because the daemon never needs more than one
-    instance of each strategy.
-    """
-
     #Long or short?
     go_long = True
     tp_price_diff = 0.1
@@ -48,11 +34,7 @@ class Fifty(Strategy):
 
     @classmethod
     def _babysit(cls):
-        """
-        If there is an open trade, then babysit it. Also check if it has
-        closed
-        """
-
+        """ (See strategy.py for documentation) """
         Log.write('fifty.py babysit(): _open_tade_ids: {}'.format(cls._open_trade_ids))
 
         for open_trade_id in cls._open_trade_ids:
@@ -134,13 +116,7 @@ class Fifty(Strategy):
     @classmethod
     def _scan(cls):
         Log.write('fifty.py scan()')
-        """
-        Look for opportunities to enter a trade.
-        Returns:
-            <opportunity> object(s) if there is an opportunity
-            Empty list if no opportunities.
-            None on failure
-        """
+        """ (see strategy.py for documentation) """
         # If we're babysitting a trade, don't open a new one.
         if len(cls._open_trade_ids) > 0:
             Log.write('fifty.py _scan(): Trades open; no suggestions.')
@@ -201,7 +177,7 @@ class Fifty(Strategy):
                 )
                 Log.write('"fifty.py" _scan(): Returning opportunity with \
                     order:\n{}'.format(opp))
-                return ( opp )
+                return [opp]
             else:
                 Log.write('fifty.py _scan(): Spread is high; no suggestions.')
                 return []

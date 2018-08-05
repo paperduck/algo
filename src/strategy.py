@@ -23,7 +23,7 @@ class Strategy():
     """
 
     # 
-    _open_trade_ids = []
+    open_trade_ids = []
 
 
     @classmethod
@@ -33,7 +33,7 @@ class Strategy():
 
     @classmethod
     def get_number_positions(cls):
-        return len( cls._open_trade_ids )
+        return len( cls.open_trade_ids )
 
 
     @classmethod
@@ -47,20 +47,17 @@ class Strategy():
         raise NotImplementedError()
 
 
-    """
-    Return type: void
-    Called by the daemon to notify the strategy that the order it suggested
-        has been placed.
-    """
     @classmethod
-    def trade_opened(
-        cls,
-        trade_id    # string
-    ):
-        cls._open_trade_ids.append(trade_id)
+    def trade_opened(cls,  trade_id):
+        """ Called by the daemon to notify the strategy that the order it suggested has been placed.
+        Return type: void
+        Parameters:
+            trade_id        string
+        """
+        cls.open_trade_ids.append(trade_id)
         Log.write('"strategy.py" trade_opened(): strat {} opened trade ({})'
             .format(cls.get_name(), trade_id)) 
-        # Write to db
+        # Write to db - mainly for backup in event of power failure
         DB.execute('INSERT INTO open_trades_live (trade_id, strategy, \
             broker) values ("{}", "{}", "{}")'
             .format(trade_id, cls.get_name(), Config.broker_name))
@@ -83,14 +80,14 @@ class Strategy():
         Log.write('"strategy.py" trade_closed(): Attempting to pop trade ',
             'ID {}'.format(trade_id))
         # Remove the trade from the list.
-        # TODO: Put a lock on cls._open_trade_ids to make it thread safe while
+        # TODO: Put a lock on cls.open_trade_ids to make it thread safe while
         # deleting from it.
-        num_trades = len(cls._open_trade_ids)
+        num_trades = len(cls.open_trade_ids)
         if num_trades > 0:
             closed_trade_id = None
             for i in range(0, num_trades):
-                if cls._open_trade_ids[i] == trade_id:
-                    closed_trade_id = cls._open_trade_ids.pop(i)
+                if cls.open_trade_ids[i] == trade_id:
+                    closed_trade_id = cls.open_trade_ids.pop(i)
                     break
             # Make sure the trade was actually popped.
             if closed_trade_id == None:
@@ -139,43 +136,40 @@ class Strategy():
         terminated, this can be used to tell the strategy
         module about a trade that it had previously opened.
         """
-        cls._open_trade_ids.append(trade_id)
+        cls.open_trade_ids.append(trade_id)
 
 
     @classmethod
     def drop_all(cls):
-        del cls._open_trade_ids[:]
+        del cls.open_trade_ids[:]
 
 
-    """
-    Override this in your strategy module.
-    The daemon calls this repeatedly.
-    """
     @classmethod
     def refresh(cls):
+        """The daemon should call this repeatedly."""
         cls._babysit()
         return cls._scan()
 
 
-    """
-    Return type: void
-    Babysit open trades.
-    Override this in your strategy module.
-    """
     @classmethod
     def _babysit(cls):
+        """
+        Return type: void
+        Babysit open trades.
+        Override this in your strategy module.
+        """
         raise NotImplementedError()
  
 
-    """
-    Return type:
-        <Opportunity> instance if there is an opportunity.
-        None if no opportunity.
-    Override this in your strategy module.
-    Determines whether there is an opportunity or not.
-    """
     @classmethod
     def _scan(cls):
+        """
+        Determines whether there is an opportunity or not.
+        Override this in your strategy module.
+        Return type:
+            <Opportunity> instance if there is an opportunity.
+            None if no opportunity.
+        """
         raise NotImplementedError()
 
 
