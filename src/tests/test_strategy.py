@@ -58,13 +58,13 @@ class TestStrategy(unittest.TestCase):
     """
     def test_trade_opened(self):
         #import pdb; pdb.set_trace()
-        SampleStrategy._open_trade_ids = []
+        SampleStrategy.open_trade_ids = []
         SampleStrategy.trade_opened('1')
-        self.assertEqual(SampleStrategy._open_trade_ids, ['1'])
+        self.assertEqual(SampleStrategy.open_trade_ids, ['1'])
         SampleStrategy.trade_opened('666')
-        self.assertEqual(SampleStrategy._open_trade_ids, ['1','666'])
+        self.assertEqual(SampleStrategy.open_trade_ids, ['1','666'])
         SampleStrategy.trade_opened('mx.!@#$%^&*()_+=-/|')
-        self.assertEqual(SampleStrategy._open_trade_ids, ['1','666','mx.!@#$%^&*()_+=-/|'])
+        self.assertEqual(SampleStrategy.open_trade_ids, ['1','666','mx.!@#$%^&*()_+=-/|'])
         DB.execute("DELETE FROM open_trades_live WHERE trade_id in ('1', '666', 'mx.!@#$%^&*()_+=-/|')")
 
 
@@ -72,21 +72,21 @@ class TestStrategy(unittest.TestCase):
     def test_trade_closed(self):
 
         # try to delete from empty list
-        SampleStrategy._open_trade_ids = []
+        SampleStrategy.open_trade_ids = []
         self.assertRaises(Exception, SampleStrategy.trade_closed, '1')
 
         # try to delete from non-empty list, but trade not found in list.
-        SampleStrategy._open_trade_ids = ['1','2','3']
+        SampleStrategy.open_trade_ids = ['1','2','3']
         self.assertRaises(Exception, SampleStrategy.trade_closed, '4')
 
         # try to delete from list (normal/success)
-        SampleStrategy._open_trade_ids = ['1','2','3']
+        SampleStrategy.open_trade_ids = ['1','2','3']
         SampleStrategy.trade_closed('2')
-        self.assertEqual(SampleStrategy._open_trade_ids, ['1','3'])
+        self.assertEqual(SampleStrategy.open_trade_ids, ['1','3'])
         SampleStrategy.trade_closed('3')
-        self.assertEqual(SampleStrategy._open_trade_ids, ['1'])
+        self.assertEqual(SampleStrategy.open_trade_ids, ['1'])
         SampleStrategy.trade_closed('1')
-        self.assertEqual(SampleStrategy._open_trade_ids, [])
+        self.assertEqual(SampleStrategy.open_trade_ids, [])
     """
 
 

@@ -48,13 +48,11 @@ class TestChart(unittest.TestCase):
         GRANULARITY = 'S5'
         NUM_EXTRA_SECONDS = 300
         sample_instrument = Instrument(4) # USD_JPY
-
         # Initialize a sample chart.
         chart = Chart(
             in_instrument=sample_instrument,
             count=COUNT
         )
-
         # check success
         self.assertNotEqual(chart._granularity, None)
         # check indecies

@@ -25,7 +25,7 @@ class Chart:
     def __init__(
         self,
         in_instrument,              # <Instrument>    
-        granularity=None,           # string - See Oanda's documentation
+        granularity='S5',           # string - See Oanda's documentation
         count=None,                 # int - number of candles
         start=None,                 # datetime - UTC
         end=None,                   # datetime - UTC
@@ -39,42 +39,44 @@ class Chart:
         # verify instance of <Instrument> by accessing a member.
         if in_instrument.get_id() == 0:
             pass            
-        # get candles from broker
-        instrument_history = Broker.get_instrument_history(
-            instrument=in_instrument,
-            granularity=granularity,
-            count=count,
-            from_time=start,
-            to=end,
-            price=price,
-            include_first=include_first,
-            daily_alignment=daily_alignment,
-            alignment_timezone=alignment_timezone,
-            weekly_alignment=weekly_alignment
-        )
-        if instrument_history == None:
-            Log.write('chart.py __init__(): Failed to get instrument history.')
-            raise Exception
-        else:
-            candles_raw = instrument_history['candles']
-            for c_r in candles_raw:
-                new_candle = Candle(
-                    timestamp=util_date.string_to_date(c_r['time']),
-                    volume=float(c_r['volume']),
-                    complete=bool(c_r['complete']),
-                    open_bid=float(c_r['bid']['o']),
-                    high_bid=float(c_r['bid']['h']),
-                    low_bid=float(c_r['bid']['l']),
-                    close_bid=float(c_r['bid']['c']),
-                    open_ask=float(c_r['ask']['o']),
-                    high_ask=float(c_r['ask']['h']),
-                    low_ask=float(c_r['ask']['l']),
-                    close_ask=float(c_r['ask']['c'])
-                )
-                self._candles.append(new_candle)
+
+        if not count in [0]: # do send None
+            # get candles from broker
+            instrument_history = Broker.get_instrument_history(
+                instrument=in_instrument,
+                granularity=granularity,
+                count=count,
+                from_time=start,
+                to=end,
+                price=price,
+                include_first=include_first,
+                daily_alignment=daily_alignment,
+                alignment_timezone=alignment_timezone,
+                weekly_alignment=weekly_alignment
+            )
+            if instrument_history == None:
+                Log.write('chart.py __init__(): Failed to get instrument history.')
+                raise Exception
+            else:
+                candles_raw = instrument_history['candles']
+                for c_r in candles_raw:
+                    new_candle = Candle(
+                        timestamp=util_date.string_to_date(c_r['time']),
+                        volume=float(c_r['volume']),
+                        complete=bool(c_r['complete']),
+                        open_bid=float(c_r['bid']['o']),
+                        high_bid=float(c_r['bid']['h']),
+                        low_bid=float(c_r['bid']['l']),
+                        close_bid=float(c_r['bid']['c']),
+                        open_ask=float(c_r['ask']['o']),
+                        high_ask=float(c_r['ask']['h']),
+                        low_ask=float(c_r['ask']['l']),
+                        close_ask=float(c_r['ask']['c'])
+                    )
+                    self._candles.append(new_candle)
 
         self._instrument = in_instrument
-        self._granularity = instrument_history['granularity']
+        self._granularity = granularity
         self._start_index = 0 # start
         self._price = price
         self.include_first = include_first
@@ -91,7 +93,8 @@ class Chart:
         if self._start_index > 0:
             return self._start_index - 1
         elif self._start_index == 0:
-            return self.get_size() - 1
+            if self.get_size() > 0: return self.get_size() - 1
+            else: return 0
         else:
             raise Exception
 

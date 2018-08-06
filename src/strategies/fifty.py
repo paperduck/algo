@@ -35,9 +35,9 @@ class Fifty(Strategy):
     @classmethod
     def _babysit(cls):
         """ (See strategy.py for documentation) """
-        Log.write('fifty.py babysit(): _open_tade_ids: {}'.format(cls._open_trade_ids))
+        Log.write('fifty.py babysit(): _open_tade_ids: {}'.format(cls.open_trade_ids))
 
-        for open_trade_id in cls._open_trade_ids:
+        for open_trade_id in cls.open_trade_ids:
             is_closed = Broker.is_trade_closed(open_trade_id)
             if is_closed[0]:
                 Log.write('"fifty.py" _babysit(): Trade ({}) has closed with reason: {}'
@@ -49,7 +49,7 @@ class Fifty(Strategy):
                         cls.go_long = False
                     else:
                         cls.go_long = True
-                cls._open_trade_ids.remove(open_trade_id)
+                cls.open_trade_ids.remove(open_trade_id)
             else:
                 trade = Broker.get_trade(open_trade_id)
                 instrument = trade.instrument
@@ -71,7 +71,7 @@ class Fifty(Strategy):
                                 Log.write('fifty.py babysit(): is_trade_closed returned:\n{}'.format(closed))
                                 if closed[0]:
                                     Log.write('"fifty.py" _babysit(): BUY trade has closed. (BUY)')
-                                    cls._open_trade_ids.remove(open_trade_id)
+                                    cls.open_trade_ids.remove(open_trade_id)
                                     # If SL hit, reverse direction.
                                     if closed[1] == TradeClosedReason.STOP_LOSS_ORDER:
                                         cls.go_long = False
@@ -98,7 +98,7 @@ class Fifty(Strategy):
                                 Log.write('fifty.py babysit(): is_trade_closed returned:\n{}'.format(closed))
                                 if closed[0]:
                                     Log.write('"fifty.py" _babysit(): SELL trade has closed. (BUY)')
-                                    cls._open_trade_ids.remove(open_trade_id)
+                                    cls.open_trade_ids.remove(open_trade_id)
                                     # If SL hit, reverse direction.
                                     if closed[1] == TradeClosedReason.STOP_LOSS_ORDER:
                                         cls.go_long = True
@@ -118,7 +118,7 @@ class Fifty(Strategy):
         Log.write('fifty.py scan()')
         """ (see strategy.py for documentation) """
         # If we're babysitting a trade, don't open a new one.
-        if len(cls._open_trade_ids) > 0:
+        if len(cls.open_trade_ids) > 0:
             Log.write('fifty.py _scan(): Trades open; no suggestions.')
             return []
         instrument = Instrument(Instrument.get_id_from_name('USD_JPY'))

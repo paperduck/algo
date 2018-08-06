@@ -139,7 +139,24 @@ class BacktestBroker():
         Returns true if the trade closed, false if still open.
         """
         iid = trade['instrument_id']
-        if (    # long TP
+
+        if (  # long SL
+            trade['sl'] and trade['units'] > 0 and trade['sl'] >= cls.prices[iid]['active']['lb']
+        ) or (  # short SL
+            trade['sl'] and trade['units'] < 0 and trade['sl'] <= cls.prices[iid]['active']['ha']
+        ):
+            #print('SL HIT: execution({}) close({})'.format(trade['execution_price'], trade['sl']))
+            cls.trades_closed.append( {
+                'trade_id':         trade['trade_id'],
+                'open_time':        trade['open_time'],
+                'close_time':       cls.prices[iid]['active']['t'],
+                'instrument_id':    iid,
+                'units':            trade['units'],
+                'execution_price':  trade['execution_price'],
+                'close_price':      trade['sl']
+            } )
+            return True
+        elif (    # long TP
             trade['tp'] and trade['units'] > 0 and trade['tp'] <= cls.prices[iid]['active']['hb']
         ) or (  # short TP
             trade['tp'] and trade['units'] < 0 and trade['tp'] >= cls.prices[iid]['active']['la']
@@ -156,23 +173,7 @@ class BacktestBroker():
                 'close_price':      trade['tp']
             } )
             return True
-        # long SL or short SL
-        elif (  # long SL
-            trade['sl'] and trade['units'] > 0 and trade['sl'] >= cls.prices[iid]['active']['lb']
-        ) or (  # short SL
-            trade['sl'] and trade['units'] < 0 and trade['sl'] <= cls.prices[iid]['active']['ha']
-        ):
-            #print('SL HIT: execution({}) close({})'.format(trade['execution_price'], trade['sl']))
-            cls.trades_closed.append( {
-                'trade_id':         trade['trade_id'],
-                'open_time':        trade['open_time'],
-                'close_time':       cls.prices[iid]['active']['t'],
-                'instrument_id':    iid,
-                'units':            trade['units'],
-                'execution_price':  trade['execution_price'],
-                'close_price':      trade['sl']
-            } )
-            return True
+
         return False
 
 

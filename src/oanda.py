@@ -187,7 +187,6 @@ class Oanda():
         """Returns: response data as dict
         This is a helper function for fetch().
         """
-        Log.write('oanda.py read_response()')
         header = response.getheader('Content-Encoding')
         if header != None:
             # Check how the response data is encoded.

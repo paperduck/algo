@@ -76,7 +76,7 @@ class TestDaemon(unittest.TestCase):
         Daemon.recover_trades()
         # Check that no trades were adopted
         for s in Daemon.strategies:
-            self.assertEqual(len(s._open_trade_ids), 0)
+            self.assertEqual(len(s.open_trade_ids), 0)
 
         """
         Scenario: Open trade in broker and db
@@ -110,11 +110,11 @@ class TestDaemon(unittest.TestCase):
         # check Fifty adopted one trade
         for s in Daemon.strategies:
             if s.get_name() == 'Fifty':
-                self.assertEqual(len(s._open_trade_ids), 1)
+                self.assertEqual(len(s.open_trade_ids), 1)
             else:
-                self.assertEqual(len(s._open_trade_ids), 0)
+                self.assertEqual(len(s.open_trade_ids), 0)
         # check trade is the trade we think it is
-        self.assertEqual(Fifty._open_trade_ids[0], 'id666')
+        self.assertEqual(Fifty.open_trade_ids[0], 'id666')
         '''
         self.assertEqual(Fifty._open_trades[0].get_broker_name(), 'oanda')
         self.assertEqual(Fifty._open_trades[0].get_instrument().get_name(), 'USD_JPY')
@@ -162,7 +162,7 @@ class TestDaemon(unittest.TestCase):
         DB.execute.assert_has_calls(calls)
         # Check no trades adopted
         for s in Daemon.strategies:
-            self.assertEqual(len(s._open_trade_ids), 0)
+            self.assertEqual(len(s.open_trade_ids), 0)
  
         """
         Scenario: Trade in db, broker unsure
@@ -190,7 +190,7 @@ class TestDaemon(unittest.TestCase):
         DB.execute.assert_has_calls(calls)
         # Check no trades adopted
         for s in Daemon.strategies:
-            self.assertEqual(len(s._open_trade_ids), 0)
+            self.assertEqual(len(s.open_trade_ids), 0)
 
         """ 
         module cleanup
