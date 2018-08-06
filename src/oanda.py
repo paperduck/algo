@@ -545,6 +545,8 @@ class Oanda():
     """
     Standard retail trading hours (no special access),
      or depending on broker.
+    WARNING: These are blatantly wrong, as they do not take into account
+        Daylight Savings Time.
     """
     market_opens = { 
         # 10pm UTC, 7am JST
