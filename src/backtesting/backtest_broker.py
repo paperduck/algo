@@ -110,19 +110,34 @@ class BacktestBroker():
                 else:
                     profits.append( t['execution_price'] - t['close_price'] )
             profit = sum(profits)
-            wins = [ p for p in profits if p > 0 ]
-            wins_avg = sum(wins)/float(len(wins)) if len(wins) > 0 else 0
-            losses = [ p for p in profits if p < 0 ]
-            losses_avg = sum(losses)/float(len(losses)) if len(losses) > 0 else 0
+            import numpy as np
+            from scipy import stats
+            wins            = [ p for p in profits if p > 0 ]
+            wins_avg        = round(sum(wins)/float(len(wins)), 5) if len(wins) > 0 else 0
+            wins_median     = round(np.median(wins), 5) if len(wins) > 0 else 0
+            wins_mode       = stats.mode(wins) if len(wins) > 0 else 0
+            wins_mode_val   = round(wins_mode[0][0], 5)
+            wins_mode_count = wins_mode[1][0]
+            losses              = [ p for p in profits if p < 0 ]
+            losses_avg          = round(sum(losses)/float(len(losses)), 5) if len(losses) > 0 else 0
+            losses_median       = round(np.median(losses), 5) if len(losses) > 0 else 0
+            losses_mode         = stats.mode(losses) if len(losses) > 0 else 0
+            losses_mode_val     = round(losses_mode[0][0], 5)
+            losses_mode_count   = losses_mode[1][0]
             washes = [ p for p in profits if p == 0 ]
-            washes_avg = sum(washes)/float(len(washes)) if len(washes) > 0 else 0
             print('\n')
             print('{} open trades'.format(len(cls.trades_open)))
             print('{} closed trades'.format(len(cls.trades_closed)))
             #print('Profits: {}'.format(profits) )
-            print('{} Wins (avg: {})'.format(len(wins), wins_avg))
-            print('{} Losses (avg: {})'.format(len(losses), losses_avg))
-            print('{} Washes (avg: {})'.format(len(washes), washes_avg))
+            print('Wins: {}'.format( len(wins) ))
+            print('    avg:    {}'.format( wins_avg ))
+            print('    median: {}'.format( wins_median ))
+            print('    mode:   {} x{}'.format( wins_mode_val, wins_mode_count ))
+            print('Losses: {}'.format( len(losses) ))
+            print('    avg:    {}'.format( losses_avg ))
+            print('    median: {}'.format( losses_median ))
+            print('    mode:   {} x{}'.format( losses_mode_val, losses_mode_count ))
+            print('{} Washes'.format(len(washes)))
             print('End Profit: {}'.format(profit) )
             #import pdb; pdb.set_trace()
             return False
