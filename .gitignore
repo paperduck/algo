@@ -15,9 +15,6 @@ __pycache__
 # CSV files
 csv/
 
-__init__.py
-__main__.py
-
 # Compiled Object files
 *.slo
 *.lo

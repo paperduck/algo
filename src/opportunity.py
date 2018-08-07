@@ -13,12 +13,13 @@ from order import Order
 class Opportunity():
 
     def __init__(self, order, conf, strat, reason):
+        # the order that would be sent to the broker
         self.order = order
         # estimate of success (int 1-100)
         self.confidence = conf
-        # Reference to strategy class that created this opportunity.
+        # Reference to Strategy instance that created this opportunity.
         # <Trade> objects also hold a reference to their strategy.
-        self.strategy = strat #<Strategy>
+        self.strategy = strat
         # A note to save to the database.
         self.reason = reason
 
@@ -53,6 +54,7 @@ class Opportunities():
         """
         Add an <Opportunity> to the list.
         """
+        Log.write('pushing opp: {}'.format(opp))
         self._opportunities.append(opp)
 
 

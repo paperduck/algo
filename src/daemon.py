@@ -53,17 +53,12 @@ class Daemon():
     # opportunity pool
     opportunities = Opportunities()
 
-    # Specify the backup strategy.
-    backup_strategy = Fifty 
-
-    """
-    Set the strategies to use.
-    If backup_strategy is different than the other strategies, be sure to
-        add that too. Otherwise you don't need to add it again.
-    """
+    #Initialize strategies.
+    fifty = Fifty(tp_price_diff=0.1, sl_price_diff=0.1)
     strategies = []
-    strategies.append(Fifty)
-    #strategies.append(backup_strategy)
+    strategies.append( fifty )
+    # Specify the backup strategy.
+    backup_strategy = fifty
 
     msg_base = '' # user interface template
 
@@ -158,10 +153,6 @@ class Daemon():
             for s in cls.strategies:
                 new_opp = s.refresh()
                 if new_opp == None:
-                    Log.write('daemon.py run(): refresh() failed for {}.'
-                        .format(s.get_name()))
-                    raise Exception
-                elif new_opp == []:
                     Log.write('daemon.py run(): {} has nothing to offer now.'
                         .format(s.get_name()))
                     pass
@@ -182,6 +173,7 @@ class Daemon():
                 available_money = 100 # USD - testing
                 #   Get the current price of one unit.
                 instrument_price = 0
+                Log.write('best opp: {}'.format(best_opp))
                 go_long = best_opp.order.units > 0
                 if go_long:
                     instrument_price = Broker.get_ask(best_opp.order.instrument)
@@ -352,7 +344,7 @@ class Daemon():
                 # Find the strategy that made this trade and notify it.
                 for s in cls.strategies:
                     if broker_trade.strategy.get_name() == s.get_name(): 
-                        s.recover_trade(broker_trade.trade_id)
+                        s.adopt(broker_trade.trade_id)
                         open_trades_broker.remove(broker_trade.trade_id)
                         break
             else:
@@ -363,7 +355,7 @@ class Daemon():
                 Log.write('"daemon.py" recover_trades(): Assigning trade ',
                     ' ({}) to backup strategy ({}).'
                     .format(broker_trade.trade_id, cls.backup_strategy.get_name()))
-                cls.backup_strategy.recover_trade(broker_trade.trade_id)
+                cls.backup_strategy.adopt(broker_trade.trade_id)
         return 0 # success
                 
 
