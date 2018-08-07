@@ -31,7 +31,7 @@ from trade import TradeClosedReason, Trade, Trades
 
 class TestDaemon(unittest.TestCase):
 
-    _NAME = 'TestDaemon'
+    _strat = Fifty(0.1, 0.1)
 
     # called for every test method
     def setUp(self):
@@ -42,30 +42,29 @@ class TestDaemon(unittest.TestCase):
     def tearDown(self):
         pass
 
-    """
-    Test: Daemon.recover_trades()
-    Scenarios:
-        - No trades in broker or db
-            Assertions:
-                - Strategies recover no trades
-        - Trade in broker and db
-            Assertions:
-                - Trade gets distributed to correct strategy
-        - Trade is in broker, not db
-            Assert:
-                - Trade deleted from db
-                - Trade gets distributed to correct strategy
-        - Trade in db, broker unsure
-            Assert:
-                - Trade deleted from db
-                - Trade's strategy does NOT adopt it
-        - Trade in db has wonky data (non-existant strategy name, etc.)
-        - (All):
-            Assert: trades are distributed to strategies.
-    """
     @patch('daemon.Broker')
     def test_recover_trades(self, mock_broker):
-        #print(self._NAME + '.test_recover_trades')
+        """
+        Test: Daemon.recover_trades()
+        Scenarios:
+            - No trades in broker or db
+                Assertions:
+                    - Strategies recover no trades
+            - Trade in broker and db
+                Assertions:
+                    - Trade gets distributed to correct strategy
+            - Trade is in broker, not db
+                Assert:
+                    - Trade deleted from db
+                    - Trade gets distributed to correct strategy
+            - Trade in db, broker unsure
+                Assert:
+                    - Trade deleted from db
+                    - Trade's strategy does NOT adopt it
+            - Trade in db has wonky data (non-existant strategy name, etc.)
+            - (All):
+                Assert: trades are distributed to strategies.
+        """
 
         """
         Scenario: No trades in broker or db
@@ -100,7 +99,7 @@ class TestDaemon(unittest.TestCase):
             broker_name='oanda',
             instrument=Instrument(4),
             stop_loss=90,
-            strategy=Fifty,
+            strategy=self._strat,
             take_profit=100,
             trade_id='id666'
         ))
@@ -124,7 +123,7 @@ class TestDaemon(unittest.TestCase):
         self.assertEqual(Fifty._open_trades[0].get_trade_id(), 'id666')
         '''
         # Cleanup
-        Fifty.drop_all()
+        self._strat.cleanup()
 
         """
         Scenario: Trade is in broker, not db
@@ -147,7 +146,7 @@ class TestDaemon(unittest.TestCase):
             broker_name='oanda',
             instrument=Instrument(4),
             stop_loss=90,
-            strategy=Fifty,
+            strategy=self._strat,
             take_profit=100,
             trade_id='id666'))
         mock_broker.get_open_trades = MagicMock(return_value=trades)

@@ -19,17 +19,18 @@ from db import DB
 from strategy import Strategy
 
 class SampleStrategy(Strategy):
-    @classmethod
-    def get_name(cls):
-        return 'sample'
-    @classmethod
-    def _babysit(cls):
+    def __init__(self):
         pass
-    @classmethod
-    def _scan(cls):
+    def get_name(self):
+        return 'sample'
+    def _babysit(self):
+        pass
+    def _scan(self):
         return None
 
 class TestStrategy(unittest.TestCase):
+
+    _strat = SampleStrategy()
 
     # called for every test method
     def setUp(self):
@@ -41,79 +42,45 @@ class TestStrategy(unittest.TestCase):
         pass
 
     
-    """
-    """
     def test___str__(self):
-        self.assertEqual(str(SampleStrategy.get_name()), 'sample')
+        self.assertEqual(str(self._strat.get_name()), 'sample')
 
 
-    """
-    """
     def test_get_name(self):
-        self.assertEqual(SampleStrategy.get_name(), 'sample')
+        self.assertEqual(self._strat.get_name(), 'sample')
 
 
-    """
-    TODO: check db too
-    """
     def test_trade_opened(self):
+        """
+        TODO: check db too
+        """
         #import pdb; pdb.set_trace()
-        SampleStrategy.open_trade_ids = []
-        SampleStrategy.trade_opened('1')
-        self.assertEqual(SampleStrategy.open_trade_ids, ['1'])
-        SampleStrategy.trade_opened('666')
-        self.assertEqual(SampleStrategy.open_trade_ids, ['1','666'])
-        SampleStrategy.trade_opened('mx.!@#$%^&*()_+=-/|')
-        self.assertEqual(SampleStrategy.open_trade_ids, ['1','666','mx.!@#$%^&*()_+=-/|'])
+        self._strat.open_trade_ids = []
+        self._strat.trade_opened('1')
+        self.assertEqual(self._strat.open_trade_ids, ['1'])
+        self._strat.trade_opened('666')
+        self.assertEqual(self._strat.open_trade_ids, ['1','666'])
+        self._strat.trade_opened('mx.!@#$%^&*()_+=-/|')
+        self.assertEqual(self._strat.open_trade_ids, ['1','666','mx.!@#$%^&*()_+=-/|'])
         DB.execute("DELETE FROM open_trades_live WHERE trade_id in ('1', '666', 'mx.!@#$%^&*()_+=-/|')")
-
-
-    """ Strategy.trade_closed() was deprecated
-    def test_trade_closed(self):
-
-        # try to delete from empty list
-        SampleStrategy.open_trade_ids = []
-        self.assertRaises(Exception, SampleStrategy.trade_closed, '1')
-
-        # try to delete from non-empty list, but trade not found in list.
-        SampleStrategy.open_trade_ids = ['1','2','3']
-        self.assertRaises(Exception, SampleStrategy.trade_closed, '4')
-
-        # try to delete from list (normal/success)
-        SampleStrategy.open_trade_ids = ['1','2','3']
-        SampleStrategy.trade_closed('2')
-        self.assertEqual(SampleStrategy.open_trade_ids, ['1','3'])
-        SampleStrategy.trade_closed('3')
-        self.assertEqual(SampleStrategy.open_trade_ids, ['1'])
-        SampleStrategy.trade_closed('1')
-        self.assertEqual(SampleStrategy.open_trade_ids, [])
-    """
 
 
     def test_recover_trades(self):
         pass
 
 
-    """
-    """
     def test_drop_all(self):
         pass
 
 
-    """
-    """
     def test_refresh(self):
         pass
 
 
-    """
-    """
     def test__babysit(self):
         pass
 
 
-    """
-    """
     def test__scan(self):
         pass
 
