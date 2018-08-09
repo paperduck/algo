@@ -39,7 +39,7 @@ Run unit tests:
 
 ## Backtesting
 
-See the backtesting directory.
+See `/src/backtesting/`
 
 ## Forward Testing
 

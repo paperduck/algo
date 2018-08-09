@@ -15,7 +15,7 @@ To perform a backtest, run `run_backtest.py` like this:
 
 `$ python3 run_backtest.py`
 
-## run_backtest.py
+### run_backtest.py
 
 Main entry point for backtesting. Before running, edit the file to supply it with your CSV filenames.
 
