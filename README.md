@@ -4,7 +4,7 @@
 
 This project is a modular platform for running multiple algorithmic trading strategies concurrently.
 
-As of 2018-05-12, the platform is functional but not "production quality". Backtesting is non-existent. 
+As of 2018-08-18, the platform is functional. However, it is hardly optimized nor ready for production. A basic backtesting framework is in place; see `/src/backtesting/`.
 
 You can develop your own strategy module and run it with this platform. Developing a module is very straightforward; copy a strategy from `/src/strategies/` and implement your own logic in `_babysit()` and `_scan()`.
 
@@ -39,7 +39,7 @@ Run unit tests:
 
 ## Backtesting
 
-See the backtesting directory.
+See `/src/backtesting/`
 
 ## Forward Testing
 
