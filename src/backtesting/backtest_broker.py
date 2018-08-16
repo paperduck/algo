@@ -2,13 +2,15 @@
 Broker simulator for backtesting strategies.
 Don't use this directly. Use run_broker.py.
 """
-#
+# local imports
 import csv
 from datetime import datetime
 import pandas as pd
-#
+
+# external imports
 import backtesting.csv_parse as csv_parse
 from log import Log
+import multiprocessing as mp
 
 class BacktestBroker():
 
@@ -70,15 +72,20 @@ class BacktestBroker():
         """
         cls.trades_closed = []
 
-        for instr_id in cls.files:
-            # initialize files
-            f = cls.files[instr_id] # with
-            f['data'] = csv_parse.pi(f['filename'], start, end)
-            f['data'] = f['data'].iterrows()
-            # initialize price buffer
-            price = cls.prices[instr_id] # with
-            price['active'] = next(f['data'])[1]    # first row
-            price['buffer'] = next(f['data'])[1]    # second row
+        with mp.Pool(mp.cpu_count()) as pool:
+            for instr_id in cls.files:
+                # initialize files
+                f = cls.files[instr_id] # just easier to read
+                # Read in the files concurrently
+                f['data'] = pool.apply_async(func=csv_parse.pi, args=[ f['filename'], start, end])
+            for instr_id in cls.files:
+                f = cls.files[instr_id] # just easier to read
+                # Wait for files to finish reading, then get a generator
+                f['data'] = f['data'].get().iterrows()
+                # initialize price buffer
+                price = cls.prices[instr_id] # with
+                price['active'] = next(f['data'])[1]    # first row
+                price['buffer'] = next(f['data'])[1]    # second row
         
     @classmethod
     def advance(cls):

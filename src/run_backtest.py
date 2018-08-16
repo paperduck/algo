@@ -7,13 +7,16 @@ The backtest equivalent of daemon.py.
 
 # external modules
 from datetime import datetime
+
 # internal modules
 from backtesting.backtest_broker import BacktestBroker as broker
 # strategy to test - import backtesting version, not live version
 from backtesting.strategies.demo import Demo
+from code_timer import CodeTimer as timer
 
 
 if __name__ == "__main__":
+    timer_start = timer.start()
     strat = Demo()
     start = datetime(year=2003, month=1, day=1)
     end = datetime(year=2003, month=2, day=1) # TODO: make sure this is read as UTC - pandas took it as JST?
@@ -27,4 +30,6 @@ if __name__ == "__main__":
             trade_id = broker.place_trade(opp.order, opp.order.units) # daemon normally decides units
             # notify strategy
             if trade_id: strat.trade_opened(trade_id)
+    duration = timer.stop(timer_start)
+    print('Backtest took {} seconds.'.format(duration))
     
