@@ -10,10 +10,11 @@ from datetime import datetime
 # internal modules
 from backtesting.backtest_broker import BacktestBroker as broker
 # strategy to test - import backtesting version, not live version
-from backtesting.strategies.demo import Demo as strat
+from backtesting.strategies.demo import Demo
 
 
 if __name__ == "__main__":
+    strat = Demo()
     start = datetime(year=2003, month=1, day=1)
     end = datetime(year=2003, month=2, day=1) # TODO: make sure this is read as UTC - pandas took it as JST?
     #files = {4:'csv/USDJPY.txt', 5:'csv/USDCAD.txt'}
