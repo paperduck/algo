@@ -1,7 +1,7 @@
 """
 Take a CSV with candlestick data and convert it to a standard format.
 Standard format of columns:
-    t       Microseconds since epoch
+    t       pandas datetime?
     ob      Open Bid
     oa      Open Ask
     hb      High Bid
@@ -11,15 +11,18 @@ Standard format of columns:
     cb      Close Bid
     ca      Close Ask
     v       Volume
+
+https://www.epochconverter.com/   microseconds to current date
+
+
 """
 
-from datetime import datetime
+from   datetime import datetime
 import pandas as pd
 import os
 
 def pi(path, start, end):
     """ For CSV files from Pi Trading.
-
     Only one OHLC, so duplicate prices to get bid/ask.
     Spread will always be 0.
     Input:
@@ -27,66 +30,38 @@ def pi(path, start, end):
         start, end: datetime
     Returns: DF with standard columns (see above)
     """
+    print('    Reading CSV ({}) from {} to {}'.format(path, start, end))
+    # Pull one row every x rows and see if it's after start or end.
+    # Read the chunks within those bounds, then trim head and tail exactly.
     cols = ["Date","Time","Open","High","Low","Close","Volume"]
-    print('Reading in CSV ({})...'.format(path))
-    
-    """
-    Pull one row every x rows and see if it's after start.
-    If so, use i-1 as start. If not found, use i as start.
-    Keep going from there to find end as well.
-    """
-    chunk_factor = 500
-    chunk_size  = int(os.path.getsize(path) / 500)
-    i           = 0
-    start_i     = None # how many chunks to skip
-    end_i       = None # 
-    df_test     = pd.read_csv(path, header=0, dtype='str', skiprows=(chunk_size * i), nrows=1)
-    print('    Seeking start ({}) and end ({})'.format(start, end), end='')
-    progress = 0
-    while len(df_test) > 0: # until end reached
-        #print(progress); progress += 1
-        dt = datetime.strptime(df_test.at[0, 'Date'] + df_test.at[0, 'Time'], '%m/%d/%Y%H%M')
-        if start_i == None and dt > start: # passed start, so use i-1
-            start_i = i - 1
-        if dt > end: # passed end, so use i-1
-            end_i = i - 1
-            break            
-        i += 1
-        df_test = pd.read_csv(path, header=None, names=cols, dtype='str', skiprows=(chunk_size * i), nrows=1)
-    print()
-    # Check if CSV ended before end. Likely due to too large chunk size.
-    if end_i == None:
-        print('\n    csv_parse pi: End of CSV reached before finding end ({}). Path:\n{}\n'.format(end, path))
-        start_i = 0
-        end_i = chunk_factor + 1
-    # Check if CSV starts after start
-    if start_i and start_i < 0:
-        print('\n    csv_parse pi: Start index is negative for start({}). Path:\n{}\n'.format(start, path))
-        print('    dt = '.format(dt))
+    reader      = pd.read_csv(path, dtype='str', iterator=True)
+    chunk_size  = 1000
+    i = 0
+    start_i = None
+    end_i = None
+    df_row = reader.get_chunk(chunk_size)
+    dt = datetime.strptime( df_row.iat[0,0] + df_row.iat[0,1], '%m/%d/%Y%H%M' )
+    while dt < end:
+        try: 
+            #print('.', end='', flush=True)
+            if not start_i and dt > start: # passed start
+                start_i = i
+            i += 1
+            df_row = reader.get_chunk(chunk_size)
+            dt = datetime.strptime( df_row.iat[0,0] + df_row.iat[0,1], '%m/%d/%Y%H%M' )
+        except StopIteration:
+            break
+    end_i = i
+    if not start_i: #
+        start_i = i-1
+    elif start_i <= 0: # should never happen
         raise Exception
-    # Sanity check: If end was found, start should have been found too.
-    if start_i == None and end_i:
-        print('\n    csv_parse pi: Found end ({}) but not start ({}). Path:\n{}\n'.format(end, start, path))
-        raise Exception
-    print('    Located start and end rows. Reading into memory...')
-    ret = pd.read_csv(
-        path,
-        header=None,
-        names=cols,
-        dtype='str',
-        skiprows=(start_i * chunk_size),
-        nrows=(((end_i - start_i) + 1) * chunk_size)
-    )
-    # If the headers were read in, drop that row.
-    if ret.iat[0, 0] == 'Date':
-        ret.drop(0, inplace=True)
-    print('Parsing date & time...')
-    try:
-        ret['t'] = pd.to_datetime(ret.Date.str.cat(ret.Time), format='%m/%d/%Y%H%M')
-    except Exception:
-        import pdb; pdb.set_trace() 
+    skip_rows = start_i * chunk_size
+    if start_i == 0: skip_rows += 1 # pidata CSV has header row
+    ret = pd.read_csv(path, header=0, names=cols, dtype='str', skiprows=skip_rows,
+        nrows=((end_i - start_i) * chunk_size) )
+    ret['t']    = pd.to_datetime(ret.Date.str.cat(ret.Time), format='%m/%d/%Y%H%M')
     #ret.set_index(keys='t', drop=False, inplace=True) # use time as index
-    print('Duplicating rest of columns...')
     ret['ob']   = ret.Open.astype('float')
     ret['oa']   = ret.Open.astype('float')
     ret['hb']   = ret.High.astype('float')
@@ -96,15 +71,70 @@ def pi(path, start, end):
     ret['cb']   = ret.Close.astype('float')
     ret['ca']   = ret.Close.astype('float')
     ret['v']    = ret.Volume.astype('int')
-    print('dropping columns...')
     ret = ret.drop(cols, axis=1)
-    print('cols dropped.')
-
     # trim start & end dates - TODO trim during inital load
-    print('trimming off pre-start...')
     ret = ret.loc[ret['t'] > start]
-    print('trimming post-end...')
     ret = ret.loc[ret['t'] < end]
-    print('Finished parsing CSV.')
+    print('    Finished reading CSV')
+    if len(ret) < 1:
+        print('    ERROR: DF is empty after trimming for path ' + path + '\n' +
+            '        from ' + str(start) + '\n' +
+            '        to   ' + str(end) + '\n' +
+            '\n     Is the date period within the CSV?' )
+        raise Exception
     return ret
 
+
+def five_second(path, start, end):
+    """
+    Input:
+        path:       string
+        start, end: datetime
+    Returns: DF with standard columns (see above)
+    """
+    print('    Beginning coarse search in 5s CSV ({}) from {} to {}'.format(path, start, end))
+    cols        = ['time_micro', 'open_bid', 'open_ask', 'high_bid', 'high_ask', 'low_bid', 'low_ask', 'close_bid', 'close_ask', 'vol']
+    reader      = pd.read_csv(path, dtype='str', iterator=True)
+    chunk_size  = 10000
+    i           = 0
+    start_i     = None
+    end_i       = None
+    df_row      = reader.get_chunk(chunk_size)
+    #dt          = datetime.strptime( df_row.iat[0,0] + df_row.iat[0,1], '%m/%d/%Y%H%M' )
+    dt          = pd.Timestamp.utcfromtimestamp( int(int(df_row.iat[0,0])/1000000) )
+    while dt < end:
+        try: 
+            if not start_i and dt > start: # passed start
+                start_i = i
+            i += 1
+            df_row = reader.get_chunk(chunk_size)
+            #dt = datetime.strptime( df_row.iat[0,0] + df_row.iat[0,1], '%m/%d/%Y%H%M' )
+            dt = pd.Timestamp.utcfromtimestamp( int(int(df_row.iat[0,0]) / 1000000) )
+        except StopIteration:
+            break
+    end_i = i
+    if not start_i: #
+        start_i = i-1
+    elif start_i <= 0: # should never happen
+        raise Exception
+    skip_rows = start_i * chunk_size
+    if start_i == 0: skip_rows += 1 # pidata CSV has header row
+    ret = pd.read_csv(path, header=0, names=cols, dtype='str', skiprows=skip_rows,
+        nrows=((end_i - start_i) * chunk_size) )
+    ret['t']    = pd.to_numeric(ret.time_micro).floordiv(1000000).map(pd.Timestamp.utcfromtimestamp, na_action='ignore')
+    ret['ob']   = ret.open_bid.astype('float')
+    ret['oa']   = ret.open_ask.astype('float')
+    ret['hb']   = ret.high_bid.astype('float')
+    ret['ha']   = ret.high_ask.astype('float')
+    ret['lb']   = ret.low_bid.astype('float')
+    ret['la']   = ret.low_ask.astype('float')
+    ret['cb']   = ret.close_bid.astype('float')
+    ret['ca']   = ret.close_ask.astype('float')
+    ret['v']    = ret.vol.astype('int')
+    ret         = ret.drop(cols, axis=1)
+
+    # trim start & end dates
+    ret = ret.loc[ret['t'] > start]
+    ret = ret.loc[ret['t'] < end]
+    print('    Finished reading CSV')
+    return ret

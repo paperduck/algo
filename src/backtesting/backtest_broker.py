@@ -98,11 +98,11 @@ class BacktestBroker():
             if not oldest or cls.prices[instr_id]['buffer']['t'] < cls.prices[oldest]['buffer']['t']:
                 oldest = instr_id
         cls.prices[oldest]['active'] = cls.prices[oldest]['buffer']
-        # show status
+        """# show status
         msg = ''
         for instr_id in cls.prices:
             msg = msg + '{} {}  '.format(instr_id, cls.prices[oldest]['active']['t'].to_pydatetime())
-        #print(msg, end='\r')
+        print(msg, end='\r')"""
         try:
             # get next row
             cls.prices[oldest]['buffer'] = next(cls.files[oldest]['data'])[1]
