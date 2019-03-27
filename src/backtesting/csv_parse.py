@@ -13,15 +13,13 @@ Standard format of columns:
     v       Volume
 
 https://www.epochconverter.com/   microseconds to current date
-
-
 """
-
+from   code_timer import CodeTimer
 from   datetime import datetime
 import pandas as pd
 import os
 
-def pi(path, start, end):
+def pi(path, start, end, chunk_size=20000):
     """ For CSV files from Pi Trading.
     Only one OHLC, so duplicate prices to get bid/ask.
     Spread will always be 0.
@@ -30,12 +28,12 @@ def pi(path, start, end):
         start, end: datetime
     Returns: DF with standard columns (see above)
     """
-    print('    Reading CSV ({}) from {} to {}'.format(path, start, end))
+    timer_search = CodeTimer.start()
+    print('Loading ({})  {} to {} (cs={})'.format(path, start, end, chunk_size))
     # Pull one row every x rows and see if it's after start or end.
     # Read the chunks within those bounds, then trim head and tail exactly.
     cols = ["Date","Time","Open","High","Low","Close","Volume"]
     reader      = pd.read_csv(path, dtype='str', iterator=True)
-    chunk_size  = 1000
     i = 0
     start_i = None
     end_i = None
@@ -43,25 +41,37 @@ def pi(path, start, end):
     dt = datetime.strptime( df_row.iat[0,0] + df_row.iat[0,1], '%m/%d/%Y%H%M' )
     while dt < end:
         try: 
-            #print('.', end='', flush=True)
             if not start_i and dt > start: # passed start
-                start_i = i
+                start_i = i-1
             i += 1
             df_row = reader.get_chunk(chunk_size)
             dt = datetime.strptime( df_row.iat[0,0] + df_row.iat[0,1], '%m/%d/%Y%H%M' )
         except StopIteration:
             break
     end_i = i
+    duration_search = CodeTimer.stop(timer_search)
     if not start_i: #
-        start_i = i-1
+        start_i = i-2
     elif start_i <= 0: # should never happen
         raise Exception
     skip_rows = start_i * chunk_size
     if start_i == 0: skip_rows += 1 # pidata CSV has header row
+    timer_read = CodeTimer.start()
     ret = pd.read_csv(path, header=0, names=cols, dtype='str', skiprows=skip_rows,
         nrows=((end_i - start_i) * chunk_size) )
+    duration_read = CodeTimer.stop(timer_read)
+
+    timer_format = CodeTimer.start()
+    # trim & format
     ret['t']    = pd.to_datetime(ret.Date.str.cat(ret.Time), format='%m/%d/%Y%H%M')
-    #ret.set_index(keys='t', drop=False, inplace=True) # use time as index
+    ret = ret.loc[ret['t'] > start]
+    ret = ret.loc[ret['t'] < end]
+    if len(ret) < 1:
+        print('    ERROR: DF is empty after trimming for path ' + path + '\n' +
+            '        from ' + str(start) + '\n' +
+            '        to   ' + str(end) + '\n' +
+            '\n     Is the date period within the CSV?' )
+        raise Exception
     ret['ob']   = ret.Open.astype('float')
     ret['oa']   = ret.Open.astype('float')
     ret['hb']   = ret.High.astype('float')
@@ -72,56 +82,62 @@ def pi(path, start, end):
     ret['ca']   = ret.Close.astype('float')
     ret['v']    = ret.Volume.astype('int')
     ret = ret.drop(cols, axis=1)
-    # trim start & end dates - TODO trim during inital load
-    ret = ret.loc[ret['t'] > start]
-    ret = ret.loc[ret['t'] < end]
-    print('    Finished reading CSV')
-    if len(ret) < 1:
-        print('    ERROR: DF is empty after trimming for path ' + path + '\n' +
-            '        from ' + str(start) + '\n' +
-            '        to   ' + str(end) + '\n' +
-            '\n     Is the date period within the CSV?' )
-        raise Exception
+    duration_format = CodeTimer.stop(timer_format)
+
+    #print('{}    {}    {}    {}' # testing
+    #`   .format(duration_search, duration_read, duration_format, len(ret)))
     return ret
 
 
-def five_second(path, start, end):
+def five_second(path, start, end, chunk_size=20000):
     """
     Input:
         path:       string
         start, end: datetime
     Returns: DF with standard columns (see above)
     """
-    print('    Beginning coarse search in 5s CSV ({}) from {} to {}'.format(path, start, end))
+    timer_search = CodeTimer.start()
+    print('Loading ({})  {} to {} (cs={})'.format(path, start, end, chunk_size))
     cols        = ['time_micro', 'open_bid', 'open_ask', 'high_bid', 'high_ask', 'low_bid', 'low_ask', 'close_bid', 'close_ask', 'vol']
     reader      = pd.read_csv(path, dtype='str', iterator=True)
-    chunk_size  = 10000
     i           = 0
     start_i     = None
     end_i       = None
     df_row      = reader.get_chunk(chunk_size)
-    #dt          = datetime.strptime( df_row.iat[0,0] + df_row.iat[0,1], '%m/%d/%Y%H%M' )
     dt          = pd.Timestamp.utcfromtimestamp( int(int(df_row.iat[0,0])/1000000) )
     while dt < end:
         try: 
             if not start_i and dt > start: # passed start
-                start_i = i
+                start_i = i-1
             i += 1
             df_row = reader.get_chunk(chunk_size)
             #dt = datetime.strptime( df_row.iat[0,0] + df_row.iat[0,1], '%m/%d/%Y%H%M' )
             dt = pd.Timestamp.utcfromtimestamp( int(int(df_row.iat[0,0]) / 1000000) )
         except StopIteration:
             break
+    duration_search = CodeTimer.stop(timer_search)
     end_i = i
     if not start_i: #
-        start_i = i-1
+        start_i = i-2
     elif start_i <= 0: # should never happen
         raise Exception
     skip_rows = start_i * chunk_size
-    if start_i == 0: skip_rows += 1 # pidata CSV has header row
+    timer_read = CodeTimer.start()
     ret = pd.read_csv(path, header=0, names=cols, dtype='str', skiprows=skip_rows,
         nrows=((end_i - start_i) * chunk_size) )
+    duration_read = CodeTimer.stop(timer_read)
+
+    # trim and format
+    timer_format = CodeTimer.start()
     ret['t']    = pd.to_numeric(ret.time_micro).floordiv(1000000).map(pd.Timestamp.utcfromtimestamp, na_action='ignore')
+    ret = ret.loc[ret['t'] > start]
+    ret = ret.loc[ret['t'] < end]
+    if len(ret) < 1:
+        print('    ERROR: DF is empty after trimming for path ' + path + '\n' +
+            '        from ' + str(start) + '\n' +
+            '        to   ' + str(end) + '\n' +
+            '\n     Is the date period within the CSV?' )
+        raise Exception
     ret['ob']   = ret.open_bid.astype('float')
     ret['oa']   = ret.open_ask.astype('float')
     ret['hb']   = ret.high_bid.astype('float')
@@ -132,9 +148,8 @@ def five_second(path, start, end):
     ret['ca']   = ret.close_ask.astype('float')
     ret['v']    = ret.vol.astype('int')
     ret         = ret.drop(cols, axis=1)
+    duration_format = CodeTimer.stop(timer_format)
 
-    # trim start & end dates
-    ret = ret.loc[ret['t'] > start]
-    ret = ret.loc[ret['t'] < end]
-    print('    Finished reading CSV')
+    #print('{}    {}    {}    {}' # testing
+    #    .format(duration_search, duration_read, duration_format, len(ret)))
     return ret
