@@ -1,3 +1,6 @@
+日本語図表：[こちら](docs/platform_diagram_jp.png)
+
+
 # Algorithmic Trading Platform
 
 ## What is this?
